@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --navy: #053867;
+  --royal: #253985;
+  --gold: #F7BA23;
+  --lightgold: #F3CE49;
+}
+
+* { font-family: 'Poppins', sans-serif; }

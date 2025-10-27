@@ -1,0 +1,166 @@
+import React, { useEffect, useState } from 'react';
+import { api } from '../lib/api.js';
+import { useAuth } from '../context/AuthContext.jsx';
+
+export default function Courses() {
+  const { user } = useAuth();
+  const [list, setList] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [form, setForm] = useState({ name:'', category:'', duration:'', regularFee:0, discountFee:0, teacher:'', details:'', status:'Active' });
+  const [err, setErr] = useState(null);
+  const [ok, setOk] = useState(null);
+
+  const canEdit = user?.role === 'Admin'; // SuperAdmin view-only
+
+  const load = async () => {
+    try {
+      const { courses } = await api.listCourses();
+      setList(courses);
+    } catch (e) { setErr(e?.message || 'Failed to load'); }
+  };
+  useEffect(() => { load(); }, []);
+
+  const startAdd = () => {
+    setEditId(null);
+    setForm({ name:'', category:'', duration:'', regularFee:0, discountFee:0, teacher:'', details:'', status:'Active' });
+    setOpen(true);
+  };
+
+  const startEdit = (c) => {
+    setEditId(c._id);
+    setForm({
+      name:c.name, category:c.category, duration:c.duration, regularFee:c.regularFee, discountFee:c.discountFee,
+      teacher:c.teacher, details:c.details, status:c.status
+    });
+    setOpen(true);
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setErr(null); setOk(null);
+    try {
+      if (editId) {
+        await api.updateCourse(editId, { ...form });
+        setOk('Course updated');
+      } else {
+        await api.createCourse({ ...form });
+        setOk('Course created');
+      }
+      setOpen(false);
+      load();
+    } catch (e) { setErr(e?.message || 'Failed'); }
+  };
+
+  const remove = async (id) => {
+    if (!confirm('Delete this course?')) return;
+    try {
+      await api.deleteCourse(id);
+      setOk('Course deleted');
+      load();
+    } catch (e) { setErr(e?.message || 'Delete failed'); }
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <h1 className="text-2xl font-bold text-navy">Courses</h1>
+        {canEdit && <button onClick={startAdd} className="bg-gold text-navy rounded-xl px-4 py-2 font-semibold hover:bg-lightgold">+ Add Course</button>}
+      </div>
+
+      {ok && <div className="mb-2 text-green-700">{ok}</div>}
+      {err && <div className="mb-2 text-red-600">{err}</div>}
+
+      <div className="bg-white rounded-2xl shadow-soft overflow-auto">
+        <table className="min-w-full text-sm">
+          <thead className="bg-[#f3f6ff] text-royal">
+            <tr>
+              <th className="text-left p-3">Course ID</th>
+              <th className="text-left p-3">Name</th>
+              <th className="text-left p-3">Category</th>
+              <th className="text-left p-3">Duration</th>
+              <th className="text-left p-3">Regular Fee</th>
+              <th className="text-left p-3">Discount Fee</th>
+              <th className="text-left p-3">Teacher</th>
+              <th className="text-left p-3">Status</th>
+              {canEdit && <th className="text-left p-3">Action</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {list.map(c => (
+              <tr key={c._id} className="border-t">
+                <td className="p-3">{c.courseId}</td>
+                <td className="p-3 font-semibold text-navy">{c.name}</td>
+                <td className="p-3">{c.category || '-'}</td>
+                <td className="p-3">{c.duration || '-'}</td>
+                <td className="p-3">৳ {c.regularFee}</td>
+                <td className="p-3">৳ {c.discountFee}</td>
+                <td className="p-3">{c.teacher || '-'}</td>
+                <td className="p-3">{c.status}</td>
+                {canEdit && (
+                  <td className="p-3">
+                    <button onClick={()=>startEdit(c)} className="px-3 py-1 rounded-lg border mr-2">Edit</button>
+                    <button onClick={()=>remove(c._id)} className="px-3 py-1 rounded-lg border hover:bg-red-50">Delete</button>
+                  </td>
+                )}
+              </tr>
+            ))}
+            {list.length === 0 && (
+              <tr><td className="p-4 text-royal/70" colSpan={canEdit ? 9 : 8}>No courses</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {open && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-4">
+          <form onSubmit={submit} className="bg-white rounded-2xl shadow-soft p-4 w-full max-w-2xl">
+            <h2 className="text-xl font-bold text-navy mb-3">{editId ? 'Edit Course' : 'Add Course'}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm text-royal mb-1">Course Name *</label>
+                <input className="w-full border rounded-xl px-3 py-2" required value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/>
+              </div>
+              <div>
+                <label className="block text-sm text-royal mb-1">Category</label>
+                <input className="w-full border rounded-xl px-3 py-2" value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))}/>
+              </div>
+              <div>
+                <label className="block text-sm text-royal mb-1">Duration</label>
+                <input className="w-full border rounded-xl px-3 py-2" value={form.duration} onChange={e=>setForm(f=>({...f,duration:e.target.value}))}/>
+              </div>
+              <div>
+                <label className="block text-sm text-royal mb-1">Regular Fee</label>
+                <input type="number" className="w-full border rounded-xl px-3 py-2" value={form.regularFee} onChange={e=>setForm(f=>({...f,regularFee:e.target.value}))}/>
+              </div>
+              <div>
+                <label className="block text-sm text-royal mb-1">Discount Fee</label>
+                <input type="number" className="w-full border rounded-xl px-3 py-2" value={form.discountFee} onChange={e=>setForm(f=>({...f,discountFee:e.target.value}))}/>
+              </div>
+              <div>
+                <label className="block text-sm text-royal mb-1">Teacher</label>
+                <input className="w-full border rounded-xl px-3 py-2" value={form.teacher} onChange={e=>setForm(f=>({...f,teacher:e.target.value}))}/>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm text-royal mb-1">Details</label>
+                <textarea rows="3" className="w-full border rounded-xl px-3 py-2" value={form.details} onChange={e=>setForm(f=>({...f,details:e.target.value}))}/>
+              </div>
+              <div>
+                <label className="block text-sm text-royal mb-1">Status</label>
+                <select className="w-full border rounded-xl px-3 py-2" value={form.status} onChange={e=>setForm(f=>({...f,status:e.target.value}))}>
+                  <option>Active</option>
+                  <option>Inactive</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button type="button" onClick={()=>setOpen(false)} className="px-4 py-2 rounded-xl border">Cancel</button>
+              {canEdit && <button className="px-4 py-2 rounded-xl bg-gold text-navy font-semibold hover:bg-lightgold">{editId ? 'Save' : 'Create'}</button>}
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
