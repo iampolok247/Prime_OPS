@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { api } from '../lib/api.js';
+import { api, fmtBDTEn } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { PlusCircle } from 'lucide-react';
 
 export default function IncomePage() {
   const { user } = useAuth();
@@ -11,6 +12,7 @@ export default function IncomePage() {
 
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState({ date: new Date().toISOString().slice(0,10), source:'Other', amount:0, note:'' });
+  const [showModal, setShowModal] = useState(false);
   const [msg, setMsg] = useState(null);
   const [err, setErr] = useState(null);
 
@@ -20,8 +22,8 @@ export default function IncomePage() {
   useEffect(() => { load(); }, []); // eslint-disable-line
 
   const add = async (e) => {
-    e.preventDefault(); setMsg(null); setErr(null);
-    try { await api.addIncome(form); setMsg('Income added'); setForm({ ...form, amount:0 }); load(); } catch (e) { setErr(e.message); }
+    e?.preventDefault?.(); setMsg(null); setErr(null);
+    try { await api.addIncome(form); setMsg('Income added'); setForm({ ...form, amount:0 }); setShowModal(false); load(); } catch (e) { setErr(e.message); }
   };
 
   return (
@@ -33,15 +35,28 @@ export default function IncomePage() {
       {err && <div className="mb-2 text-red-600">{err}</div>}
 
       {isAcc && (
-        <form onSubmit={add} className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-3 bg-white rounded-2xl shadow-soft p-3">
-          <input type="date" className="border rounded-xl px-3 py-2" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}/>
-          <input className="border rounded-xl px-3 py-2" placeholder="Source" value={form.source} onChange={e=>setForm(f=>({...f,source:e.target.value}))}/>
-          <input type="number" className="border rounded-xl px-3 py-2" placeholder="Amount" value={form.amount} onChange={e=>setForm(f=>({...f,amount:Number(e.target.value)}))}/>
-          <div className="flex gap-2">
-            <input className="border rounded-xl px-3 py-2 flex-1" placeholder="Note" value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))}/>
-            <button className="bg-gold text-navy rounded-xl px-4">Add</button>
+        <div className="mb-3">
+          <button onClick={()=>setShowModal(true)} className="flex items-center gap-2 bg-gold text-navy rounded-xl px-4 py-2"><PlusCircle className="w-5 h-5"/> Add Income</button>
+        </div>
+      )}
+
+      {showModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="absolute inset-0 bg-black opacity-30" onClick={()=>setShowModal(false)} />
+          <div className="bg-white rounded-xl p-4 z-10 w-full max-w-lg shadow-lg">
+            <h3 className="text-lg font-semibold mb-2">Add Income</h3>
+            <form onSubmit={add} className="grid grid-cols-1 gap-2">
+              <input type="date" className="border rounded-xl px-3 py-2" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}/>
+              <input className="border rounded-xl px-3 py-2" placeholder="Source" value={form.source} onChange={e=>setForm(f=>({...f,source:e.target.value}))}/>
+              <input type="number" className="border rounded-xl px-3 py-2" placeholder="Amount" value={form.amount} onChange={e=>setForm(f=>({...f,amount:Number(e.target.value)}))}/>
+              <input className="border rounded-xl px-3 py-2" placeholder="Note" value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))}/>
+              <div className="flex justify-end gap-2 mt-2">
+                <button type="button" onClick={()=>setShowModal(false)} className="px-4 py-2 rounded-xl border">Cancel</button>
+                <button className="bg-gold text-navy rounded-xl px-4 py-2">Add</button>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       )}
 
       <div className="bg-white rounded-2xl shadow-soft overflow-auto">
@@ -54,7 +69,7 @@ export default function IncomePage() {
               <tr key={r._id} className="border-t">
                 <td className="p-3">{new Date(r.date).toLocaleDateString()}</td>
                 <td className="p-3">{r.source}</td>
-                <td className="p-3">৳ {r.amount}</td>
+                <td className="p-3">{fmtBDTEn(r.amount)}</td>
                 <td className="p-3">{r.note || '-'}</td>
               </tr>
             ))}

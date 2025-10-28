@@ -29,6 +29,8 @@ import FeesApproval from './pages/FeesApproval.jsx';
 import IncomePage from './pages/Income.jsx';
 import ExpensePage from './pages/Expense.jsx';
 import AdmissionDashboard from './pages/dash/AdmissionDashboard.jsx';
+import EmployeeBank from './pages/employee/EmployeeBank.jsx';
+import EmployeeSalary from './pages/employee/EmployeeSalary.jsx';
 
 // === Recruitment pages ===
 import RecruitmentDashboard from './pages/RecruitmentDashboard.jsx';
@@ -101,6 +103,12 @@ export default function App() {
             <Route path="/accounting/fees" element={<FeesApproval />} />
             <Route path="/accounting/income" element={<IncomePage />} />
             <Route path="/accounting/expense" element={<ExpensePage />} />
+          </Route>
+
+          {/* Employee Accounts - visible to SuperAdmin, Admin and Accountant */}
+          <Route element={<RoleRoute roles={['SuperAdmin','Admin','Accountant']} />}>
+            <Route path="/employee-accounts/bank" element={<EmployeeBank />} />
+            <Route path="/employee-accounts/salary" element={<EmployeeSalary />} />
           </Route>
 
           {/* Motion Graphics */}

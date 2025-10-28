@@ -26,6 +26,16 @@ router.get('/admission', requireAuth, authorize(['Admin', 'SuperAdmin', 'Digital
 });
 
 /**
+ * Lightweight user list for dropdowns
+ * Allowed: Admin, SuperAdmin, Accountant, DigitalMarketing, Admission
+ * Returns minimal fields (id, name, designation, role)
+ */
+router.get('/list', requireAuth, authorize(['Admin', 'SuperAdmin', 'Accountant', 'DigitalMarketing', 'Admission']), async (req, res) => {
+  const users = await User.find({ isActive: true }).select('name designation role');
+  return res.json({ users });
+});
+
+/**
  * Create employee
  * Admin only — cannot create SuperAdmin
  */

@@ -26,6 +26,19 @@ export function fmtBDT(n) {
   }
 }
 
+// English formatted BDT (use Latin digits)
+export function fmtBDTEn(n) {
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'BDT',
+      maximumFractionDigits: 0
+    }).format(n || 0);
+  } catch {
+    return `৳${Number(n || 0).toLocaleString('en-US')}`;
+  }
+}
+
 export function fmtDate(d) {
   const dt = d ? new Date(d) : new Date();
   const DD = String(dt.getDate()).padStart(2, '0');
@@ -92,6 +105,11 @@ export const api = {
   async listUsers() {
     const res = await fetch(`${API_BASE}/api/users`, { credentials: 'include' });
     return handleJson(res, 'Load users failed');
+  },
+  async listUsersPublic() {
+    // lightweight list for dropdowns; backend returns { users }
+    const res = await fetch(`${API_BASE}/api/users/list`, { credentials: 'include' });
+    return handleJson(res, 'Load public users failed');
   },
   async listAdmissionUsers() {
     const res = await fetch(`${API_BASE}/api/users/admission`, { credentials: 'include' });
