@@ -49,7 +49,7 @@ export default function LeadsCenterView() {
               <th className="text-left p-3">Interested Course</th>
               <th className="text-left p-3">Source</th>
               <th className="text-left p-3">Assigned To</th>
-              {(user?.role === 'Admin' || user?.role === 'SuperAdmin') && <th className="text-left p-3">History</th>}
+              {(user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.role === 'Admission') && <th className="text-left p-3">History</th>}
             </tr>
           </thead>
           <tbody>
@@ -64,7 +64,7 @@ export default function LeadsCenterView() {
                 <td className="p-3">{l.interestedCourse || '-'}</td>
                 <td className="p-3">{l.source}</td>
                 <td className="p-3">{l.assignedTo ? `${l.assignedTo.name} (${l.assignedTo.role})` : '-'}</td>
-                {(user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
+                {(user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.role === 'Admission') && (
                   <td className="p-3">
                     <button onClick={()=>{ setHistLead(l); setShowHistory(true); }} className="px-3 py-1 rounded-xl border hover:bg-[#f3f6ff]">History</button>
                   </td>
@@ -84,8 +84,8 @@ export default function LeadsCenterView() {
             <h3 className="text-lg font-semibold mb-2">Lead History — {histLead.leadId}</h3>
             <div className="grid grid-cols-1 gap-2">
               <div>Assigned At: <strong>{fmtDT(histLead.assignedAt || histLead.updatedAt)}</strong></div>
-              <div>Counseling At: <strong>{fmtDT(histLead.counselingAt)}</strong></div>
-              <div>Admitted At: <strong>{fmtDT(histLead.admittedAt)}</strong></div>
+              <div>Counseling At: <strong>{fmtDT(histLead.counselingAt || histLead.updatedAt)}</strong></div>
+              <div>Admitted At: <strong>{fmtDT(histLead.admittedAt || histLead.updatedAt)}</strong></div>
               <div>Follow-ups ({(histLead.followUps||[]).length}):</div>
               <div className="pl-2">
                 {(histLead.followUps||[]).length === 0 ? <div className="text-royal/70">No follow-ups</div> : (
