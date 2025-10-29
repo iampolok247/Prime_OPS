@@ -20,11 +20,11 @@ function LineChartDualSmall({ data }){
 }
 
 const STATUSES = [
-  { key:'assigned', label:'Assigned' },
-  { key:'counseling', label:'Counseling' },
-  { key:'follow-up', label:'In Follow-Up' },
-  { key:'admitted', label:'Admitted' },
-  { key:'not-admitted', label:'Not Admitted' },
+  { key:'Assigned', label:'Assigned' },
+  { key:'Counseling', label:'Counseling' },
+  { key:'In Follow Up', label:'In Follow-Up' },
+  { key:'Admitted', label:'Admitted' },
+  { key:'Not Admitted', label:'Not Admitted' },
 ];
 
 export default function AdmissionDashboard() {
