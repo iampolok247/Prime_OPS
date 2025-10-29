@@ -11,6 +11,7 @@ export default function LeadsCenterView() {
   const [err, setErr] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
   const [histLead, setHistLead] = useState(null);
+  const [histLoading, setHistLoading] = useState(false);
 
   const load = async () => {
     try {
@@ -66,16 +67,21 @@ export default function LeadsCenterView() {
                 <td className="p-3">{l.assignedTo ? `${l.assignedTo.name} (${l.assignedTo.role})` : '-'}</td>
                 {(user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.role === 'Admission') && (
                   <td className="p-3">
-                    <button onClick={async ()=>{
+                    <button disabled={histLoading} onClick={async ()=>{
                       try {
                         setErr(null);
+                        setHistLoading(true);
                         const res = await api.getLeadHistory(l._id);
                         setHistLead(res.lead || res);
                         setShowHistory(true);
                       } catch (e) {
                         setErr(e.message);
+                      } finally {
+                        setHistLoading(false);
                       }
-                    }} className="px-3 py-1 rounded-xl border hover:bg-[#f3f6ff]">History</button>
+                    }} className="px-3 py-1 rounded-xl border hover:bg-[#f3f6ff]">
+                      {histLoading ? 'Loading…' : 'History'}
+                    </button>
                   </td>
                 )}
               </tr>
