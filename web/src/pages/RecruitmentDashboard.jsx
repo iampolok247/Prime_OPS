@@ -1,39 +1,112 @@
 // web/src/pages/RecruitmentDashboard.jsx
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { api, fmtBDT } from "../lib/api";
 
 export default function RecruitmentDashboard() {
-  const [cards, setCards] = useState({ totalRecruitment: 0, pendingCandidate: 0, activeJobPosition: 0, totalEmployer: 0 });
-  const [series, setSeries] = useState([]);
+  const [candidates, setCandidates] = useState([]);
+  const [jobs, setJobs] = useState([]);
+  const [employers, setEmployers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
+  
   // filters
   const [period, setPeriod] = useState('monthly');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
 
   useEffect(() => {
-    (async () => {
-      // TODO: server may accept date params in future; for now we fetch and rely on server-side defaults
-      const data = await api.getRecruitmentStats();
-      setCards(data.cards);
-      setSeries(data.series);
-    })();
-  }, [period, from, to]);
+    loadAll();
+  }, []);
+
+  async function loadAll() {
+    setLoading(true);
+    try {
+      const [candResp, jobsResp, empResp] = await Promise.all([
+        api.listCandidates().catch(() => ({ candidates: [] })),
+        api.listJobs().catch(() => ({ jobs: [] })),
+        api.listEmployers().catch(() => ({ employers: [] }))
+      ]);
+      setCandidates(candResp?.candidates || candResp || []);
+      setJobs(jobsResp?.jobs || jobsResp || []);
+      setEmployers(empResp?.employers || empResp || []);
+      setErr('');
+    } catch (e) {
+      setErr(e.message || 'Failed to load');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const parseRange = () => {
+    if (period === 'lifetime') return { from: null, to: null };
+    if (period === 'custom') {
+      if (from && to) {
+        const f = new Date(from);
+        f.setHours(0, 0, 0, 0);
+        const t = new Date(to);
+        t.setHours(23, 59, 59, 999);
+        return { from: f, to: t };
+      }
+      return { from: null, to: null };
+    }
+    const now = new Date();
+    let f = new Date();
+    if (period === 'daily') { f.setDate(now.getDate() - 1); }
+    else if (period === 'weekly') { f.setDate(now.getDate() - 7); }
+    else if (period === 'monthly') { f.setMonth(now.getMonth() - 1); }
+    else if (period === 'yearly') { f.setFullYear(now.getFullYear() - 1); }
+    return { from: f, to: now };
+  };
+
+  const inRange = (d, fromD, toD) => {
+    if (!d) return false;
+    const t = new Date(d).getTime();
+    if (fromD && t < fromD.getTime()) return false;
+    if (toD && t > toD.getTime()) return false;
+    return true;
+  };
+
+  const { from: rangeFrom, to: rangeTo } = parseRange();
+
+  const metrics = React.useMemo(() => {
+    const fromD = rangeFrom ? new Date(rangeFrom) : null;
+    const toD = rangeTo ? new Date(rangeTo) : null;
+
+    const candInRange = candidates.filter(c => inRange(c.createdAt, fromD, toD) || (!fromD && !toD));
+    const jobsInRange = jobs.filter(j => inRange(j.createdAt, fromD, toD) || (!fromD && !toD));
+
+    const totalRecruitment = candInRange.length;
+    const pendingCandidate = candInRange.filter(c => c.status === 'pending').length;
+    const activeJobPosition = jobsInRange.filter(j => j.status === 'active').length;
+    const totalEmployer = employers.length; // Employers don't have date filter
+
+    // Compute series for last 6 months from range end
+    const series = [];
+    if (toD) {
+      for (let i = 5; i >= 0; i--) {
+        const monthDate = new Date(toD);
+        monthDate.setMonth(monthDate.getMonth() - i);
+        const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+        const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59, 999);
+        
+        const monthLabel = monthStart.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+        const candidatesCount = candidates.filter(c => inRange(c.createdAt, monthStart, monthEnd)).length;
+        const recruitedCount = candidates.filter(c => c.status === 'recruited' && inRange(c.recruitedAt || c.updatedAt, monthStart, monthEnd)).length;
+        
+        series.push({ month: monthLabel, candidates: candidatesCount, recruited: recruitedCount });
+      }
+    }
+
+    return { totalRecruitment, pendingCandidate, activeJobPosition, totalEmployer, series };
+  }, [candidates, jobs, employers, rangeFrom, rangeTo]);
 
   return (
     <div className="p-4 md:p-6 space-y-6 font-[Poppins]">
       <h1 className="text-2xl md:text-3xl font-semibold text-[#053867]">Recruitment Dashboard</h1>
+      {err && <div className="text-red-600">{err}</div>}
+      
       <div className="flex items-center gap-3">
-        <select value={period} onChange={e=>{
-          const p = e.target.value; setPeriod(p);
-          if (p !== 'custom') {
-            const now = new Date(); let f = new Date();
-            if (p === 'daily') f.setDate(now.getDate()-1);
-            else if (p === 'weekly') f.setDate(now.getDate()-7);
-            else if (p === 'monthly') f.setMonth(now.getMonth()-1);
-            else if (p === 'yearly') f.setFullYear(now.getFullYear()-1);
-            setFrom(f.toISOString().slice(0,10)); setTo(now.toISOString().slice(0,10));
-          }
-        }} className="border rounded-xl px-3 py-2">
+        <select value={period} onChange={e => setPeriod(e.target.value)} className="border rounded-xl px-3 py-2">
           <option value="daily">Daily</option>
           <option value="weekly">Weekly</option>
           <option value="monthly">Monthly</option>
@@ -51,10 +124,10 @@ export default function RecruitmentDashboard() {
 
       {/* Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card title="Total Recruitment" value={cards.totalRecruitment} />
-        <Card title="Pending Candidate" value={cards.pendingCandidate} />
-        <Card title="Active Job Position" value={cards.activeJobPosition} />
-        <Card title="Total Employer" value={cards.totalEmployer} />
+        <Card title="Total Recruitment" value={metrics.totalRecruitment} />
+        <Card title="Pending Candidate" value={metrics.pendingCandidate} />
+        <Card title="Active Job Position" value={metrics.activeJobPosition} />
+        <Card title="Total Employer" value={metrics.totalEmployer} />
       </div>
 
       {/* Series (simple table placeholder; you can later swap with Recharts) */}
@@ -70,14 +143,14 @@ export default function RecruitmentDashboard() {
               </tr>
             </thead>
             <tbody>
-              {series.map((r) => (
+              {metrics.series.map((r) => (
                 <tr key={r.month} className="border-t">
                   <td className="py-2">{r.month}</td>
                   <td className="py-2">{r.candidates}</td>
                   <td className="py-2">{r.recruited}</td>
                 </tr>
               ))}
-              {series.length === 0 && (
+              {metrics.series.length === 0 && (
                 <tr><td className="py-2 text-gray-500" colSpan={3}>No data</td></tr>
               )}
             </tbody>

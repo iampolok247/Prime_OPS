@@ -2,42 +2,85 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 
 export default function MGDashboard() {
-  const [stats, setStats] = useState({ total:0, done:0, inProgress:0, queued:0 });
+  const [works, setWorks] = useState([]);
   const [err, setErr] = useState('');
+  const [loading, setLoading] = useState(false);
+  
   // filters
   const [period, setPeriod] = useState('monthly');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
 
   useEffect(() => {
-    (async () => {
-      try { setStats(await api.mgStats()); }
-      catch (e) { setErr(e.message || 'Failed to load'); }
-    })();
+    loadAll();
   }, []);
-  
-  useEffect(() => {
-    (async () => {
-      try { setStats(await api.mgStats()); }
-      catch (e) { setErr(e.message || 'Failed to load'); }
-    })();
-  }, [period, from, to]);
+
+  async function loadAll() {
+    setLoading(true);
+    try {
+      const resp = await api.listMGWorks().catch(() => ({ works: [] }));
+      const allWorks = resp?.works || resp || [];
+      setWorks(Array.isArray(allWorks) ? allWorks : []);
+      setErr('');
+    } catch (e) {
+      setErr(e.message || 'Failed to load');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const parseRange = () => {
+    if (period === 'lifetime') return { from: null, to: null };
+    if (period === 'custom') {
+      if (from && to) {
+        const f = new Date(from);
+        f.setHours(0, 0, 0, 0);
+        const t = new Date(to);
+        t.setHours(23, 59, 59, 999);
+        return { from: f, to: t };
+      }
+      return { from: null, to: null };
+    }
+    const now = new Date();
+    let f = new Date();
+    if (period === 'daily') { f.setDate(now.getDate() - 1); }
+    else if (period === 'weekly') { f.setDate(now.getDate() - 7); }
+    else if (period === 'monthly') { f.setMonth(now.getMonth() - 1); }
+    else if (period === 'yearly') { f.setFullYear(now.getFullYear() - 1); }
+    return { from: f, to: now };
+  };
+
+  const inRange = (d, fromD, toD) => {
+    if (!d) return false;
+    const t = new Date(d).getTime();
+    if (fromD && t < fromD.getTime()) return false;
+    if (toD && t > toD.getTime()) return false;
+    return true;
+  };
+
+  const { from: rangeFrom, to: rangeTo } = parseRange();
+
+  const stats = React.useMemo(() => {
+    const fromD = rangeFrom ? new Date(rangeFrom) : null;
+    const toD = rangeTo ? new Date(rangeTo) : null;
+
+    const worksInRange = works.filter(w => inRange(w.createdAt, fromD, toD) || (!fromD && !toD));
+
+    return {
+      total: worksInRange.length,
+      queued: worksInRange.filter(w => w.status === 'queued').length,
+      inProgress: worksInRange.filter(w => w.status === 'in-progress').length,
+      done: worksInRange.filter(w => w.status === 'done').length
+    };
+  }, [works, rangeFrom, rangeTo]);
 
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold text-navy">Motion Graphics — Dashboard</h1>
+      {err && <div className="text-red-600">{err}</div>}
+      
       <div className="flex items-center gap-3">
-        <select value={period} onChange={e=>{
-          const p = e.target.value; setPeriod(p);
-          if (p !== 'custom') {
-            const now = new Date(); let f = new Date();
-            if (p === 'daily') f.setDate(now.getDate()-1);
-            else if (p === 'weekly') f.setDate(now.getDate()-7);
-            else if (p === 'monthly') f.setMonth(now.getMonth()-1);
-            else if (p === 'yearly') f.setFullYear(now.getFullYear()-1);
-            setFrom(f.toISOString().slice(0,10)); setTo(now.toISOString().slice(0,10));
-          }
-        }} className="border rounded-xl px-3 py-2">
+        <select value={period} onChange={e => setPeriod(e.target.value)} className="border rounded-xl px-3 py-2">
           <option value="daily">Daily</option>
           <option value="weekly">Weekly</option>
           <option value="monthly">Monthly</option>
@@ -52,7 +95,7 @@ export default function MGDashboard() {
           </div>
         )}
       </div>
-      {err && <div className="text-red-600">{err}</div>}
+      
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
           { k:'total', label:'Total' },
