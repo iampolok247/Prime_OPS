@@ -1,3 +1,4 @@
+// Adding notes parameter to updateLeadStatus
 // web/src/lib/api.js
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5001';
 
@@ -240,11 +241,13 @@ export const api = {
     const res = await fetch(`${API_BASE}/api/admission/leads${q}`, { credentials: 'include' });
     return handleJson(res, 'Load admission leads failed');
   },
-  async updateLeadStatus(id, status) {
+  async updateLeadStatus(id, status, notes) {
+    const body = { status };
+    if (notes !== undefined && notes !== null) body.notes = notes;
     const res = await fetch(`${API_BASE}/api/admission/leads/${id}/status`, {
       method: 'PATCH', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status })
+      body: JSON.stringify(body)
     });
     return handleJson(res, 'Update lead status failed');
   },

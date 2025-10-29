@@ -50,6 +50,9 @@ function PipelineTable({ status, canAct }) {
   const [rows, setRows] = useState([]);
   const [msg, setMsg] = useState(null);
   const [err, setErr] = useState(null);
+  const [showFollowModal, setShowFollowModal] = useState(false);
+  const [followNote, setFollowNote] = useState('');
+  const [followTarget, setFollowTarget] = useState(null);
 
   const load = async () => {
     try {
@@ -61,11 +64,13 @@ function PipelineTable({ status, canAct }) {
 
   useEffect(() => { load(); }, [status]); // eslint-disable-line
 
-  const act = async (id, action) => {
+  const act = async (id, action, notes) => {
     setMsg(null); setErr(null);
     try {
-      await api.updateLeadStatus(id, action);
+      await api.updateLeadStatus(id, action, notes);
       setMsg(`Status updated to ${action}`);
+      setShowFollowModal(false);
+      setFollowNote(''); setFollowTarget(null);
       load();
     } catch (e) { setErr(e.message); }
   };
@@ -79,7 +84,7 @@ function PipelineTable({ status, canAct }) {
       return (
         <div className="flex gap-2">
           <ActionBtn onClick={()=>act(row._id,'Admitted')}>Admitted</ActionBtn>
-          <ActionBtn onClick={()=>act(row._id,'In Follow Up')}>Follow-Up</ActionBtn>
+          <ActionBtn onClick={()=>{ setFollowTarget(row._id); setFollowNote(''); setShowFollowModal(true); }}>Follow-Up</ActionBtn>
           <ActionBtn variant="danger" onClick={()=>act(row._id,'Not Admitted')}>Not Admitted</ActionBtn>
         </div>
       );
@@ -99,6 +104,19 @@ function PipelineTable({ status, canAct }) {
     <div>
       {msg && <div className="mb-2 text-green-700">{msg}</div>}
       {err && <div className="mb-2 text-red-600">{err}</div>}
+      {showFollowModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="absolute inset-0 bg-black opacity-30" onClick={()=>setShowFollowModal(false)} />
+          <div className="bg-white rounded-xl p-4 z-10 w-full max-w-lg shadow-lg">
+            <h3 className="text-lg font-semibold mb-2">Add Follow-Up Note</h3>
+            <textarea rows={6} className="w-full border rounded-xl px-3 py-2 mb-3" value={followNote} onChange={e=>setFollowNote(e.target.value)} placeholder="Enter follow-up note (optional)" />
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={()=>{ setShowFollowModal(false); setFollowNote(''); setFollowTarget(null); }} className="px-3 py-2 rounded-xl border">Cancel</button>
+              <button type="button" onClick={()=>act(followTarget,'In Follow Up', followNote)} className="px-3 py-2 rounded-xl bg-gold text-navy">Save Follow-Up</button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="bg-white rounded-2xl shadow-soft overflow-auto">
         <table className="min-w-full text-sm">
           <thead className="bg-[#f3f6ff] text-royal">
