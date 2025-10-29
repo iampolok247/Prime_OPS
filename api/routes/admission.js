@@ -34,7 +34,7 @@ router.get('/leads', requireAuth, async (req, res) => {
 // Counseling -> Admitted | In Follow Up | Not Admitted
 // In Follow Up -> Admitted | Not Admitted
 router.patch('/leads/:id/status', requireAuth, async (req, res) => {
-  const { status } = req.body || {};
+  const { status, notes } = req.body || {};
   const allowed = ['Counseling', 'Admitted', 'In Follow Up', 'Not Admitted'];
   if (!allowed.includes(status)) {
     return res.status(400).json({ code: 'INVALID_STATUS', message: 'Invalid target status' });
@@ -52,17 +52,47 @@ router.patch('/leads/:id/status', requireAuth, async (req, res) => {
   }
 
   const from = lead.status;
-  const ok =
+  let ok =
     (from === 'Assigned' && status === 'Counseling') ||
     (from === 'Counseling' && ['Admitted', 'In Follow Up', 'Not Admitted'].includes(status)) ||
     (from === 'In Follow Up' && ['Admitted', 'Not Admitted'].includes(status));
+
+  // Special case: allow adding an additional follow-up (notes) while already in 'In Follow Up'
+  // without requiring a status change. This enables the frontend "Follow-Up Again" flow.
+  if (!ok) {
+    if (status === 'In Follow Up' && notes && String(notes).trim().length > 0) {
+      ok = true;
+    }
+  }
 
   if (!ok) {
     return res.status(400).json({ code: 'BAD_TRANSITION', message: `Cannot move ${from} -> ${status}` });
   }
 
+  // Update timestamps / follow-ups appropriately
+  if (status === 'Counseling') {
+    // mark counseling time if moving to Counseling
+    lead.counselingAt = lead.counselingAt || new Date();
+  }
+
+  if (status === 'Admitted') {
+    lead.admittedAt = lead.admittedAt || new Date();
+  }
+
+  if (status === 'In Follow Up') {
+    // if notes provided, append a follow-up entry
+    if (notes && String(notes).trim().length > 0) {
+      lead.followUps = lead.followUps || [];
+      lead.followUps.push({ note: String(notes).trim(), at: new Date(), by: req.user.id });
+    }
+  }
+
   lead.status = status;
   await lead.save();
+
+  // populate follow-up authors
+  await Lead.populate(lead, { path: 'followUps.by', select: 'name email' });
+
   return res.json({ lead });
 });
 
