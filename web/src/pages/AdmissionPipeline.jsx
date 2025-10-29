@@ -53,6 +53,9 @@ function PipelineTable({ status, canAct }) {
   const [showFollowModal, setShowFollowModal] = useState(false);
   const [followNote, setFollowNote] = useState('');
   const [followTarget, setFollowTarget] = useState(null);
+  const [showNotAdmitModal, setShowNotAdmitModal] = useState(false);
+  const [notAdmitNote, setNotAdmitNote] = useState('');
+  const [notAdmitTarget, setNotAdmitTarget] = useState(null);
 
   const load = async () => {
     try {
@@ -71,6 +74,7 @@ function PipelineTable({ status, canAct }) {
       setMsg(`Status updated to ${action}`);
       setShowFollowModal(false);
       setFollowNote(''); setFollowTarget(null);
+      setShowNotAdmitModal(false); setNotAdmitNote(''); setNotAdmitTarget(null);
       load();
     } catch (e) { setErr(e.message); }
   };
@@ -85,7 +89,7 @@ function PipelineTable({ status, canAct }) {
         <div className="flex gap-2">
           <ActionBtn onClick={()=>act(row._id,'Admitted')}>Admitted</ActionBtn>
           <ActionBtn onClick={()=>{ setFollowTarget(row._id); setFollowNote(''); setShowFollowModal(true); }}>Follow-Up</ActionBtn>
-          <ActionBtn variant="danger" onClick={()=>act(row._id,'Not Admitted')}>Not Admitted</ActionBtn>
+          <ActionBtn variant="danger" onClick={()=>{ setNotAdmitTarget(row._id); setNotAdmitNote(''); setShowNotAdmitModal(true); }}>Not Admitted</ActionBtn>
         </div>
       );
     }
@@ -94,7 +98,7 @@ function PipelineTable({ status, canAct }) {
           <div className="flex gap-2">
             <ActionBtn onClick={()=>act(row._id,'Admitted')}>Admitted</ActionBtn>
             <ActionBtn onClick={()=>{ setFollowTarget(row._id); setFollowNote(''); setShowFollowModal(true); }}>Follow-Up Again</ActionBtn>
-            <ActionBtn variant="danger" onClick={()=>act(row._id,'Not Admitted')}>Not Admitted</ActionBtn>
+            <ActionBtn variant="danger" onClick={()=>{ setNotAdmitTarget(row._id); setNotAdmitNote(''); setShowNotAdmitModal(true); }}>Not Admitted</ActionBtn>
           </div>
         );
     }
@@ -114,6 +118,19 @@ function PipelineTable({ status, canAct }) {
             <div className="flex justify-end gap-2">
               <button type="button" onClick={()=>{ setShowFollowModal(false); setFollowNote(''); setFollowTarget(null); }} className="px-3 py-2 rounded-xl border">Cancel</button>
               <button type="button" onClick={()=>act(followTarget,'In Follow Up', followNote)} className="px-3 py-2 rounded-xl bg-gold text-navy">Save Follow-Up</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showNotAdmitModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="absolute inset-0 bg-black opacity-30" onClick={()=>setShowNotAdmitModal(false)} />
+          <div className="bg-white rounded-xl p-4 z-10 w-full max-w-lg shadow-lg">
+            <h3 className="text-lg font-semibold mb-2">Reason for Not Admitted</h3>
+            <textarea rows={6} className="w-full border rounded-xl px-3 py-2 mb-3" value={notAdmitNote} onChange={e=>setNotAdmitNote(e.target.value)} placeholder="Enter reason (optional)" />
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={()=>{ setShowNotAdmitModal(false); setNotAdmitNote(''); setNotAdmitTarget(null); }} className="px-3 py-2 rounded-xl border">Cancel</button>
+              <button type="button" onClick={()=>act(notAdmitTarget,'Not Admitted', notAdmitNote)} className="px-3 py-2 rounded-xl bg-red-600 text-white">Save</button>
             </div>
           </div>
         </div>

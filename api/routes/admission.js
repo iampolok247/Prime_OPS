@@ -87,6 +87,14 @@ router.patch('/leads/:id/status', requireAuth, async (req, res) => {
     }
   }
 
+  if (status === 'Not Admitted') {
+    // if a reason/notes provided when marking Not Admitted, store it as a follow-up entry
+    if (notes && String(notes).trim().length > 0) {
+      lead.followUps = lead.followUps || [];
+      lead.followUps.push({ note: `Not Admitted: ${String(notes).trim()}`, at: new Date(), by: req.user.id });
+    }
+  }
+
   lead.status = status;
   await lead.save();
 
