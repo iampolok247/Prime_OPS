@@ -124,6 +124,7 @@ const assignHandler = async (req, res) => {
 
   lead.assignedTo = user._id;
   lead.status = 'Assigned';
+  lead.assignedAt = new Date();
   await lead.save();
 
   const populated = await Lead.findById(lead._id)
@@ -148,6 +149,15 @@ router.patch('/:id/status', requireAuth, authorize(['DigitalMarketing']), async 
   if (!lead) return res.status(404).json({ code: 'NOT_FOUND', message: 'Lead not found' });
   lead.status = status;
   if (notes !== undefined) lead.notes = notes;
+  // record timestamps per stage
+  if (status === 'Counseling') lead.counselingAt = new Date();
+  if (status === 'In Follow Up') {
+    // push a follow-up entry with optional note
+    const fu = { note: notes || '', at: new Date(), by: req.user.id };
+    lead.followUps = lead.followUps || [];
+    lead.followUps.push(fu);
+  }
+  if (status === 'Admitted') lead.admittedAt = new Date();
   await lead.save();
   const populated = await Lead.findById(lead._id).populate('assignedTo', 'name email role').populate('assignedBy', 'name email role');
   return res.json({ lead: populated });

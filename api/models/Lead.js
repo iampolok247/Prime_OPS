@@ -22,7 +22,19 @@ const LeadSchema = new mongoose.Schema(
 
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Admission member
     assignedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // DM user
-    notes: { type: String, default: '' }
+    notes: { type: String, default: '' },
+    // stage timestamps
+    assignedAt: { type: Date },
+    counselingAt: { type: Date },
+    admittedAt: { type: Date },
+    // follow-ups history
+    followUps: [
+      {
+        note: { type: String, default: '' },
+        at: { type: Date, default: Date.now },
+        by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+      }
+    ]
   },
   { timestamps: true }
 );
