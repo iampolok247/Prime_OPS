@@ -84,8 +84,14 @@ export default function AdmissionDashboard() {
     const leadsInRange = allLeads.filter(l => inRange(l.createdAt, fromD, toD) || (!fromD && !toD));
 
     const counts = {};
+    // "Assigned" card shows TOTAL leads created in the period (all statuses)
+    counts['Assigned'] = leadsInRange.length;
+    
+    // Other cards show current status counts
     STATUSES.forEach(s => {
-      counts[s.key] = leadsInRange.filter(l => l.status === s.key).length;
+      if (s.key !== 'Assigned') {
+        counts[s.key] = leadsInRange.filter(l => l.status === s.key).length;
+      }
     });
 
     // Compute series for chart
