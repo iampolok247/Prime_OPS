@@ -19,15 +19,17 @@ router.post('/login', async (req, res) => {
     const payload = { id: user._id.toString(), role: user.role, email: user.email, name: user.name };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
 
+    // Set cookie for same-origin requests
     res.cookie('token', token, {
       httpOnly: true,
-      sameSite: 'lax',
-      secure: false, // set true behind HTTPS in prod
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: process.env.NODE_ENV === 'production', // true in production for HTTPS
       path: '/'
     });
 
     const { password: _, ...safe } = user.toObject();
-    return res.json({ user: safe });
+    // Also send token in response body for cross-origin setups
+    return res.json({ user: safe, token });
   } catch (e) {
     return res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
   }

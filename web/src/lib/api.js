@@ -2,6 +2,22 @@
 // web/src/lib/api.js
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5001';
 
+// Wrapper fetch that automatically includes auth token
+async function authFetch(url, options = {}) {
+  const token = localStorage.getItem('auth_token');
+  const headers = { ...options.headers };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return fetch(url, {
+    ...options,
+    credentials: 'include',
+    headers
+  });
+}
+
 async function handleJson(res, defaultMsg) {
   if (!res.ok) {
     let errBody = {};
@@ -70,8 +86,8 @@ export const api = {
 
   // ---- Auth ----
   async login(email, password) {
-    const res = await fetch(`${API_BASE}/api/auth/login`, {
-      method: 'POST', credentials: 'include',
+    const res = await authFetch(`${API_BASE}/api/auth/login`, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     });
@@ -80,20 +96,20 @@ export const api = {
     return data;
   },
   async me() {
-    const res = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/auth/me`);
     const data = await handleJson(res, 'Auth check failed');
     if (!data || typeof data !== 'object') throw new Error('Invalid /me response');
     return data;
   },
   async logout() {
-    const res = await fetch(`${API_BASE}/api/auth/logout`, {
-      method: 'POST', credentials: 'include'
+    const res = await authFetch(`${API_BASE}/api/auth/logout`, {
+      method: 'POST'
     });
     return handleJson(res, 'Logout failed');
   },
   async updateMe(payload) {
-    const res = await fetch(`${API_BASE}/api/auth/me`, {
-      method: 'PUT', credentials: 'include',
+    const res = await authFetch(`${API_BASE}/api/auth/me`, {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
@@ -104,20 +120,20 @@ export const api = {
 
   // ---- Users ----
   async listUsers() {
-    const res = await fetch(`${API_BASE}/api/users`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/users`);
     return handleJson(res, 'Load users failed');
   },
   async listUsersPublic() {
     // lightweight list for dropdowns; backend returns { users }
-    const res = await fetch(`${API_BASE}/api/users/list`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/users/list`, { credentials: 'include' });
     return handleJson(res, 'Load public users failed');
   },
   async listAdmissionUsers() {
-    const res = await fetch(`${API_BASE}/api/users/admission`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/users/admission`, { credentials: 'include' });
     return handleJson(res, 'Load admission users failed');
   },
   async createUser(payload) {
-    const res = await fetch(`${API_BASE}/api/users`, {
+    const res = await authFetch(`${API_BASE}/api/users`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -125,7 +141,7 @@ export const api = {
     return handleJson(res, 'Create user failed');
   },
   async updateUser(id, payload) {
-    const res = await fetch(`${API_BASE}/api/users/${id}`, {
+    const res = await authFetch(`${API_BASE}/api/users/${id}`, {
       method: 'PUT', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -133,7 +149,7 @@ export const api = {
     return handleJson(res, 'Update user failed');
   },
   async deleteUser(id) {
-    const res = await fetch(`${API_BASE}/api/users/${id}`, {
+    const res = await authFetch(`${API_BASE}/api/users/${id}`, {
       method: 'DELETE', credentials: 'include'
     });
     return handleJson(res, 'Delete user failed');
@@ -142,16 +158,16 @@ export const api = {
   // ---- Tasks ----
   async listAllTasks(status) {
     const q = status ? `?status=${encodeURIComponent(status)}` : '';
-    const res = await fetch(`${API_BASE}/api/tasks${q}`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/tasks${q}`, { credentials: 'include' });
     return handleJson(res, 'Load tasks failed');
   },
   async listMyTasks(status) {
     const q = status ? `?status=${encodeURIComponent(status)}` : '';
-    const res = await fetch(`${API_BASE}/api/tasks/my${q}`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/tasks/my${q}`, { credentials: 'include' });
     return handleJson(res, 'Load my tasks failed');
   },
   async assignTask(payload) {
-    const res = await fetch(`${API_BASE}/api/tasks/assign`, {
+    const res = await authFetch(`${API_BASE}/api/tasks/assign`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -159,7 +175,7 @@ export const api = {
     return handleJson(res, 'Assign task failed');
   },
   async addSelfTask(payload) {
-    const res = await fetch(`${API_BASE}/api/tasks/self`, {
+    const res = await authFetch(`${API_BASE}/api/tasks/self`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -167,7 +183,7 @@ export const api = {
     return handleJson(res, 'Add self task failed');
   },
   async updateTaskStatus(id, status) {
-    const res = await fetch(`${API_BASE}/api/tasks/${id}/status`, {
+    const res = await authFetch(`${API_BASE}/api/tasks/${id}/status`, {
       method: 'PATCH', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })
@@ -177,11 +193,11 @@ export const api = {
 
   // ---- Courses ----
   async listCourses() {
-    const res = await fetch(`${API_BASE}/api/courses`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/courses`, { credentials: 'include' });
     return handleJson(res, 'Load courses failed');
   },
   async createCourse(payload) {
-    const res = await fetch(`${API_BASE}/api/courses`, {
+    const res = await authFetch(`${API_BASE}/api/courses`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -189,7 +205,7 @@ export const api = {
     return handleJson(res, 'Create course failed');
   },
   async updateCourse(id, payload) {
-    const res = await fetch(`${API_BASE}/api/courses/${id}`, {
+    const res = await authFetch(`${API_BASE}/api/courses/${id}`, {
       method: 'PUT', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -197,7 +213,7 @@ export const api = {
     return handleJson(res, 'Update course failed');
   },
   async deleteCourse(id) {
-    const res = await fetch(`${API_BASE}/api/courses/${id}`, {
+    const res = await authFetch(`${API_BASE}/api/courses/${id}`, {
       method: 'DELETE', credentials: 'include'
     });
     return handleJson(res, 'Delete course failed');
@@ -206,15 +222,15 @@ export const api = {
   // ---- Leads (DM & SA/Admin view) ----
   async listLeads(status) {
     const q = status ? `?status=${encodeURIComponent(status)}` : '';
-    const res = await fetch(`${API_BASE}/api/leads${q}`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/leads${q}`, { credentials: 'include' });
     return handleJson(res, 'Load leads failed');
   },
   async getLeadHistory(id) {
-    const res = await fetch(`${API_BASE}/api/leads/${id}/history`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/leads/${id}/history`, { credentials: 'include' });
     return handleJson(res, 'Load lead history failed');
   },
   async assignLead(id, assignedTo) {
-    const res = await fetch(`${API_BASE}/api/leads/${id}/assign`, {
+    const res = await authFetch(`${API_BASE}/api/leads/${id}/assign`, {
       method: 'POST', // must be POST to match backend
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -223,7 +239,7 @@ export const api = {
     return handleJson(res, 'Assign lead failed');
   },
   async createLead(payload) {
-    const res = await fetch(`${API_BASE}/api/leads`, {
+    const res = await authFetch(`${API_BASE}/api/leads`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -231,7 +247,7 @@ export const api = {
     return handleJson(res, 'Create lead failed');
   },
   async bulkUploadLeads(csvText) {
-    const res = await fetch(`${API_BASE}/api/leads/bulk`, {
+    const res = await authFetch(`${API_BASE}/api/leads/bulk`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ csv: csvText })
@@ -242,13 +258,13 @@ export const api = {
   // ---- Admission pipeline ----
   async listAdmissionLeads(status) {
     const q = status ? `?status=${encodeURIComponent(status)}` : '';
-    const res = await fetch(`${API_BASE}/api/admission/leads${q}`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/admission/leads${q}`, { credentials: 'include' });
     return handleJson(res, 'Load admission leads failed');
   },
   async updateLeadStatus(id, status, notes) {
     const body = { status };
     if (notes !== undefined && notes !== null) body.notes = notes;
-    const res = await fetch(`${API_BASE}/api/admission/leads/${id}/status`, {
+    const res = await authFetch(`${API_BASE}/api/admission/leads/${id}/status`, {
       method: 'PATCH', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -258,11 +274,11 @@ export const api = {
 
   // ---- Admission fees ----
   async listAdmissionFees() {
-    const res = await fetch(`${API_BASE}/api/admission/fees`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/admission/fees`, { credentials: 'include' });
     return handleJson(res, 'Load fees failed');
   },
   async createAdmissionFee(payload) {
-    const res = await fetch(`${API_BASE}/api/admission/fees`, {
+    const res = await authFetch(`${API_BASE}/api/admission/fees`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -273,28 +289,28 @@ export const api = {
   // ---- Accounting (Accountant/Admin/SA) ----
   async listFeesForApproval(status) {
     const q = status ? `?status=${encodeURIComponent(status)}` : '';
-    const res = await fetch(`${API_BASE}/api/accounting/fees${q}`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/accounting/fees${q}`, { credentials: 'include' });
     return handleJson(res, 'Load fees failed');
   },
   async approveFee(id) {
-    const res = await fetch(`${API_BASE}/api/accounting/fees/${id}/approve`, {
+    const res = await authFetch(`${API_BASE}/api/accounting/fees/${id}/approve`, {
       method: 'PATCH', credentials: 'include'
     });
     return handleJson(res, 'Approve failed');
   },
   async rejectFee(id) {
-    const res = await fetch(`${API_BASE}/api/accounting/fees/${id}/reject`, {
+    const res = await authFetch(`${API_BASE}/api/accounting/fees/${id}/reject`, {
       method: 'PATCH', credentials: 'include'
     });
     return handleJson(res, 'Reject failed');
   },
 
   async listIncome() {
-    const res = await fetch(`${API_BASE}/api/accounting/income`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/accounting/income`, { credentials: 'include' });
     return handleJson(res, 'Load income failed');
   },
   async addIncome(payload) {
-    const res = await fetch(`${API_BASE}/api/accounting/income`, {
+    const res = await authFetch(`${API_BASE}/api/accounting/income`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -303,11 +319,11 @@ export const api = {
   },
 
   async listExpenses() {
-    const res = await fetch(`${API_BASE}/api/accounting/expense`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/accounting/expense`, { credentials: 'include' });
     return handleJson(res, 'Load expenses failed');
   },
   async addExpense(payload) {
-    const res = await fetch(`${API_BASE}/api/accounting/expense`, {
+    const res = await authFetch(`${API_BASE}/api/accounting/expense`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -315,7 +331,7 @@ export const api = {
     return handleJson(res, 'Add expense failed');
   },
   async deleteExpense(id) {
-    const res = await fetch(`${API_BASE}/api/accounting/expense/${id}`, {
+    const res = await authFetch(`${API_BASE}/api/accounting/expense/${id}`, {
       method: 'DELETE', credentials: 'include'
     });
     return handleJson(res, 'Delete expense failed');
@@ -326,7 +342,7 @@ export const api = {
     if (from) params.set('from', from);
     if (to) params.set('to', to);
     const q = params.toString() ? `?${params.toString()}` : '';
-    const res = await fetch(`${API_BASE}/api/accounting/summary${q}`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/accounting/summary${q}`, { credentials: 'include' });
     return handleJson(res, 'Load summary failed');
   },
 
@@ -336,7 +352,7 @@ export const api = {
 
   // ---- Dashboard Stats ----
   async getRecruitmentStats() {
-    const res = await fetch(`${API_BASE}/api/recruitment/stats`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/recruitment/stats`, { credentials: 'include' });
     return handleJson(res, 'Load recruitment stats failed');
   },
   // keep old name as alias to avoid breaking existing imports
@@ -344,11 +360,11 @@ export const api = {
 
   // ---- Employers CRUD ----
   async listEmployers() {
-    const res = await fetch(`${API_BASE}/api/recruitment/employers`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/recruitment/employers`, { credentials: 'include' });
     return handleJson(res, 'Load employers failed');
   },
   async createEmployer(payload) {
-    const res = await fetch(`${API_BASE}/api/recruitment/employers`, {
+    const res = await authFetch(`${API_BASE}/api/recruitment/employers`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -356,7 +372,7 @@ export const api = {
     return handleJson(res, 'Create employer failed');
   },
   async updateEmployer(id, payload) {
-    const res = await fetch(`${API_BASE}/api/recruitment/employers/${id}`, {
+    const res = await authFetch(`${API_BASE}/api/recruitment/employers/${id}`, {
       method: 'PATCH', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -364,7 +380,7 @@ export const api = {
     return handleJson(res, 'Update employer failed');
   },
   async deleteEmployer(id) {
-    const res = await fetch(`${API_BASE}/api/recruitment/employers/${id}`, {
+    const res = await authFetch(`${API_BASE}/api/recruitment/employers/${id}`, {
       method: 'DELETE', credentials: 'include'
     });
     return handleJson(res, 'Delete employer failed');
@@ -372,11 +388,11 @@ export const api = {
 
   // ---- Job Positions CRUD ----
   async listJobs() {
-    const res = await fetch(`${API_BASE}/api/recruitment/jobs`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/recruitment/jobs`, { credentials: 'include' });
     return handleJson(res, 'Load jobs failed');
   },
   async createJob(payload) {
-    const res = await fetch(`${API_BASE}/api/recruitment/jobs`, {
+    const res = await authFetch(`${API_BASE}/api/recruitment/jobs`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -384,7 +400,7 @@ export const api = {
     return handleJson(res, 'Create job failed');
   },
   async updateJob(id, payload) {
-    const res = await fetch(`${API_BASE}/api/recruitment/jobs/${id}`, {
+    const res = await authFetch(`${API_BASE}/api/recruitment/jobs/${id}`, {
       method: 'PATCH', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -392,7 +408,7 @@ export const api = {
     return handleJson(res, 'Update job failed');
   },
   async deleteJob(id) {
-    const res = await fetch(`${API_BASE}/api/recruitment/jobs/${id}`, {
+    const res = await authFetch(`${API_BASE}/api/recruitment/jobs/${id}`, {
       method: 'DELETE', credentials: 'include'
     });
     return handleJson(res, 'Delete job failed');
@@ -401,11 +417,11 @@ export const api = {
   // ---- Candidates CRUD + Recruit Action ----
   async listCandidates(status) {
     const q = status ? `?status=${encodeURIComponent(status)}` : '';
-    const res = await fetch(`${API_BASE}/api/recruitment/candidates${q}`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/recruitment/candidates${q}`, { credentials: 'include' });
     return handleJson(res, 'Load candidates failed');
   },
   async createCandidate(payload) {
-    const res = await fetch(`${API_BASE}/api/recruitment/candidates`, {
+    const res = await authFetch(`${API_BASE}/api/recruitment/candidates`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -413,7 +429,7 @@ export const api = {
     return handleJson(res, 'Create candidate failed');
   },
   async updateCandidate(id, payload) {
-    const res = await fetch(`${API_BASE}/api/recruitment/candidates/${id}`, {
+    const res = await authFetch(`${API_BASE}/api/recruitment/candidates/${id}`, {
       method: 'PATCH', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -421,13 +437,13 @@ export const api = {
     return handleJson(res, 'Update candidate failed');
   },
   async deleteCandidate(id) {
-    const res = await fetch(`${API_BASE}/api/recruitment/candidates/${id}`, {
+    const res = await authFetch(`${API_BASE}/api/recruitment/candidates/${id}`, {
       method: 'DELETE', credentials: 'include'
     });
     return handleJson(res, 'Delete candidate failed');
   },
   async recruitCandidate(id, payload) {
-    const res = await fetch(`${API_BASE}/api/recruitment/candidates/${id}/recruit`, {
+    const res = await authFetch(`${API_BASE}/api/recruitment/candidates/${id}/recruit`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload) // { employerId, jobId, date }
@@ -440,12 +456,12 @@ export const api = {
 
   // ---- Recruitment Income ----
   async listRecIncome() {
-    const res = await fetch(`${API_BASE}/api/recruitment/income`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/recruitment/income`, { credentials: 'include' });
     return handleJson(res, 'Load recruitment income failed');
   },
   async addRecIncome(payload) {
     const body = { ...payload, date: this._normalizeDate(payload?.date) };
-    const res = await fetch(`${API_BASE}/api/recruitment/income`, {
+    const res = await authFetch(`${API_BASE}/api/recruitment/income`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -453,7 +469,7 @@ export const api = {
     return handleJson(res, 'Add recruitment income failed');
   },
   async deleteRecIncome(id) {
-    const res = await fetch(`${API_BASE}/api/recruitment/income/${id}`, {
+    const res = await authFetch(`${API_BASE}/api/recruitment/income/${id}`, {
       method: 'DELETE', credentials: 'include'
     });
     return handleJson(res, 'Delete recruitment income failed');
@@ -464,12 +480,12 @@ export const api = {
 
   // ---- Recruitment Expenses ----
   async listRecExpense() {
-    const res = await fetch(`${API_BASE}/api/recruitment/expenses`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/recruitment/expenses`, { credentials: 'include' });
     return handleJson(res, 'Load recruitment expenses failed');
   },
   async addRecExpense(payload) {
     const body = { ...payload, date: this._normalizeDate(payload?.date) };
-    const res = await fetch(`${API_BASE}/api/recruitment/expenses`, {
+    const res = await authFetch(`${API_BASE}/api/recruitment/expenses`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -477,7 +493,7 @@ export const api = {
     return handleJson(res, 'Add recruitment expense failed');
   },
   async deleteRecExpense(id) {
-    const res = await fetch(`${API_BASE}/api/recruitment/expenses/${id}`, {
+    const res = await authFetch(`${API_BASE}/api/recruitment/expenses/${id}`, {
       method: 'DELETE', credentials: 'include'
     });
     return handleJson(res, 'Delete recruitment expense failed');
@@ -497,12 +513,12 @@ export const api = {
     if (date) params.set('date', this._normalizeDate(date));
     if (channel) params.set('channel', channel);
     const q = params.toString() ? `?${params.toString()}` : '';
-    const res = await fetch(`${API_BASE}/api/dm/expense${q}`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/dm/expense${q}`, { credentials: 'include' });
     return handleJson(res, 'Load DM costs failed');
   },
   async addDMCost(payload) {
     const body = { ...payload, date: this._normalizeDate(payload?.date) };
-    const res = await fetch(`${API_BASE}/api/dm/expense`, {
+    const res = await authFetch(`${API_BASE}/api/dm/expense`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body) // { date, channel, purpose, amount }
@@ -510,7 +526,7 @@ export const api = {
     return handleJson(res, 'Add DM cost failed');
   },
   async deleteDMCost(id) {
-    const res = await fetch(`${API_BASE}/api/dm/expense/${id}`, {
+    const res = await authFetch(`${API_BASE}/api/dm/expense/${id}`, {
       method: 'DELETE', credentials: 'include'
     });
     return handleJson(res, 'Delete DM cost failed');
@@ -520,9 +536,9 @@ export const api = {
   // Try /api/dm/social; if 404, retry /api/dm/social-metrics
   async listSocial(date) {
     const q = date ? `?date=${encodeURIComponent(this._normalizeDate(date))}` : '';
-    let res = await fetch(`${API_BASE}/api/dm/social${q}`, { credentials: 'include' });
+    let res = await authFetch(`${API_BASE}/api/dm/social${q}`, { credentials: 'include' });
     if (!res.ok && res.status === 404) {
-      res = await fetch(`${API_BASE}/api/dm/social-metrics${q}`, { credentials: 'include' });
+      res = await authFetch(`${API_BASE}/api/dm/social-metrics${q}`, { credentials: 'include' });
     }
     return handleJson(res, 'Load social metrics failed');
   },
@@ -533,14 +549,14 @@ export const api = {
     if (bodyMetrics.date) delete bodyMetrics.date;
     const body = { metrics: bodyMetrics };
 
-    let res = await fetch(`${API_BASE}/api/dm/social`, {
+    let res = await authFetch(`${API_BASE}/api/dm/social`, {
       method: 'PUT', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
     if (!res.ok && res.status === 404) {
       // fallback if older route exists
-      res = await fetch(`${API_BASE}/api/dm/social-metrics`, {
+      res = await authFetch(`${API_BASE}/api/dm/social-metrics`, {
         method: 'PUT', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -549,11 +565,11 @@ export const api = {
     return handleJson(res, 'Add social metrics failed');
   },
   async deleteSocial(id) {
-    let res = await fetch(`${API_BASE}/api/dm/social/${id}`, {
+    let res = await authFetch(`${API_BASE}/api/dm/social/${id}`, {
       method: 'DELETE', credentials: 'include'
     });
     if (!res.ok && res.status === 404) {
-      res = await fetch(`${API_BASE}/api/dm/social-metrics/${id}`, {
+      res = await authFetch(`${API_BASE}/api/dm/social-metrics/${id}`, {
         method: 'DELETE', credentials: 'include'
       });
     }
@@ -563,12 +579,12 @@ export const api = {
   // ---- SEO Work Reports ----
   async listSEO(date) {
     const q = date ? `?date=${encodeURIComponent(this._normalizeDate(date))}` : '';
-    const res = await fetch(`${API_BASE}/api/dm/seo${q}`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/api/dm/seo${q}`, { credentials: 'include' });
     return handleJson(res, 'Load SEO reports failed');
   },
   async createSEO(payload) {
     const body = { ...payload, date: this._normalizeDate(payload?.date) };
-    const res = await fetch(`${API_BASE}/api/dm/seo`, {
+    const res = await authFetch(`${API_BASE}/api/dm/seo`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -576,7 +592,7 @@ export const api = {
     return handleJson(res, 'Create SEO report failed');
   },
   async deleteSEO(id) {
-    const res = await fetch(`${API_BASE}/api/dm/seo/${id}`, {
+    const res = await authFetch(`${API_BASE}/api/dm/seo/${id}`, {
       method: 'DELETE', credentials: 'include'
     });
     return handleJson(res, 'Delete SEO report failed');
@@ -605,7 +621,7 @@ export const api = {
 
 // ================== Motion Graphics ==================
 async mgStats() {
-  const res = await fetch(`${API_BASE}/api/mg/stats`, { credentials: 'include' });
+  const res = await authFetch(`${API_BASE}/api/mg/stats`, { credentials: 'include' });
   return handleJson(res, 'Load MG stats failed');
 },
 async listMGWorks(params = {}) {
@@ -613,11 +629,11 @@ async listMGWorks(params = {}) {
   if (params.date) u.set('date', params.date);      // expect YYYY-MM-DD; UI helper will convert
   if (params.status) u.set('status', params.status);
   const q = u.toString() ? `?${u.toString()}` : '';
-  const res = await fetch(`${API_BASE}/api/mg/works${q}`, { credentials: 'include' });
+  const res = await authFetch(`${API_BASE}/api/mg/works${q}`, { credentials: 'include' });
   return handleJson(res, 'Load MG works failed');
 },
 async createMGWork(payload) {
-  const res = await fetch(`${API_BASE}/api/mg/works`, {
+  const res = await authFetch(`${API_BASE}/api/mg/works`, {
     method: 'POST', credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -625,7 +641,7 @@ async createMGWork(payload) {
   return handleJson(res, 'Create MG work failed');
 },
 async updateMGWork(id, payload) {
-  const res = await fetch(`${API_BASE}/api/mg/works/${id}`, {
+  const res = await authFetch(`${API_BASE}/api/mg/works/${id}`, {
     method: 'PATCH', credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -633,7 +649,7 @@ async updateMGWork(id, payload) {
   return handleJson(res, 'Update MG work failed');
 },
 async deleteMGWork(id) {
-  const res = await fetch(`${API_BASE}/api/mg/works/${id}`, {
+  const res = await authFetch(`${API_BASE}/api/mg/works/${id}`, {
     method: 'DELETE', credentials: 'include'
   });
   return handleJson(res, 'Delete MG work failed');
@@ -645,7 +661,7 @@ async reportsOverview(from, to) {
   if (from) params.set('from', from);
   if (to) params.set('to', to);
   const q = params.toString() ? `?${params.toString()}` : '';
-  const res = await fetch(`${API_BASE}/api/reports/overview${q}`, { credentials: 'include' });
+  const res = await authFetch(`${API_BASE}/api/reports/overview${q}`, { credentials: 'include' });
   return handleJson(res, 'Load consolidated report failed');
 },
 

@@ -28,12 +28,22 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     const data = await api.login(email, password); // throws on error
     if (!data?.user) throw new Error('Invalid login response (no user)');
+    // Store token in localStorage for cross-origin auth
+    if (data.token) {
+      localStorage.setItem('auth_token', data.token);
+    }
     setUser(data.user);
     return data.user;
   };
 
   const logout = async () => {
-    await api.logout();
+    try {
+      await api.logout();
+    } catch (e) {
+      // Ignore logout errors
+    }
+    // Clear token from localStorage
+    localStorage.removeItem('auth_token');
     setUser(null);
   };
 
