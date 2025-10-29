@@ -5,8 +5,9 @@ import { Wallet, CreditCard, PieChart, BarChart2 } from 'lucide-react';
 
 export default function AccountingDashboard() {
   const { user } = useAuth();
-  if (user?.role !== 'Accountant') {
-    return <div className="text-royal">Only Accountant can access this dashboard.</div>;
+  // allow Accountant, Admin and SuperAdmin to access accounting dashboard and manage heads
+  if (!['Accountant','Admin','SuperAdmin'].includes(user?.role)) {
+    return <div className="text-royal">Only Accountant, Admin or SuperAdmin can access this dashboard.</div>;
   }
 
   const [range, setRange] = useState({
@@ -18,6 +19,8 @@ export default function AccountingDashboard() {
   const [err, setErr] = useState(null);
   const [incomes, setIncomes] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [showHeadsModal, setShowHeadsModal] = useState(false);
+  const [heads, setHeads] = useState({ incomes: [], expenses: [] });
 
   const load = async () => {
     try {
@@ -47,6 +50,14 @@ export default function AccountingDashboard() {
   };
 
   useEffect(() => { load(); }, []); // eslint-disable-line
+
+  useEffect(() => {
+    // load account heads from localStorage
+    try {
+      const raw = localStorage.getItem('accountHeads');
+      setHeads(raw ? JSON.parse(raw) : { incomes: [], expenses: [] });
+    } catch (e) { setHeads({ incomes: [], expenses: [] }); }
+  }, []);
 
   return (
     <div>
@@ -83,8 +94,13 @@ export default function AccountingDashboard() {
         <Card icon={<Wallet className="w-5 h-5 text-royal/90" />} title="Income" value={fmtBDTEn(data.totalIncome || 0)} />
         <Card icon={<CreditCard className="w-5 h-5 text-royal/90" />} title="Expense" value={fmtBDTEn(data.totalExpense || 0)} />
         <Card icon={<BarChart2 className="w-5 h-5 text-royal/90" />} title="Profit" value={fmtBDTEn(data.profit || 0)} />
-        <Card icon={<Wallet className="w-5 h-5 text-royal/90" />} title="Balance in My Hand" value={fmtBDTEn((data.totalIncome||0) - (data.totalExpense||0))} />
+        <Card icon={<Wallet className="w-5 h-5 text-royal/90" />} title="Net Total Balance" value={fmtBDTEn((data.totalIncome||0) - (data.totalExpense||0))} />
       </div>
+
+      <div className="flex items-center gap-2 mb-4">
+        <button onClick={() => setShowHeadsModal(true)} className="px-3 py-2 rounded-xl bg-blue-50 text-royal">Manage Account Heads</button>
+      </div>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="col-span-2 bg-white rounded-xl p-4 shadow-sm">
@@ -95,6 +111,49 @@ export default function AccountingDashboard() {
           <h3 className="text-sm text-royal mb-2">Expense Breakdown</h3>
           <PieChartComp parts={makeBreakdown(expenses)} />
         </div>
+      </div>
+
+      {showHeadsModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="absolute inset-0 bg-black opacity-30" onClick={()=>setShowHeadsModal(false)} />
+          <div className="bg-white rounded-xl p-4 z-10 w-full max-w-2xl shadow-lg">
+            <h3 className="text-lg font-semibold mb-2">Manage Account Heads</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <HeadEditor kind="incomes" heads={heads.incomes} onChange={(arr)=>setHeads(h=>({ ...h, incomes: arr }))} />
+              <HeadEditor kind="expenses" heads={heads.expenses} onChange={(arr)=>setHeads(h=>({ ...h, expenses: arr }))} />
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button onClick={()=>setShowHeadsModal(false)} className="px-4 py-2 rounded-xl border">Close</button>
+              <button onClick={()=>{ localStorage.setItem('accountHeads', JSON.stringify(heads)); setShowHeadsModal(false); }} className="px-4 py-2 rounded-xl bg-gold text-navy">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HeadEditor({ kind, heads = [], onChange }){
+  const [list, setList] = useState(heads || []);
+  const [val, setVal] = useState('');
+  useEffect(()=>{ setList(heads || []); }, [heads]);
+  const add = ()=>{ if (!val) return; const next = [val.trim(), ...list]; setList(next); setVal(''); onChange && onChange(next); };
+  const remove = (i)=>{ const next = list.filter((_,idx)=>idx!==i); setList(next); onChange && onChange(next); };
+  return (
+    <div>
+      <h4 className="text-sm font-semibold capitalize mb-2">{kind === 'incomes' ? 'Income Heads' : 'Expense Heads'}</h4>
+      <div className="flex gap-2 mb-2">
+        <input value={val} onChange={e=>setVal(e.target.value)} placeholder={kind==='incomes'?'New income head':'New expense head'} className="border rounded-xl px-3 py-2 flex-1" />
+        <button onClick={add} className="px-3 py-2 bg-gold text-navy rounded-xl">Add</button>
+      </div>
+      <div className="flex flex-col gap-2">
+        {list.map((h, i)=> (
+          <div key={h} className="flex items-center justify-between border rounded-md px-3 py-2">
+            <div className="text-sm">{h}</div>
+            <button onClick={()=>remove(i)} className="text-red-600">Remove</button>
+          </div>
+        ))}
+        {list.length === 0 && <div className="text-royal/70">No heads defined</div>}
       </div>
     </div>
   );
