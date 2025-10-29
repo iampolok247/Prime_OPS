@@ -49,6 +49,7 @@ export default function Sidebar() {
     DigitalMarketing: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/my-tasks', label: 'My Task', icon: <ListChecks size={18}/> },
+      { to: '/courses', label: 'Courses', icon: <BookOpen size={18}/> },
       { to: '/lead-entry', label: 'Lead Entry / CSV', icon: <FolderOpen size={18}/> },
       { to: '/leads-center', label: 'Leads Center', icon: <FolderOpen size={18}/> },
   { to: '/dm-metrics', label: 'Cost / Social / SEO', icon: <BarChart2 size={18}/> }
@@ -56,6 +57,7 @@ export default function Sidebar() {
     Admission: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/my-tasks', label: 'My Task', icon: <ListChecks size={18}/> },
+      { to: '/courses', label: 'Courses', icon: <BookOpen size={18}/> },
       { to: '/admission/assigned', label: 'Assigned Lead', icon: <FolderOpen size={18}/> },
       { to: '/admission/counseling', label: 'Counseling', icon: <FolderOpen size={18}/> },
       { to: '/admission/follow-up', label: 'In Follow-Up', icon: <FolderOpen size={18}/> },
@@ -79,6 +81,7 @@ export default function Sidebar() {
     Recruitment: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/my-tasks', label: 'My Task', icon: <ListChecks size={18}/> },
+      { to: '/courses', label: 'Courses', icon: <BookOpen size={18}/> },
 
       // --- Recruitment core menu ---
       { to: '/recruitment', label: 'Recruitment Dashboard', icon: <LayoutDashboard size={18}/> },
@@ -92,6 +95,7 @@ export default function Sidebar() {
 MotionGraphics: [
   { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
   { to: '/my-tasks', label: 'My Task', icon: <ListChecks size={18}/> },
+  { to: '/courses', label: 'Courses', icon: <BookOpen size={18}/> },
   { to: '/mg/production', label: 'Production Log', icon: <FolderOpen size={18}/> }
 ],
   };
