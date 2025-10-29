@@ -11,14 +11,14 @@ const genCourseId = async () => {
   return `CRS-${n}`;
 };
 
-// List (Admin + SuperAdmin view now; others will use later)
-router.get('/', requireAuth, authorize(['Admin', 'SuperAdmin']), async (req, res) => {
+// List (All roles except Accountant can view)
+router.get('/', requireAuth, authorize(['Admin', 'SuperAdmin', 'DigitalMarketing', 'Admission', 'Recruitment', 'MotionGraphics']), async (req, res) => {
   const courses = await Course.find().sort({ createdAt: -1 });
   return res.json({ courses });
 });
 
-// Create (Admin only)
-router.post('/', requireAuth, authorize(['Admin']), async (req, res) => {
+// Create (Admin + SuperAdmin)
+router.post('/', requireAuth, authorize(['Admin', 'SuperAdmin']), async (req, res) => {
   const { name, category, duration, regularFee, discountFee, teacher, details } = req.body || {};
   if (!name) return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Course name required' });
 
@@ -34,8 +34,8 @@ router.post('/', requireAuth, authorize(['Admin']), async (req, res) => {
   return res.status(201).json({ course });
 });
 
-// Update (Admin only)
-router.put('/:id', requireAuth, authorize(['Admin']), async (req, res) => {
+// Update (Admin + SuperAdmin)
+router.put('/:id', requireAuth, authorize(['Admin', 'SuperAdmin']), async (req, res) => {
   const c = await Course.findById(req.params.id);
   if (!c) return res.status(404).json({ code: 'NOT_FOUND', message: 'Course not found' });
 
@@ -53,8 +53,8 @@ router.put('/:id', requireAuth, authorize(['Admin']), async (req, res) => {
   return res.json({ course: c });
 });
 
-// Delete (Admin only)
-router.delete('/:id', requireAuth, authorize(['Admin']), async (req, res) => {
+// Delete (Admin + SuperAdmin)
+router.delete('/:id', requireAuth, authorize(['Admin', 'SuperAdmin']), async (req, res) => {
   const c = await Course.findById(req.params.id);
   if (!c) return res.status(404).json({ code: 'NOT_FOUND', message: 'Course not found' });
   await c.deleteOne();
