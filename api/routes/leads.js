@@ -140,6 +140,28 @@ const assignHandler = async (req, res) => {
 router.post('/:id/assign', requireAuth, authorize(['DigitalMarketing']), assignHandler);
 router.patch('/:id/assign', requireAuth, authorize(['DigitalMarketing']), assignHandler); // <-- added
 
+// Single-lead history (populated followUps.by).
+// Accessible to Admin, SuperAdmin, DigitalMarketing. Admission may view only if assignedTo === self.
+router.get('/:id/history', requireAuth, async (req, res) => {
+  const lead = await Lead.findById(req.params.id)
+    .populate('assignedTo', 'name email role')
+    .populate('assignedBy', 'name email role');
+  if (!lead) return res.status(404).json({ code: 'NOT_FOUND', message: 'Lead not found' });
+
+  const role = req.user?.role;
+  if (role === 'Admission') {
+    if (!lead.assignedTo || String(lead.assignedTo._id) !== String(req.user.id)) {
+      return res.status(403).json({ code: 'FORBIDDEN', message: 'Cannot view history for unassigned lead' });
+    }
+  } else if (!(role === 'Admin' || role === 'SuperAdmin' || role === 'DigitalMarketing')) {
+    return res.status(403).json({ code: 'FORBIDDEN', message: 'Not allowed' });
+  }
+
+  // populate follow-up authors
+  await Lead.populate(lead, { path: 'followUps.by', select: 'name email' });
+  return res.json({ lead });
+});
+
 
 // Update status (DM only for now; Phase 4: Admission will change from their side)
 router.patch('/:id/status', requireAuth, authorize(['DigitalMarketing']), async (req, res) => {

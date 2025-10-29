@@ -209,6 +209,10 @@ export const api = {
     const res = await fetch(`${API_BASE}/api/leads${q}`, { credentials: 'include' });
     return handleJson(res, 'Load leads failed');
   },
+  async getLeadHistory(id) {
+    const res = await fetch(`${API_BASE}/api/leads/${id}/history`, { credentials: 'include' });
+    return handleJson(res, 'Load lead history failed');
+  },
   async assignLead(id, assignedTo) {
     const res = await fetch(`${API_BASE}/api/leads/${id}/assign`, {
       method: 'POST', // must be POST to match backend

@@ -66,7 +66,16 @@ export default function LeadsCenterView() {
                 <td className="p-3">{l.assignedTo ? `${l.assignedTo.name} (${l.assignedTo.role})` : '-'}</td>
                 {(user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.role === 'Admission') && (
                   <td className="p-3">
-                    <button onClick={()=>{ setHistLead(l); setShowHistory(true); }} className="px-3 py-1 rounded-xl border hover:bg-[#f3f6ff]">History</button>
+                    <button onClick={async ()=>{
+                      try {
+                        setErr(null);
+                        const res = await api.getLeadHistory(l._id);
+                        setHistLead(res.lead || res);
+                        setShowHistory(true);
+                      } catch (e) {
+                        setErr(e.message);
+                      }
+                    }} className="px-3 py-1 rounded-xl border hover:bg-[#f3f6ff]">History</button>
                   </td>
                 )}
               </tr>
