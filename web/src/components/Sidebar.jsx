@@ -23,18 +23,15 @@ export default function Sidebar() {
   const MENU_BY_ROLE = {
     SuperAdmin: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
-  
       { to: '/assign-tasks', label: 'Assign Task', icon: <ListChecks size={18}/> },
       { to: '/employees', label: 'Employee ', icon: <Users size={18}/> },
       { to: '/courses', label: 'Courses ', icon: <BookOpen size={18}/> },
-      { to: '/reports-view', label: 'Accounts Report', icon: <Wallet size={18}/> },
       { to: '/leads-center-view', label: 'Leads Center ', icon: <FolderOpen size={18}/> },     
       { to: '/admission/dashboard', label: 'Admission Reports', icon: <FolderOpen size={18}/> },
-    { to: '/recruitment', label: 'Recruitment Reports', icon: <LayoutDashboard size={18}/> },
-    { to: '/reports-view', label: 'Accounts Report', icon: <Wallet size={18}/> },
-    { to: '/dm/dashboard', label: 'Digital Marketing Reports', icon: <BarChart2 size={18}/> },
-  { to: '/mg/dashboard', label: 'Motion Graphics Report', icon: <Film size={18}/> },
-    
+      { to: '/recruitment', label: 'Recruitment Reports', icon: <LayoutDashboard size={18}/> },
+      { to: '/accounting/dashboard', label: 'Accounts Dashboard', icon: <Wallet size={18}/> },
+      { to: '/dm/dashboard', label: 'Digital Marketing Reports', icon: <BarChart2 size={18}/> },
+      { to: '/mg/dashboard', label: 'Motion Graphics Report', icon: <Film size={18}/> },
     ],
     Admin: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
@@ -43,13 +40,11 @@ export default function Sidebar() {
       { to: '/employees', label: 'Employee', icon: <Users size={18}/> },
       { to: '/leads-center-view', label: 'Leads Center ', icon: <FolderOpen size={18}/> },
       { to: '/courses', label: 'Courses ', icon: <BookOpen size={18}/> },
-      { to: '/reports-view', label: 'Accounts Report', icon: <Wallet size={18}/> },
       { to: '/admission/dashboard', label: 'Admission Reports', icon: <FolderOpen size={18}/> },
-  { to: '/recruitment', label: 'Recruitment Reports', icon: <LayoutDashboard size={18}/> },
-  { to: '/dm/dashboard', label: 'Digital Marketing Reports', icon: <BarChart2 size={18}/> },
-  { to: '/mg/dashboard', label: 'Motion Graphics Report', icon: <Film size={18}/> },
-    
-      
+      { to: '/recruitment', label: 'Recruitment Reports', icon: <LayoutDashboard size={18}/> },
+      { to: '/accounting/dashboard', label: 'Accounts Dashboard', icon: <Wallet size={18}/> },
+      { to: '/dm/dashboard', label: 'Digital Marketing Reports', icon: <BarChart2 size={18}/> },
+      { to: '/mg/dashboard', label: 'Motion Graphics Report', icon: <Film size={18}/> },
     ],
     DigitalMarketing: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
