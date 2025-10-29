@@ -14,7 +14,7 @@ export default function LeadsCenter() {
 
   const load = async () => {
     try {
-      const calls = [api.listLeads(status)];
+  const calls = [status === 'All Leads' ? api.listLeads() : api.listLeads(status)];
       if (canAssign) calls.push(api.listAdmissionUsers());
       const results = await Promise.all(calls);
 
@@ -45,6 +45,7 @@ export default function LeadsCenter() {
       <div className="flex items-center justify-between mb-3">
         <h1 className="text-2xl font-bold text-navy">Leads Center</h1>
         <select value={status} onChange={e=>setStatus(e.target.value)} className="border rounded-xl px-3 py-2">
+          <option>All Leads</option>
           <option>Assigned</option>
           <option>Counseling</option>
           <option>In Follow Up</option>
