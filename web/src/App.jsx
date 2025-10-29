@@ -69,9 +69,13 @@ export default function App() {
           <Route element={<RoleRoute roles={['SuperAdmin', 'Admin']} />}>
             <Route path="/assign-tasks" element={<AssignTasks />} />
             <Route path="/employees" element={<Employees />} />
-            <Route path="/courses" element={<Courses />} />
             <Route path="/reports-view" element={<ReportsView />} />
             <Route path="/leads-center-view" element={<LeadsCenterView />} />
+          </Route>
+
+          {/* Courses - viewable by all except Accountant */}
+          <Route element={<RoleRoute roles={['SuperAdmin', 'Admin', 'DigitalMarketing', 'Admission', 'Recruitment', 'MotionGraphics']} />}>
+            <Route path="/courses" element={<Courses />} />
           </Route>
 
           {/* Digital Marketing */}

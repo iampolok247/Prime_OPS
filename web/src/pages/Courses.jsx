@@ -13,7 +13,7 @@ export default function Courses() {
   const [err, setErr] = useState(null);
   const [ok, setOk] = useState(null);
 
-  const canEdit = user?.role === 'Admin'; // SuperAdmin view-only
+  const canEdit = user?.role === 'Admin' || user?.role === 'SuperAdmin';
 
   const load = async () => {
     try {
