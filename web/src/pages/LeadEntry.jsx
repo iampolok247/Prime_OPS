@@ -8,6 +8,7 @@ export default function LeadEntry() {
   const [csv, setCsv] = useState('');
   const [msg, setMsg] = useState(null);
   const [err, setErr] = useState(null);
+  const [fileErr, setFileErr] = useState(null);
 
   const isDM = user?.role === 'DigitalMarketing';
 
@@ -25,7 +26,7 @@ export default function LeadEntry() {
     e.preventDefault();
     setMsg(null); setErr(null);
     try {
-      const { created, skipped } = await api.bulkLeads(csv);
+      const { created, skipped } = await api.bulkUploadLeads(csv);
       setMsg(`Bulk upload done. Created: ${created}, Skipped duplicates/invalid: ${skipped}`);
       setCsv('');
     } catch (e) { setErr(e.message); }
@@ -66,7 +67,27 @@ export default function LeadEntry() {
         <form onSubmit={submitBulk} className="bg-white rounded-2xl shadow-soft p-4">
           <h2 className="text-lg font-semibold text-navy mb-3">Bulk Upload (CSV)</h2>
           <p className="text-xs text-royal/80 mb-2">Headers required: <b>Name,Phone,Email,InterestedCourse,Source</b></p>
-          <textarea rows="14" className="w-full border rounded-xl px-3 py-2 mb-3" placeholder="Paste CSV here..." value={csv} onChange={e=>setCsv(e.target.value)} />
+          <div className="mb-2">
+            <input type="file" accept=".csv,text/csv" onChange={async (e)=>{
+              setFileErr(null); setErr(null); setMsg(null);
+              const f = e.target.files && e.target.files[0];
+              if (!f) return;
+              const name = (f.name || '').toLowerCase();
+              const isCsv = f.type === 'text/csv' || name.endsWith('.csv');
+              if (!isCsv) {
+                setFileErr('Please select a CSV file (.csv)');
+                return;
+              }
+              try {
+                const text = await f.text();
+                setCsv(text);
+              } catch (err) {
+                setFileErr('Unable to read file');
+              }
+            }} />
+          </div>
+          <textarea rows="10" className="w-full border rounded-xl px-3 py-2 mb-3" placeholder="Or paste CSV here..." value={csv} onChange={e=>setCsv(e.target.value)} />
+          {fileErr && <div className="text-red-600 mb-2">{fileErr}</div>}
           <button className="bg-gold text-navy rounded-xl px-4 py-2 font-semibold hover:bg-lightgold">Upload CSV</button>
         </form>
       </div>
