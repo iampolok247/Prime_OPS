@@ -4,6 +4,8 @@ import { useLocation, Link } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
+function fmtDT(d){ if (!d) return '-'; try { return new Date(d).toLocaleString(); } catch { return d; } }
+
 const STATUS_TABS = [
   { key: 'Assigned', path: '/admission/assigned', label: 'Assigned Lead' },
   { key: 'Counseling', path: '/admission/counseling', label: 'Counseling' },
@@ -106,8 +108,12 @@ function PipelineTable({ status, canAct }) {
               <th className="p-3 text-left">Phone / Email</th>
               <th className="p-3 text-left">Course</th>
               <th className="p-3 text-left">Source</th>
-              <th className="p-3 text-left">Assigned To</th>
-              <th className="p-3 text-left">Action</th>
+          <th className="p-3 text-left">Assigned To</th>
+          {status === 'Assigned' && <th className="p-3 text-left">Assigned At</th>}
+          {status === 'Counseling' && <th className="p-3 text-left">Counseling At</th>}
+          {status === 'In Follow Up' && <th className="p-3 text-left">Follow-Ups</th>}
+          {status === 'Admitted' && <th className="p-3 text-left">Admitted At</th>}
+            <th className="p-3 text-left">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -122,6 +128,21 @@ function PipelineTable({ status, canAct }) {
                 <td className="p-3">{r.interestedCourse || '-'}</td>
                 <td className="p-3">{r.source}</td>
                 <td className="p-3">{r.assignedTo ? r.assignedTo.name : '-'}</td>
+                {status === 'Assigned' && <td className="p-3">{fmtDT(r.assignedAt || r.updatedAt)}</td>}
+                {status === 'Counseling' && <td className="p-3">{fmtDT(r.counselingAt || r.updatedAt)}</td>}
+                {status === 'In Follow Up' && <td className="p-3">
+                  {((r.followUps||[]).length === 0) ? <div className="text-royal/70">No follow-ups</div> : (
+                    <div className="flex flex-col gap-1">
+                      {(r.followUps||[]).map((f,idx)=> (
+                        <div key={idx} className="text-xs">
+                          <div className="font-medium">{fmtDT(f.at)}</div>
+                          <div className="text-royal/70">{f.note || '-'} {f.by?.name ? ` — ${f.by.name}` : ''}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </td>}
+                {status === 'Admitted' && <td className="p-3">{fmtDT(r.admittedAt || r.updatedAt)}</td>}
                 <td className="p-3">{actions(r)}</td>
               </tr>
             ))}
