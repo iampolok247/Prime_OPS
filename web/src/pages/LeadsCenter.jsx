@@ -9,6 +9,9 @@ export default function LeadsCenter() {
   const [admissions, setAdmissions] = useState([]);
   const [msg, setMsg] = useState(null);
   const [err, setErr] = useState(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [histLead, setHistLead] = useState(null);
+  const [histLoading, setHistLoading] = useState(false);
 
   const canAssign = user?.role === 'DigitalMarketing';
 
@@ -67,6 +70,7 @@ export default function LeadsCenter() {
               <th className="text-left p-3">Interested Course</th>
               <th className="text-left p-3">Source</th>
               <th className="text-left p-3">Assigned To</th>
+              {(user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.role === 'Admission' || user?.role === 'DigitalMarketing') && <th className="text-left p-3">History</th>}
               {canAssign && <th className="text-left p-3">Action</th>}
             </tr>
           </thead>
@@ -82,6 +86,20 @@ export default function LeadsCenter() {
                 <td className="p-3">{l.interestedCourse || '-'}</td>
                 <td className="p-3">{l.source}</td>
                 <td className="p-3">{l.assignedTo ? `${l.assignedTo.name} (${l.assignedTo.role})` : '-'}</td>
+                {(user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.role === 'Admission' || user?.role === 'DigitalMarketing') && (
+                  <td className="p-3">
+                    <button disabled={histLoading} onClick={async ()=>{
+                      try {
+                        setErr(null);
+                        setHistLoading(true);
+                        const res = await api.getLeadHistory(l._id);
+                        setHistLead(res.lead || res);
+                        setShowHistory(true);
+                      } catch (e) { setErr(e.message); }
+                      finally { setHistLoading(false); }
+                    }} className="px-3 py-1 rounded-xl border hover:bg-[#f3f6ff]">{histLoading ? 'Loading…' : 'History'}</button>
+                  </td>
+                )}
                 {canAssign && (
                   <td className="p-3">
                     <AssignDropdown
@@ -99,6 +117,33 @@ export default function LeadsCenter() {
           </tbody>
         </table>
       </div>
+      {showHistory && histLead && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="absolute inset-0 bg-black opacity-30" onClick={()=>setShowHistory(false)} />
+          <div className="bg-white rounded-xl p-4 z-10 w-full max-w-2xl shadow-lg">
+            <h3 className="text-lg font-semibold mb-2">Lead History — {histLead.leadId}</h3>
+            <div className="grid grid-cols-1 gap-2">
+              <div>Assigned At: <strong>{(histLead.assignedAt || histLead.updatedAt) ? new Date(histLead.assignedAt || histLead.updatedAt).toLocaleString() : '-'}</strong></div>
+              <div>Counseling At: <strong>{(histLead.counselingAt || histLead.updatedAt) ? new Date(histLead.counselingAt || histLead.updatedAt).toLocaleString() : '-'}</strong></div>
+              <div>Admitted At: <strong>{(histLead.admittedAt || histLead.updatedAt) ? new Date(histLead.admittedAt || histLead.updatedAt).toLocaleString() : '-'}</strong></div>
+              <div>Follow-ups ({(histLead.followUps||[]).length}):</div>
+              <div className="pl-2">
+                {(histLead.followUps||[]).length === 0 ? <div className="text-royal/70">No follow-ups</div> : (
+                  (histLead.followUps||[]).map((f, i)=> (
+                    <div key={i} className="mb-2">
+                      <div className="text-sm font-medium">{new Date(f.at).toLocaleString()} {f.by?.name ? ` — ${f.by.name}` : ''}</div>
+                      <div className="text-royal/70">{f.note || '-'}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+            <div className="mt-4 text-right">
+              <button onClick={()=>setShowHistory(false)} className="px-3 py-2 rounded-xl border">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
