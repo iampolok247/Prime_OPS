@@ -6,6 +6,8 @@ export default function Courses() {
   const { user } = useAuth();
   const [list, setList] = useState([]);
   const [open, setOpen] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
+  const [viewCourse, setViewCourse] = useState(null);
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({ name:'', category:'', duration:'', regularFee:0, discountFee:0, teacher:'', details:'', status:'Active' });
   const [err, setErr] = useState(null);
@@ -25,6 +27,11 @@ export default function Courses() {
     setEditId(null);
     setForm({ name:'', category:'', duration:'', regularFee:0, discountFee:0, teacher:'', details:'', status:'Active' });
     setOpen(true);
+  };
+
+  const startView = (c) => {
+    setViewCourse(c);
+    setViewOpen(true);
   };
 
   const startEdit = (c) => {
@@ -83,7 +90,7 @@ export default function Courses() {
               <th className="text-left p-3">Discount Fee</th>
               <th className="text-left p-3">Teacher</th>
               <th className="text-left p-3">Status</th>
-              {canEdit && <th className="text-left p-3">Action</th>}
+              <th className="text-left p-3">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -97,16 +104,19 @@ export default function Courses() {
                 <td className="p-3">৳ {c.discountFee}</td>
                 <td className="p-3">{c.teacher || '-'}</td>
                 <td className="p-3">{c.status}</td>
-                {canEdit && (
-                  <td className="p-3">
-                    <button onClick={()=>startEdit(c)} className="px-3 py-1 rounded-lg border mr-2">Edit</button>
-                    <button onClick={()=>remove(c._id)} className="px-3 py-1 rounded-lg border hover:bg-red-50">Delete</button>
-                  </td>
-                )}
+                <td className="p-3">
+                  <button onClick={()=>startView(c)} className="px-3 py-1 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 mr-2">View</button>
+                  {canEdit && (
+                    <>
+                      <button onClick={()=>startEdit(c)} className="px-3 py-1 rounded-lg border mr-2">Edit</button>
+                      <button onClick={()=>remove(c._id)} className="px-3 py-1 rounded-lg border hover:bg-red-50">Delete</button>
+                    </>
+                  )}
+                </td>
               </tr>
             ))}
             {list.length === 0 && (
-              <tr><td className="p-4 text-royal/70" colSpan={canEdit ? 9 : 8}>No courses</td></tr>
+              <tr><td className="p-4 text-royal/70" colSpan="9">No courses</td></tr>
             )}
           </tbody>
         </table>
@@ -159,6 +169,103 @@ export default function Courses() {
               {canEdit && <button className="px-4 py-2 rounded-xl bg-gold text-navy font-semibold hover:bg-lightgold">{editId ? 'Save' : 'Create'}</button>}
             </div>
           </form>
+        </div>
+      )}
+
+      {/* View Course Details Modal */}
+      {viewOpen && viewCourse && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-soft p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-navy">Course Details</h2>
+              <button onClick={() => setViewOpen(false)} className="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Course ID & Status */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded-xl">
+                  <div className="text-sm text-gray-600 mb-1">Course ID</div>
+                  <div className="text-lg font-semibold text-navy">{viewCourse.courseId}</div>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-xl">
+                  <div className="text-sm text-gray-600 mb-1">Status</div>
+                  <div className={`text-lg font-semibold ${viewCourse.status === 'Active' ? 'text-green-600' : 'text-gray-600'}`}>
+                    {viewCourse.status}
+                  </div>
+                </div>
+              </div>
+
+              {/* Course Name */}
+              <div className="bg-blue-50 p-4 rounded-xl">
+                <div className="text-sm text-blue-600 mb-1">Course Name</div>
+                <div className="text-xl font-bold text-navy">{viewCourse.name}</div>
+              </div>
+
+              {/* Category & Duration */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded-xl">
+                  <div className="text-sm text-gray-600 mb-1">Category</div>
+                  <div className="text-lg font-semibold text-navy">{viewCourse.category || 'Not specified'}</div>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-xl">
+                  <div className="text-sm text-gray-600 mb-1">Duration</div>
+                  <div className="text-lg font-semibold text-navy">{viewCourse.duration || 'Not specified'}</div>
+                </div>
+              </div>
+
+              {/* Fees */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-yellow-50 p-4 rounded-xl border-2 border-yellow-200">
+                  <div className="text-sm text-yellow-700 mb-1">Regular Fee</div>
+                  <div className="text-2xl font-bold text-yellow-800">৳ {viewCourse.regularFee.toLocaleString()}</div>
+                </div>
+                <div className="bg-green-50 p-4 rounded-xl border-2 border-green-200">
+                  <div className="text-sm text-green-700 mb-1">Discount Fee</div>
+                  <div className="text-2xl font-bold text-green-800">৳ {viewCourse.discountFee.toLocaleString()}</div>
+                  {viewCourse.regularFee > viewCourse.discountFee && (
+                    <div className="text-xs text-green-600 mt-1">
+                      Save ৳{(viewCourse.regularFee - viewCourse.discountFee).toLocaleString()}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Teacher */}
+              <div className="bg-purple-50 p-4 rounded-xl">
+                <div className="text-sm text-purple-600 mb-1">Teacher/Instructor</div>
+                <div className="text-lg font-semibold text-purple-800">{viewCourse.teacher || 'Not assigned'}</div>
+              </div>
+
+              {/* Details */}
+              <div className="bg-gray-50 p-4 rounded-xl">
+                <div className="text-sm text-gray-600 mb-2">Course Details</div>
+                <div className="text-gray-800 whitespace-pre-wrap">
+                  {viewCourse.details || 'No details provided'}
+                </div>
+              </div>
+
+              {/* Timestamps */}
+              <div className="grid grid-cols-2 gap-4 text-xs text-gray-500">
+                <div>
+                  <span className="font-semibold">Created:</span> {new Date(viewCourse.createdAt).toLocaleString()}
+                </div>
+                <div>
+                  <span className="font-semibold">Updated:</span> {new Date(viewCourse.updatedAt).toLocaleString()}
+                </div>
+              </div>
+            </div>
+
+            {/* Close Button */}
+            <div className="mt-6 flex justify-end">
+              <button 
+                onClick={() => setViewOpen(false)} 
+                className="px-6 py-2 rounded-xl bg-navy text-white font-semibold hover:bg-navy/90"
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
