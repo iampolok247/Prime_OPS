@@ -88,7 +88,21 @@ export default function AdmissionDashboard() {
         <div className="flex items-end gap-3 mb-3">
           <div>
             <label className="block text-sm text-royal mb-1">Period</label>
-            <select value={range.period} onChange={e=>setRange(r=>({...r,period:e.target.value}))} className="input">
+            <select value={range.period} onChange={e=>{
+              const p = e.target.value;
+              // compute default from/to for non-custom
+              if (p !== 'custom') {
+                const now = new Date();
+                let f = new Date();
+                if (p === 'daily') f.setDate(now.getDate() - 1);
+                else if (p === 'weekly') f.setDate(now.getDate() - 7);
+                else if (p === 'monthly') f.setMonth(now.getMonth() - 1);
+                else if (p === 'yearly') f.setFullYear(now.getFullYear() - 1);
+                setRange({ period: p, from: f.toISOString().slice(0,10), to: now.toISOString().slice(0,10) });
+              } else {
+                setRange(r=>({...r, period: 'custom'}));
+              }
+            }} className="input">
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
               <option value="monthly">Monthly</option>
