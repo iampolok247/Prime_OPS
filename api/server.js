@@ -35,12 +35,17 @@ const ALLOWED_ORIGINS = [
   process.env.CLIENT_ORIGIN || 'http://localhost:5173',
   'http://localhost:5174',
   'http://127.0.0.1:5173',
+  'https://prime-ops.vercel.app',
+  'https://prime-ops-jrpoloks-projects.vercel.app',
+  'https://prime-i4fgju99s-jrpoloks-projects.vercel.app'
 ];
 app.use(cors({
   origin: (origin, cb) => {
     // allow non-browser tools like curl (no origin)
     if (!origin) return cb(null, true);
     if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    // Also allow any vercel.app subdomain for this project
+    if (origin && origin.includes('prime-ops') && origin.includes('.vercel.app')) return cb(null, true);
     return cb(null, false);
   },
   credentials: true
