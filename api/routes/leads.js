@@ -108,6 +108,8 @@ router.get('/', requireAuth, authorize(['DigitalMarketing', 'Admin', 'SuperAdmin
     .sort({ createdAt: -1 })
     .populate('assignedTo', 'name email role')
     .populate('assignedBy', 'name email role');
+  // populate follow-up user references if any
+  await Lead.populate(leads, { path: 'followUps.by', select: 'name email' });
   return res.json({ leads });
 });
 
@@ -130,6 +132,7 @@ const assignHandler = async (req, res) => {
   const populated = await Lead.findById(lead._id)
     .populate('assignedTo', 'name email role')
     .populate('assignedBy', 'name email role');
+  await Lead.populate(populated, { path: 'followUps.by', select: 'name email' });
 
   return res.json({ lead: populated });
 };
