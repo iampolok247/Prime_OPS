@@ -90,12 +90,13 @@ function PipelineTable({ status, canAct }) {
       );
     }
     if (status === 'In Follow Up') {
-      return (
-        <div className="flex gap-2">
-          <ActionBtn onClick={()=>act(row._id,'Admitted')}>Admitted</ActionBtn>
-          <ActionBtn variant="danger" onClick={()=>act(row._id,'Not Admitted')}>Not Admitted</ActionBtn>
-        </div>
-      );
+        return (
+          <div className="flex gap-2">
+            <ActionBtn onClick={()=>act(row._id,'Admitted')}>Admitted</ActionBtn>
+            <ActionBtn onClick={()=>{ setFollowTarget(row._id); setFollowNote(''); setShowFollowModal(true); }}>Follow-Up Again</ActionBtn>
+            <ActionBtn variant="danger" onClick={()=>act(row._id,'Not Admitted')}>Not Admitted</ActionBtn>
+          </div>
+        );
     }
     return <span className="text-royal/60">—</span>;
   };
@@ -137,7 +138,14 @@ function PipelineTable({ status, canAct }) {
           <tbody>
             {rows.map(r => (
               <tr key={r._id} className="border-t">
-                <td className="p-3">{r.leadId}</td>
+                <td className="p-3">
+                  <div className="flex items-center gap-2">
+                    <div>{r.leadId}</div>
+                    {((r.followUps||[]).length > 0) && (
+                      <div className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{(r.followUps||[]).length} FU</div>
+                    )}
+                  </div>
+                </td>
                 <td className="p-3">{r.name}</td>
                 <td className="p-3">
                   <div>{r.phone}</div>

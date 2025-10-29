@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
+import { useAuth } from '../context/AuthContext.jsx';
+
+function fmtDT(d){ if (!d) return '-'; try { return new Date(d).toLocaleString(); } catch { return d; } }
 
 export default function LeadsCenterView() {
+  const { user } = useAuth();
   const [status, setStatus] = useState('All Leads');
   const [leads, setLeads] = useState([]);
   const [err, setErr] = useState(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [histLead, setHistLead] = useState(null);
 
   const load = async () => {
     try {
@@ -43,6 +49,7 @@ export default function LeadsCenterView() {
               <th className="text-left p-3">Interested Course</th>
               <th className="text-left p-3">Source</th>
               <th className="text-left p-3">Assigned To</th>
+              {(user?.role === 'Admin' || user?.role === 'SuperAdmin') && <th className="text-left p-3">History</th>}
             </tr>
           </thead>
           <tbody>
@@ -57,6 +64,11 @@ export default function LeadsCenterView() {
                 <td className="p-3">{l.interestedCourse || '-'}</td>
                 <td className="p-3">{l.source}</td>
                 <td className="p-3">{l.assignedTo ? `${l.assignedTo.name} (${l.assignedTo.role})` : '-'}</td>
+                {(user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
+                  <td className="p-3">
+                    <button onClick={()=>{ setHistLead(l); setShowHistory(true); }} className="px-3 py-1 rounded-xl border hover:bg-[#f3f6ff]">History</button>
+                  </td>
+                )}
               </tr>
             ))}
             {leads.length === 0 && (
@@ -65,6 +77,33 @@ export default function LeadsCenterView() {
           </tbody>
         </table>
       </div>
+      {showHistory && histLead && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="absolute inset-0 bg-black opacity-30" onClick={()=>setShowHistory(false)} />
+          <div className="bg-white rounded-xl p-4 z-10 w-full max-w-2xl shadow-lg">
+            <h3 className="text-lg font-semibold mb-2">Lead History — {histLead.leadId}</h3>
+            <div className="grid grid-cols-1 gap-2">
+              <div>Assigned At: <strong>{fmtDT(histLead.assignedAt || histLead.updatedAt)}</strong></div>
+              <div>Counseling At: <strong>{fmtDT(histLead.counselingAt)}</strong></div>
+              <div>Admitted At: <strong>{fmtDT(histLead.admittedAt)}</strong></div>
+              <div>Follow-ups ({(histLead.followUps||[]).length}):</div>
+              <div className="pl-2">
+                {(histLead.followUps||[]).length === 0 ? <div className="text-royal/70">No follow-ups</div> : (
+                  (histLead.followUps||[]).map((f, i)=> (
+                    <div key={i} className="mb-2">
+                      <div className="text-sm font-medium">{fmtDT(f.at)} {f.by?.name ? ` — ${f.by.name}` : ''}</div>
+                      <div className="text-royal/70">{f.note || '-'}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+            <div className="mt-4 text-right">
+              <button onClick={()=>setShowHistory(false)} className="px-3 py-2 rounded-xl border">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
