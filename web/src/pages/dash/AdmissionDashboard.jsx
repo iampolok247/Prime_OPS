@@ -28,81 +28,99 @@ const STATUSES = [
 ];
 
 export default function AdmissionDashboard() {
-  const [counts, setCounts] = useState({});
   const [err, setErr] = useState('');
-  const [range, setRange] = useState({ period: 'monthly', from: new Date(new Date().getFullYear(),0,1).toISOString().slice(0,10), to: new Date().toISOString().slice(0,10) });
-  const [series, setSeries] = useState([]);
+  const [period, setPeriod] = useState('monthly');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [allLeads, setAllLeads] = useState([]);
+  const [loading, setLoading] = useState(false);
 
+  // Load all leads once
   useEffect(()=> {
-    (async ()=>{
-      try {
-        const entries = await Promise.all(
-          STATUSES.map(s => api.listAdmissionLeads(s.key).catch(()=>[]))
-        );
-        const map = {};
-        STATUSES.forEach((s, i)=> { map[s.key] = (entries[i]||[]).length; });
-        setCounts(map); setErr('');
-      } catch(e) { setErr(e.message || 'Failed to load'); }
-    })();
+    loadAll();
   }, []);
 
-  // load series for chart based on range
-  useEffect(()=>{
-    (async ()=>{
-      try {
-        // fetch all leads once and compute series on client
-        const { leads } = await api.listAdmissionLeads();
-        const from = range.from ? new Date(range.from) : null;
-        const to = range.to ? new Date(range.to) : null;
-        // create date keys between from and to
-        let dates = [];
-        if (!from || !to) { setSeries([]); return; }
-        const cur = new Date(from);
-        while (cur <= to) { dates.push(new Date(cur)); cur.setDate(cur.getDate()+1); }
-        const s = dates.map(d=>{
-          const key = d.toISOString().slice(0,10);
-          const leadsCount = (leads || []).filter(l=> new Date(l.createdAt).toISOString().slice(0,10) === key).length;
-          const admittedCount = (leads || []).filter(l=> l.admittedAt && new Date(l.admittedAt).toISOString().slice(0,10) === key).length;
-          return { date: key, leads: leadsCount, admitted: admittedCount };
-        });
-        setSeries(s);
-      } catch (e) { /* ignore chart errors */ }
-    })();
-  }, [range]);
+  async function loadAll() {
+    setLoading(true);
+    try {
+      // Fetch all leads without status filter to get complete dataset
+      const resp = await api.listAdmissionLeads().catch(()=>({ leads: [] }));
+      const leads = resp?.leads || resp || [];
+      setAllLeads(Array.isArray(leads) ? leads : []);
+      setErr('');
+    } catch(e) { 
+      setErr(e.message || 'Failed to load'); 
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const parseRange = () => {
+    if (period === 'lifetime') return { from: null, to: null };
+    if (period === 'custom' && from && to) return { from: new Date(from), to: new Date(to) };
+    const now = new Date();
+    let f = new Date();
+    if (period === 'daily') { f.setDate(now.getDate() - 1); }
+    else if (period === 'weekly') { f.setDate(now.getDate() - 7); }
+    else if (period === 'monthly') { f.setMonth(now.getMonth() - 1); }
+    else if (period === 'yearly') { f.setFullYear(now.getFullYear() - 1); }
+    return { from: f, to: now };
+  };
+
+  const inRange = (d, fromD, toD) => {
+    if (!d) return false;
+    const t = new Date(d).getTime();
+    if (fromD && t < fromD.getTime()) return false;
+    if (toD && t > toD.getTime()) return false;
+    return true;
+  };
+
+  const { from: rangeFrom, to: rangeTo } = parseRange();
+
+  const metrics = React.useMemo(() => {
+    const fromD = rangeFrom ? new Date(rangeFrom) : null;
+    const toD = rangeTo ? new Date(rangeTo) : null;
+
+    const leadsInRange = allLeads.filter(l => inRange(l.createdAt, fromD, toD) || (!fromD && !toD));
+
+    const counts = {};
+    STATUSES.forEach(s => {
+      counts[s.key] = leadsInRange.filter(l => l.status === s.key).length;
+    });
+
+    // Compute series for chart
+    const series = [];
+    if (fromD && toD) {
+      const cur = new Date(fromD);
+      while (cur <= toD) {
+        const key = cur.toISOString().slice(0,10);
+        const leadsCount = allLeads.filter(l => {
+          const d = new Date(l.createdAt);
+          return d && d.toISOString().slice(0,10) === key;
+        }).length;
+        const admittedCount = allLeads.filter(l => {
+          const d = l.admittedAt ? new Date(l.admittedAt) : null;
+          return d && d.toISOString().slice(0,10) === key;
+        }).length;
+        series.push({ date: key, leads: leadsCount, admitted: admittedCount });
+        cur.setDate(cur.getDate()+1);
+      }
+    }
+
+    return { counts, series };
+  }, [allLeads, rangeFrom, rangeTo]);
 
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold text-navy">Admission — Dashboard</h1>
       {err && <div className="text-red-600">{err}</div>}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-        {STATUSES.map(s=>(
-          <div key={s.key} className="bg-white rounded-xl p-4 shadow-sm">
-            <div className="text-royal text-sm">{s.label}</div>
-            <div className="text-3xl font-extrabold">{counts[s.key] ?? 0}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-4 bg-white rounded-xl p-4">
-        <div className="flex items-end gap-3 mb-3">
-          <div>
-            <label className="block text-sm text-royal mb-1">Period</label>
-            <select value={range.period} onChange={e=>{
-              const p = e.target.value;
-              // compute default from/to for non-custom
-              if (p !== 'custom') {
-                const now = new Date();
-                let f = new Date();
-                if (p === 'daily') f.setDate(now.getDate() - 1);
-                else if (p === 'weekly') f.setDate(now.getDate() - 7);
-                else if (p === 'monthly') f.setMonth(now.getMonth() - 1);
-                else if (p === 'yearly') f.setFullYear(now.getFullYear() - 1);
-                setRange({ period: p, from: f.toISOString().slice(0,10), to: now.toISOString().slice(0,10) });
-              } else {
-                setRange(r=>({...r, period: 'custom'}));
-              }
-            }} className="input">
+      {/* Period Filter */}
+      <div className="bg-white p-4 rounded-xl shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center gap-3">
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-slate">Range</label>
+            <select value={period} onChange={e => setPeriod(e.target.value)} className="border rounded-xl px-3 py-2">
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
               <option value="monthly">Monthly</option>
@@ -111,23 +129,27 @@ export default function AdmissionDashboard() {
               <option value="custom">Custom</option>
             </select>
           </div>
-          {range.period === 'custom' && (
+          {period === 'custom' && (
             <>
-              <div>
-                <label className="block text-sm text-royal mb-1">From</label>
-                <input type="date" className="border rounded-xl px-3 py-2" value={range.from} onChange={e=>setRange(r=>({...r,from:e.target.value}))} />
-              </div>
-              <div>
-                <label className="block text-sm text-royal mb-1">To</label>
-                <input type="date" className="border rounded-xl px-3 py-2" value={range.to} onChange={e=>setRange(r=>({...r,to:e.target.value}))} />
-              </div>
+              <input type="date" className="border rounded-xl px-3 py-2" value={from} onChange={e => setFrom(e.target.value)} />
+              <input type="date" className="border rounded-xl px-3 py-2" value={to} onChange={e => setTo(e.target.value)} />
             </>
           )}
         </div>
-        <div>
-          <h4 className="text-sm text-royal mb-2">Leads vs Admitted</h4>
-          <LineChartDualSmall data={series} />
-        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+        {STATUSES.map(s=>(
+          <div key={s.key} className="bg-white rounded-xl p-4 shadow-sm">
+            <div className="text-royal text-sm">{s.label}</div>
+            <div className="text-3xl font-extrabold">{metrics.counts[s.key] ?? 0}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-white rounded-xl p-4 shadow-sm">
+        <h4 className="text-sm text-royal mb-2">Leads vs Admitted</h4>
+        <LineChartDualSmall data={metrics.series} />
       </div>
     </div>
   );

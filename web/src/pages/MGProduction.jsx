@@ -305,13 +305,13 @@ export default function MGProduction() {
       </div>
 
       {/* Modal for create/edit */}
-      <MGModal visible={modalVisible} payload={modalPayload} setPayload={setModalPayload} onClose={()=>setModalVisible(false)} onSave={handleSave} saving={modalSaving} error={modalError} users={users} />
+      <MGModal visible={modalVisible} payload={modalPayload} setPayload={setModalPayload} onClose={()=>setModalVisible(false)} onSave={handleSave} saving={modalSaving} error={modalError} users={users} types={TYPES} platforms={PLATFORMS} />
     </div>
   );
 }
 
 // Modal component using closures to keep file local state-lightweight
-function MGModal({ visible, payload, setPayload, onClose, onSave, saving, error, users }) {
+function MGModal({ visible, payload, setPayload, onClose, onSave, saving, error, users, types, platforms }) {
   const [query, setQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [highlight, setHighlight] = useState(-1);
@@ -384,11 +384,11 @@ function MGModal({ visible, payload, setPayload, onClose, onSave, saving, error,
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
           <input type="date" value={payload?.date || ''} onChange={e=>setPayload(p=>({...p, date: e.target.value}))} className="border rounded-xl px-3 py-2" />
           <input placeholder="Title" value={payload?.title||''} onChange={e=>setPayload(p=>({...p, title: e.target.value}))} className="border rounded-xl px-3 py-2" />
-          <select value={payload?.type||TYPES[0]} onChange={e=>setPayload(p=>({...p, type: e.target.value}))} className="border rounded-xl px-3 py-2">
-            {TYPES.map(t=> <option key={t} value={t}>{t}</option>)}
+          <select value={payload?.type||types[0]} onChange={e=>setPayload(p=>({...p, type: e.target.value}))} className="border rounded-xl px-3 py-2">
+            {types.map(t=> <option key={t} value={t}>{t}</option>)}
           </select>
-          <select value={payload?.platform||PLATFORMS[0]} onChange={e=>setPayload(p=>({...p, platform: e.target.value}))} className="border rounded-xl px-3 py-2">
-            {PLATFORMS.map(pf=> <option key={pf} value={pf}>{pf}</option>)}
+          <select value={payload?.platform||platforms[0]} onChange={e=>setPayload(p=>({...p, platform: e.target.value}))} className="border rounded-xl px-3 py-2">
+            {platforms.map(pf=> <option key={pf} value={pf}>{pf}</option>)}
           </select>
           <div className="relative">
             <input
