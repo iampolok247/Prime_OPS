@@ -3,6 +3,29 @@ import { api, fmtBDTEn } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { PlusCircle } from 'lucide-react';
 
+function PurposeSelect({ kind = 'expenses', value, onChange }){
+  let raw = {};
+  try { raw = JSON.parse(localStorage.getItem('accountHeads') || '{}'); } catch(e){ raw = {}; }
+  const list = (raw && raw[kind]) ? raw[kind] : [];
+  const [custom, setCustom] = useState('');
+  const selected = value || '';
+  const handle = (v)=>{
+    if (v === '__other__') { onChange(custom); } else { onChange(v); }
+  };
+  return (
+    <div>
+      <label className="block text-sm text-royal mb-1">Purpose</label>
+      <select className="border rounded-xl px-3 py-2 w-full mb-2" value={selected || ''} onChange={e=>handle(e.target.value)}>
+        {(!list || list.length === 0) ? <option value="">No heads defined</option> : <><option value="">-- select purpose --</option>{list.map(h=> <option key={h} value={h}>{h}</option>)}</>}
+        <option value="__other__">Other (enter manually)</option>
+      </select>
+      {selected === '__other__' || (!selected && custom) ? (
+        <input className="border rounded-xl px-3 py-2" placeholder="Enter purpose" value={custom} onChange={e=>{ setCustom(e.target.value); onChange(e.target.value); }} />
+      ) : null}
+    </div>
+  );
+}
+
 export default function ExpensePage() {
   const { user } = useAuth();
   const isAcc = user?.role === 'Accountant';
@@ -51,7 +74,8 @@ export default function ExpensePage() {
             <h3 className="text-lg font-semibold mb-2">Add Expense</h3>
             <form onSubmit={add} className="grid grid-cols-1 gap-2">
               <input type="date" className="border rounded-xl px-3 py-2" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}/>
-              <input className="border rounded-xl px-3 py-2" placeholder="Purpose" value={form.purpose} onChange={e=>setForm(f=>({...f,purpose:e.target.value}))}/>
+              {/* Purpose select from account heads */}
+              <PurposeSelect kind="expenses" value={form.purpose} onChange={(v)=>setForm(f=>({...f,purpose:v}))} />
               <input type="number" className="border rounded-xl px-3 py-2" placeholder="Amount" value={form.amount} onChange={e=>setForm(f=>({...f,amount:Number(e.target.value)}))}/>
               <input className="border rounded-xl px-3 py-2" placeholder="Note" value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))}/>
               <div className="flex justify-end gap-2 mt-2">
@@ -62,6 +86,7 @@ export default function ExpensePage() {
           </div>
         </div>
       )}
+
 
       <div className="bg-white rounded-2xl shadow-soft overflow-auto">
         <table className="min-w-full text-sm">
