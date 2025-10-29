@@ -27,13 +27,14 @@ export default function Sidebar() {
       { to: '/assign-tasks', label: 'Assign Task', icon: <ListChecks size={18}/> },
       { to: '/employees', label: 'Employee ', icon: <Users size={18}/> },
       { to: '/courses', label: 'Courses ', icon: <BookOpen size={18}/> },
+      { to: '/reports-view', label: 'Accounts Report', icon: <Wallet size={18}/> },
       { to: '/leads-center-view', label: 'Leads Center ', icon: <FolderOpen size={18}/> },     
       { to: '/admission/dashboard', label: 'Admission Reports', icon: <FolderOpen size={18}/> },
     { to: '/recruitment', label: 'Recruitment Reports', icon: <LayoutDashboard size={18}/> },
+    { to: '/reports-view', label: 'Accounts Report', icon: <Wallet size={18}/> },
     { to: '/dm/dashboard', label: 'Digital Marketing Reports', icon: <BarChart2 size={18}/> },
   { to: '/mg/dashboard', label: 'Motion Graphics Report', icon: <Film size={18}/> },
-    { to: '/employee-accounts/bank', label: 'Employee Bank Account', icon: <CreditCard size={18}/> },
-    { to: '/employee-accounts/salary', label: 'Employee Salary', icon: <Wallet size={18}/> },
+    
     ],
     Admin: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
@@ -42,12 +43,13 @@ export default function Sidebar() {
       { to: '/employees', label: 'Employee', icon: <Users size={18}/> },
       { to: '/leads-center-view', label: 'Leads Center ', icon: <FolderOpen size={18}/> },
       { to: '/courses', label: 'Courses ', icon: <BookOpen size={18}/> },
+      { to: '/reports-view', label: 'Accounts Report', icon: <Wallet size={18}/> },
       { to: '/admission/dashboard', label: 'Admission Reports', icon: <FolderOpen size={18}/> },
   { to: '/recruitment', label: 'Recruitment Reports', icon: <LayoutDashboard size={18}/> },
   { to: '/dm/dashboard', label: 'Digital Marketing Reports', icon: <BarChart2 size={18}/> },
   { to: '/mg/dashboard', label: 'Motion Graphics Report', icon: <Film size={18}/> },
-      { to: '/employee-accounts/bank', label: 'Employee Bank Account', icon: <CreditCard size={18}/> },
-      { to: '/employee-accounts/salary', label: 'Employee Salary', icon: <Wallet size={18}/> },
+    
+      
     ],
     DigitalMarketing: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
@@ -106,7 +108,7 @@ MotionGraphics: [
   }
   return (
     <aside className="w-72 hidden md:flex bg-white border-r min-h-screen sticky top-0 flex-col">
-      <div className="px-4 py-4 text-xl font-extrabold text-navy">PrimeOPS</div>
+      <div className="px-4 py-4"><img src="https://primeacademy.org/logo-full.png" alt="Prime Academy" className="w-40 object-contain"/></div>
       <nav className="flex-1">
         {items.map((m) => <Item key={m.to} {...m} />)}
       </nav>

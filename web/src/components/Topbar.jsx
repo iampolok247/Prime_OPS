@@ -6,7 +6,9 @@ export default function Topbar() {
   const { user, logout } = useAuth();
   return (
     <header className="h-16 bg-navy text-white flex items-center justify-between px-4 shadow-soft">
-      <div className="font-semibold tracking-wide">Prime Academy Office Management</div>
+      <div className="px-2">
+        <img src="https://primeacademy.org/logo-full.png" alt="Prime Academy" className="h-8 object-contain" />
+      </div>
       <div className="flex items-center gap-3">
         <img src={user?.avatar} alt="avatar" className="w-9 h-9 rounded-full border-2 border-gold object-cover"/>
         <div className="text-sm leading-tight">
