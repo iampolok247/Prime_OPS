@@ -56,6 +56,9 @@ function PipelineTable({ status, canAct }) {
   const [showNotAdmitModal, setShowNotAdmitModal] = useState(false);
   const [notAdmitNote, setNotAdmitNote] = useState('');
   const [notAdmitTarget, setNotAdmitTarget] = useState(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [histLead, setHistLead] = useState(null);
+  const [histLoading, setHistLoading] = useState(false);
 
   const load = async () => {
     try {
@@ -75,6 +78,7 @@ function PipelineTable({ status, canAct }) {
       setShowFollowModal(false);
       setFollowNote(''); setFollowTarget(null);
       setShowNotAdmitModal(false); setNotAdmitNote(''); setNotAdmitTarget(null);
+      setShowHistory(false); setHistLead(null); setHistLoading(false);
       load();
     } catch (e) { setErr(e.message); }
   };
@@ -90,6 +94,16 @@ function PipelineTable({ status, canAct }) {
           <ActionBtn onClick={()=>act(row._id,'Admitted')}>Admitted</ActionBtn>
           <ActionBtn onClick={()=>{ setFollowTarget(row._id); setFollowNote(''); setShowFollowModal(true); }}>Follow-Up</ActionBtn>
           <ActionBtn variant="danger" onClick={()=>{ setNotAdmitTarget(row._id); setNotAdmitNote(''); setShowNotAdmitModal(true); }}>Not Admitted</ActionBtn>
+          <ActionBtn onClick={async ()=>{
+            try {
+              setErr(null);
+              setHistLoading(true);
+              const res = await api.getLeadHistory(row._id);
+              setHistLead(res.lead || res);
+              setShowHistory(true);
+            } catch (e) { setErr(e.message); }
+            finally { setHistLoading(false); }
+          }}>{histLoading ? 'Loading…' : 'History'}</ActionBtn>
         </div>
       );
     }
@@ -99,6 +113,16 @@ function PipelineTable({ status, canAct }) {
             <ActionBtn onClick={()=>act(row._id,'Admitted')}>Admitted</ActionBtn>
             <ActionBtn onClick={()=>{ setFollowTarget(row._id); setFollowNote(''); setShowFollowModal(true); }}>Follow-Up Again</ActionBtn>
             <ActionBtn variant="danger" onClick={()=>{ setNotAdmitTarget(row._id); setNotAdmitNote(''); setShowNotAdmitModal(true); }}>Not Admitted</ActionBtn>
+            <ActionBtn onClick={async ()=>{
+              try {
+                setErr(null);
+                setHistLoading(true);
+                const res = await api.getLeadHistory(row._id);
+                setHistLead(res.lead || res);
+                setShowHistory(true);
+              } catch (e) { setErr(e.message); }
+              finally { setHistLoading(false); }
+            }}>{histLoading ? 'Loading…' : 'History'}</ActionBtn>
           </div>
         );
     }
@@ -118,6 +142,33 @@ function PipelineTable({ status, canAct }) {
             <div className="flex justify-end gap-2">
               <button type="button" onClick={()=>{ setShowFollowModal(false); setFollowNote(''); setFollowTarget(null); }} className="px-3 py-2 rounded-xl border">Cancel</button>
               <button type="button" onClick={()=>act(followTarget,'In Follow Up', followNote)} className="px-3 py-2 rounded-xl bg-gold text-navy">Save Follow-Up</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showHistory && histLead && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="absolute inset-0 bg-black opacity-30" onClick={()=>setShowHistory(false)} />
+          <div className="bg-white rounded-xl p-4 z-10 w-full max-w-2xl shadow-lg">
+            <h3 className="text-lg font-semibold mb-2">Lead History — {histLead.leadId}</h3>
+            <div className="grid grid-cols-1 gap-2">
+              <div>Assigned At: <strong>{fmtDT(histLead.assignedAt || histLead.updatedAt)}</strong></div>
+              <div>Counseling At: <strong>{fmtDT(histLead.counselingAt || histLead.updatedAt)}</strong></div>
+              <div>Admitted At: <strong>{fmtDT(histLead.admittedAt || histLead.updatedAt)}</strong></div>
+              <div>Follow-ups ({(histLead.followUps||[]).length}):</div>
+              <div className="pl-2">
+                {(histLead.followUps||[]).length === 0 ? <div className="text-royal/70">No follow-ups</div> : (
+                  (histLead.followUps||[]).map((f, idx)=> (
+                    <div key={idx} className="mb-2">
+                      <div className="text-sm font-medium">{fmtDT(f.at)} {f.by?.name ? ` — ${f.by.name}` : ''}</div>
+                      <div className="text-royal/70">{f.note || '-'}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+            <div className="mt-4 text-right">
+              <button onClick={()=>setShowHistory(false)} className="px-3 py-2 rounded-xl border">Close</button>
             </div>
           </div>
         </div>
