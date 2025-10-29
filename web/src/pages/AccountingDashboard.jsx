@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { api, fmtBDTEn } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Wallet, CreditCard, PieChart, BarChart2 } from 'lucide-react';
@@ -51,13 +52,20 @@ export default function AccountingDashboard() {
 
   useEffect(() => { load(); }, []); // eslint-disable-line
 
+  const location = useLocation();
   useEffect(() => {
     // load account heads from localStorage
     try {
       const raw = localStorage.getItem('accountHeads');
       setHeads(raw ? JSON.parse(raw) : { incomes: [], expenses: [] });
     } catch (e) { setHeads({ incomes: [], expenses: [] }); }
-  }, []);
+    // if URL requests to open heads modal (from shortcut), open it
+    try {
+      const qp = new URLSearchParams(location.search || '');
+      const open = qp.get('openHeads') || qp.get('openHeadsModal');
+      if (open) setShowHeadsModal(true);
+    } catch (e) { /* ignore */ }
+  }, [location.search]);
 
   return (
     <div>

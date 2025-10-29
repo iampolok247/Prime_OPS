@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api, fmtBDTEn } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { PlusCircle } from 'lucide-react';
@@ -36,6 +37,7 @@ export default function ExpensePage() {
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState({ date: new Date().toISOString().slice(0,10), purpose:'', amount:0, note:'' });
   const [showModal, setShowModal] = useState(false);
+  const nav = useNavigate();
   const [msg, setMsg] = useState(null);
   const [err, setErr] = useState(null);
 
@@ -76,6 +78,9 @@ export default function ExpensePage() {
               <input type="date" className="border rounded-xl px-3 py-2" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}/>
               {/* Purpose select from account heads */}
               <PurposeSelect kind="expenses" value={form.purpose} onChange={(v)=>setForm(f=>({...f,purpose:v}))} />
+              <div className="text-right text-sm mt-1">
+                <button type="button" onClick={()=>{ setShowModal(false); nav('/accounting/dashboard?openHeads=1'); }} className="text-blue-600 underline">Manage Account Heads</button>
+              </div>
               <input type="number" className="border rounded-xl px-3 py-2" placeholder="Amount" value={form.amount} onChange={e=>setForm(f=>({...f,amount:Number(e.target.value)}))}/>
               <input className="border rounded-xl px-3 py-2" placeholder="Note" value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))}/>
               <div className="flex justify-end gap-2 mt-2">

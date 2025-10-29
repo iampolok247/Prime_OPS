@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api, fmtBDTEn } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { PlusCircle } from 'lucide-react';
@@ -13,6 +14,7 @@ export default function IncomePage() {
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState({ date: new Date().toISOString().slice(0,10), source:'Other', amount:0, note:'' });
   const [showModal, setShowModal] = useState(false);
+  const nav = useNavigate();
   const [msg, setMsg] = useState(null);
   const [err, setErr] = useState(null);
 
@@ -47,7 +49,11 @@ export default function IncomePage() {
             <h3 className="text-lg font-semibold mb-2">Add Income</h3>
             <form onSubmit={add} className="grid grid-cols-1 gap-2">
               <input type="date" className="border rounded-xl px-3 py-2" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}/>
-              <input className="border rounded-xl px-3 py-2" placeholder="Source" value={form.source} onChange={e=>setForm(f=>({...f,source:e.target.value}))}/>
+              {/* Purpose select populated from account heads */}
+              <PurposeSelect kind="incomes" value={form.source} onChange={(v)=>setForm(f=>({...f,source:v}))} />
+              <div className="text-right text-sm mt-1">
+                <button type="button" onClick={()=>{ setShowModal(false); nav('/accounting/dashboard?openHeads=1'); }} className="text-blue-600 underline">Manage Account Heads</button>
+              </div>
               <input type="number" className="border rounded-xl px-3 py-2" placeholder="Amount" value={form.amount} onChange={e=>setForm(f=>({...f,amount:Number(e.target.value)}))}/>
               <input className="border rounded-xl px-3 py-2" placeholder="Note" value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))}/>
               <div className="flex justify-end gap-2 mt-2">
@@ -77,6 +83,30 @@ export default function IncomePage() {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function PurposeSelect({ kind = 'incomes', value, onChange }){
+  // read heads from localStorage
+  let raw = {};
+  try { raw = JSON.parse(localStorage.getItem('accountHeads') || '{}'); } catch(e){ raw = {}; }
+  const list = (raw && raw[kind]) ? raw[kind] : [];
+  const [custom, setCustom] = useState('');
+  const selected = value || '';
+  const handle = (v)=>{
+    if (v === '__other__') { onChange(custom); } else { onChange(v); }
+  };
+  return (
+    <div>
+      <label className="block text-sm text-royal mb-1">Purpose</label>
+      <select className="border rounded-xl px-3 py-2 w-full mb-2" value={selected || ''} onChange={e=>handle(e.target.value)}>
+        {(!list || list.length === 0) ? <option value="">No heads defined</option> : <><option value="">-- select purpose --</option>{list.map(h=> <option key={h} value={h}>{h}</option>)}</>}
+        <option value="__other__">Other (enter manually)</option>
+      </select>
+      {selected === '__other__' || (!selected && custom) ? (
+        <input className="border rounded-xl px-3 py-2" placeholder="Enter purpose" value={custom} onChange={e=>{ setCustom(e.target.value); onChange(e.target.value); }} />
+      ) : null}
     </div>
   );
 }
