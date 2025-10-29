@@ -57,7 +57,17 @@ export default function AdmissionDashboard() {
 
   const parseRange = () => {
     if (period === 'lifetime') return { from: null, to: null };
-    if (period === 'custom' && from && to) return { from: new Date(from), to: new Date(to) };
+    if (period === 'custom') {
+      if (from && to) {
+        const f = new Date(from);
+        f.setHours(0, 0, 0, 0);
+        const t = new Date(to);
+        t.setHours(23, 59, 59, 999);
+        return { from: f, to: t };
+      }
+      // If custom selected but dates not set yet, return null to show all data
+      return { from: null, to: null };
+    }
     const now = new Date();
     let f = new Date();
     if (period === 'daily') { f.setDate(now.getDate() - 1); }
