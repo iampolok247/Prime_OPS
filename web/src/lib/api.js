@@ -1,7 +1,26 @@
 // Adding notes parameter to updateLeadStatus
 // web/src/lib/api.js
-const API_BASE = import.meta.env.VITE_API_BASE || 
-  (import.meta.env.PROD ? 'https://prime-ops-api.onrender.com' : 'http://localhost:5001');
+const getApiBase = () => {
+  // Check if explicitly set via env var
+  if (import.meta.env.VITE_API_BASE) {
+    return import.meta.env.VITE_API_BASE;
+  }
+  
+  // Check if running on Vercel (vercel.app domain)
+  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+    return 'https://prime-ops-api.onrender.com';
+  }
+  
+  // Check if production build
+  if (import.meta.env.PROD) {
+    return 'https://prime-ops-api.onrender.com';
+  }
+  
+  // Default to localhost for development
+  return 'http://localhost:5001';
+};
+
+const API_BASE = getApiBase();
 
 // Wrapper fetch that automatically includes auth token
 async function authFetch(url, options = {}) {
