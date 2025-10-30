@@ -22,6 +22,9 @@ const getApiBase = () => {
 
 const API_BASE = getApiBase();
 
+// Log the API base URL for debugging
+console.log('[API] Using API_BASE:', API_BASE);
+
 // Wrapper fetch that automatically includes auth token
 async function authFetch(url, options = {}) {
   const token = localStorage.getItem('auth_token');
@@ -31,11 +34,20 @@ async function authFetch(url, options = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
   
-  return fetch(url, {
-    ...options,
-    credentials: 'include',
-    headers
-  });
+  console.log('[API] Fetching:', url);
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      credentials: 'include',
+      headers
+    });
+    console.log('[API] Response status:', response.status, url);
+    return response;
+  } catch (error) {
+    console.error('[API] Fetch error:', error.message, url);
+    throw error;
+  }
 }
 
 async function handleJson(res, defaultMsg) {
