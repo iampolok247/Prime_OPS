@@ -1,6 +1,7 @@
 // Adding notes parameter to updateLeadStatus
 // web/src/lib/api.js
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5001';
+const API_BASE = import.meta.env.VITE_API_BASE || 
+  (import.meta.env.PROD ? 'https://prime-ops-api.onrender.com' : 'http://localhost:5001');
 
 // Wrapper fetch that automatically includes auth token
 async function authFetch(url, options = {}) {
