@@ -1,5 +1,5 @@
 // web/src/App.jsx
-import React from 'react';
+import React, { useState } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 
 import ProtectedRoute from './components/ProtectedRoute.jsx';
@@ -45,12 +45,14 @@ import MGDashboard from './pages/MGDashboard.jsx';
 import MGProduction from './pages/MGProduction.jsx';
 
 function Layout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div className="min-h-screen flex bg-[#f7f9fc]">
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
       <div className="flex-1 flex flex-col">
-        <Topbar />
-        <main className="p-4 md:p-6"><Outlet /></main>
+        <Topbar onMenuClick={() => setSidebarOpen(true)} />
+        <main className="p-4 md:p-6 flex-1 overflow-auto"><Outlet /></main>
       </div>
     </div>
   );
