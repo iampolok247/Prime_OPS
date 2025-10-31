@@ -1,28 +1,16 @@
 // Adding notes parameter to updateLeadStatus
 // web/src/lib/api.js
 
-// Get API base URL dynamically (called on each request to ensure correct detection)
+// FORCE PRODUCTION API URL - Simple approach
 const getApiBase = () => {
-  // Check if explicitly set via env var
-  if (import.meta.env.VITE_API_BASE) {
-    console.log('[API] Using VITE_API_BASE:', import.meta.env.VITE_API_BASE);
-    return import.meta.env.VITE_API_BASE;
-  }
-  
-  // Check if running on Vercel (vercel.app domain)
-  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
-    console.log('[API] Detected Vercel deployment, using production API');
-    return 'https://prime-ops-api.onrender.com';
-  }
-  
-  // Check if production build
+  // For production builds, always use production API
   if (import.meta.env.PROD) {
-    console.log('[API] Production build detected, using production API');
+    console.log('[API] Production build - using production API');
     return 'https://prime-ops-api.onrender.com';
   }
   
-  // Default to localhost for development
-  console.log('[API] Using localhost for development');
+  // For development, use localhost
+  console.log('[API] Development mode - using localhost');
   return 'http://localhost:5001';
 };
 
