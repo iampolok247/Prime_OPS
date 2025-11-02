@@ -368,7 +368,7 @@ export default function AdminOverview() {
                           <div className="flex items-center gap-2">
                             <GraduationCap size={16} className="text-purple-600" />
                             <span className="text-sm font-medium text-gray-800">
-                              {t.course?.title || 'Unknown Course'}
+                              {t.course?.name || 'Unknown Course'}
                             </span>
                           </div>
                         </td>

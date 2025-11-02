@@ -43,7 +43,7 @@ router.post('/', requireAuth, authorize(['Admin', 'SuperAdmin']), async (req, re
       { course: courseId, month },
       { course: courseId, month, target, setBy: req.user.id },
       { new: true, upsert: true }
-    ).populate('course', 'title');
+    ).populate('course', 'name courseId');
 
     return res.json({ target: admissionTarget });
   } catch (e) {
@@ -70,7 +70,7 @@ router.get('/', requireAuth, authorize(['Admin', 'SuperAdmin']), async (req, res
 
     // Get all targets for the month
     const targets = await AdmissionTarget.find({ month })
-      .populate('course', 'title')
+      .populate('course', 'name courseId')
       .populate('setBy', 'name');
 
     // Calculate achievements for each target
@@ -116,9 +116,9 @@ router.get('/', requireAuth, authorize(['Admin', 'SuperAdmin']), async (req, res
 router.get('/all', requireAuth, authorize(['Admin', 'SuperAdmin']), async (req, res) => {
   try {
     const targets = await AdmissionTarget.find()
-      .populate('course', 'title')
+      .populate('course', 'name courseId')
       .populate('setBy', 'name')
-      .sort({ month: -1, 'course.title': 1 });
+      .sort({ month: -1, 'course.name': 1 });
 
     return res.json({ targets });
   } catch (e) {

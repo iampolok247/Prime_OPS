@@ -161,7 +161,7 @@ export default function AdmissionTargets() {
             >
               <option value="">{courses.length === 0 ? 'No courses available' : 'Select Course'}</option>
               {courses.map((c) => (
-                <option key={c._id} value={c._id}>{c.title}</option>
+                <option key={c._id} value={c._id}>{c.name}</option>
               ))}
             </select>
             {courses.length === 0 && (
@@ -248,7 +248,7 @@ export default function AdmissionTargets() {
                   return (
                     <tr key={t._id} className="border-b hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm font-medium text-gray-800">
-                        {t.course?.title || 'Unknown Course'}
+                        {t.course?.name || 'Unknown Course'}
                       </td>
                       <td className="px-4 py-3 text-center text-sm font-semibold text-gray-700">
                         {t.target}
