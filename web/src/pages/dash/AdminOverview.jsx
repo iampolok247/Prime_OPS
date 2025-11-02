@@ -14,7 +14,8 @@ import {
   UserCheck,
   Briefcase,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Target
 } from 'lucide-react';
 
 function todayISO(){ return new Date().toISOString().slice(0,10); }
@@ -32,6 +33,7 @@ export default function AdminOverview() {
   const [tasks, setTasks] = useState([]);
   const [incomes, setIncomes] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [targets, setTargets] = useState([]);
   const [err, setErr] = useState('');
 
   function parseRange() {
@@ -63,7 +65,10 @@ export default function AdminOverview() {
         qFrom = f.toISOString().slice(0,10);
         qTo = now.toISOString().slice(0,10);
       }
-      const [r, cs, ls, als, recs, t, inc, exp] = await Promise.all([
+      // Get current month for targets
+      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+      
+      const [r, cs, ls, als, recs, t, inc, exp, tgt] = await Promise.all([
         api.reportsOverview(qFrom, qTo),
         api.listCourses().catch(()=>({ courses: [] })),
         api.listLeads().catch(()=>({ leads: [] })),
@@ -71,7 +76,8 @@ export default function AdminOverview() {
         api.listRecruited().catch(()=>[]),
         api.listAllTasks().catch(()=>({ tasks: [] })),
         api.listIncome().catch(()=>[]),
-        api.listExpenses().catch(()=>[])
+        api.listExpenses().catch(()=>[]),
+        api.getAdmissionTargets(currentMonth).catch(()=>({ targets: [] }))
       ]);
       setReport(r);
       setCourses(cs?.courses || []);
@@ -81,6 +87,7 @@ export default function AdminOverview() {
       setTasks(t?.tasks || []);
       setIncomes(Array.isArray(inc) ? inc : (inc?.income || []));
       setExpenses(Array.isArray(exp) ? exp : (exp?.expenses || []));
+      setTargets(tgt?.targets || []);
       setErr('');
     } catch(e) { setErr(e.message || 'Failed to load'); }
   };
@@ -319,13 +326,82 @@ export default function AdminOverview() {
           <LineChartDual data={series} />
         </div>
 
-        {/* Expense Breakdown Chart */}
+        {/* Admission Target Table */}
         <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
-          <div className="mb-6">
-            <h3 className="text-lg font-bold text-gray-800">Expense Breakdown</h3>
-            <p className="text-sm text-gray-500 mt-1">Category-wise distribution</p>
+          <div className="mb-6 flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg">
+              <Target className="text-white" size={20} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Admission Targets</h3>
+              <p className="text-sm text-gray-500 mt-1">Current month performance (view only)</p>
+            </div>
           </div>
-          <PieChart parts={expenseBreakdown} />
+          
+          {targets.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-xl">
+              <Target className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+              <p className="font-medium">No targets set for this month</p>
+              <p className="text-sm mt-1">Admins can set targets from the Admission Targets page</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b bg-gradient-to-r from-purple-50 to-blue-50">
+                    <th className="text-left px-4 py-3 text-sm font-semibold text-gray-700">Course Name</th>
+                    <th className="text-center px-4 py-3 text-sm font-semibold text-gray-700">Target</th>
+                    <th className="text-center px-4 py-3 text-sm font-semibold text-gray-700">Achieved</th>
+                    <th className="text-center px-4 py-3 text-sm font-semibold text-gray-700">Progress</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {targets.map((t, idx) => {
+                    const percentage = t.percentage || 0;
+                    const color = percentage >= 100 ? 'green' : percentage >= 75 ? 'blue' : percentage >= 50 ? 'yellow' : 'red';
+                    const bgColor = percentage >= 100 ? 'bg-green-500' : percentage >= 75 ? 'bg-blue-500' : percentage >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+                    const textColor = percentage >= 100 ? 'text-green-600' : percentage >= 75 ? 'text-blue-600' : percentage >= 50 ? 'text-yellow-600' : 'text-red-600';
+                    
+                    return (
+                      <tr key={t._id} className={`border-b hover:bg-gray-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <GraduationCap size={16} className="text-purple-600" />
+                            <span className="text-sm font-medium text-gray-800">
+                              {t.course?.title || 'Unknown Course'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="inline-flex items-center justify-center px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold">
+                            {t.target}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`inline-flex items-center justify-center px-3 py-1 ${bgColor} bg-opacity-10 ${textColor} rounded-full text-sm font-semibold`}>
+                            {t.achieved}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-center gap-3">
+                            <div className="flex-1 max-w-xs bg-gray-200 rounded-full h-3 overflow-hidden">
+                              <div
+                                className={`h-3 rounded-full ${bgColor} transition-all duration-500 ease-out`}
+                                style={{ width: `${Math.min(percentage, 100)}%` }}
+                              />
+                            </div>
+                            <span className={`text-sm font-bold ${textColor} min-w-[45px] text-right`}>
+                              {percentage}%
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>

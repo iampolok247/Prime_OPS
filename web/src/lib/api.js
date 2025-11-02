@@ -770,4 +770,28 @@ async getUnreadMessageCount() {
   return handleJson(res, 'Get unread count failed');
 },
 
+// ---- Admission Targets ----
+async setAdmissionTarget(payload) {
+  const res = await authFetch(`${getApiBase()}/api/admission-targets`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return handleJson(res, 'Set admission target failed');
+},
+async getAdmissionTargets(month) {
+  const res = await authFetch(`${getApiBase()}/api/admission-targets?month=${month}`, { credentials: 'include' });
+  return handleJson(res, 'Get admission targets failed');
+},
+async getAllAdmissionTargets() {
+  const res = await authFetch(`${getApiBase()}/api/admission-targets/all`, { credentials: 'include' });
+  return handleJson(res, 'Get all admission targets failed');
+},
+async deleteAdmissionTarget(id) {
+  const res = await authFetch(`${getApiBase()}/api/admission-targets/${id}`, {
+    method: 'DELETE', credentials: 'include'
+  });
+  return handleJson(res, 'Delete admission target failed');
+},
+
 };
