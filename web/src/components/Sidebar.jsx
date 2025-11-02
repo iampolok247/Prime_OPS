@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { LayoutDashboard, ListChecks, Users, BookOpen, FolderOpen, Wallet, BarChart2, Film, CreditCard, Menu, X, Kanban, DollarSign, Video, Activity, MessageCircle } from 'lucide-react';
+import { LayoutDashboard, ListChecks, Users, BookOpen, FolderOpen, Wallet, BarChart2, Film, CreditCard, Menu, X, Kanban, DollarSign, Video, Activity, MessageCircle, FileText } from 'lucide-react';
 
 const Item = ({ to, icon, label, onClick }) => (
   <NavLink
@@ -54,15 +54,17 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/messages', label: 'Messages', icon: <MessageCircle size={18}/> },
       { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
+      { to: '/task-report', label: 'Task Report', icon: <FileText size={18}/> },
       { to: '/courses', label: 'Courses', icon: <BookOpen size={18}/> },
       { to: '/lead-entry', label: 'Lead Entry / CSV', icon: <FolderOpen size={18}/> },
       { to: '/leads-center', label: 'Leads Center', icon: <FolderOpen size={18}/> },
-  { to: '/dm-metrics', label: 'Cost / Social / SEO', icon: <BarChart2 size={18}/> }
+      { to: '/dm-metrics', label: 'Cost / Social / SEO', icon: <BarChart2 size={18}/> }
     ],
     Admission: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/messages', label: 'Messages', icon: <MessageCircle size={18}/> },
       { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
+      { to: '/task-report', label: 'Task Report', icon: <FileText size={18}/> },
       { to: '/courses', label: 'Courses', icon: <BookOpen size={18}/> },
       { to: '/admission/assigned', label: 'Assigned Lead', icon: <FolderOpen size={18}/> },
       { to: '/admission/counseling', label: 'Counseling', icon: <FolderOpen size={18}/> },
@@ -75,6 +77,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/messages', label: 'Messages', icon: <MessageCircle size={18}/> },
       { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
+      { to: '/task-report', label: 'Task Report', icon: <FileText size={18}/> },
       { to: '/accounting', label: 'Accounting', icon: <DollarSign size={18}/> },
       { to: '/accounting/fees', label: 'Fees Approval', icon: <FolderOpen size={18}/> },
       { to: '/accounting/income', label: 'Income', icon: <FolderOpen size={18}/> },
@@ -89,6 +92,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/messages', label: 'Messages', icon: <MessageCircle size={18}/> },
       { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
+      { to: '/task-report', label: 'Task Report', icon: <FileText size={18}/> },
       { to: '/recruitment', label: 'Recruitment', icon: <Users size={18}/> },
       { to: '/recruitment/candidates', label: 'Candidates', icon: <Users size={18}/> },
       { to: '/recruitment/jobs', label: 'Job Positions', icon: <FolderOpen size={18}/> },
@@ -101,6 +105,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/messages', label: 'Messages', icon: <MessageCircle size={18}/> },
       { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
+      { to: '/task-report', label: 'Task Report', icon: <FileText size={18}/> },
       { to: '/mg', label: 'MG Dashboard', icon: <Video size={18}/> },
       { to: '/mg/production', label: 'MG Production', icon: <Activity size={18}/> }
     ]

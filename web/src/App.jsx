@@ -46,6 +46,7 @@ import MGDashboard from './pages/MGDashboard.jsx';
 import MGProduction from './pages/MGProduction.jsx';
 
 import Messages from './pages/Messages.jsx';
+import TaskReport from './pages/TaskReport.jsx';
 
 import Login from './pages/Login.jsx';
 import NotFound from './pages/NotFound.jsx';
@@ -74,6 +75,7 @@ export default function App() {
           <Route path="/my-tasks" element={<MyTasks />} />
           <Route path="/tasks-board" element={<TasksKanban />} />
           <Route path="/messages" element={<Messages />} />
+          <Route path="/task-report" element={<TaskReport />} />
 
           {/* SA/Admin */}
           <Route element={<RoleRoute roles={['SuperAdmin', 'Admin']} />}>
