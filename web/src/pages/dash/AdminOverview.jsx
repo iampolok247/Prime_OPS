@@ -1,7 +1,7 @@
 // web/src/pages/dash/AdminOverview.jsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { api, fmtBDTEn } from '../../lib/api.js';
-import { Wallet, CreditCard, BarChart2, BookOpen, Users, ListChecks } from 'lucide-react';
+import { Wallet, CreditCard, BarChart2, BookOpen, Users } from 'lucide-react';
 
 function todayISO(){ return new Date().toISOString().slice(0,10); }
 function firstOfMonthISO(){ const d=new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0,10); }
@@ -97,7 +97,6 @@ export default function AdminOverview() {
   const totalLeads = filteredLeads.length;
   const totalAdmitted = filteredAdmission.filter(l=> (l.status||'').toLowerCase() === 'admitted').length;
   const totalRecruited = (recruited || []).length;
-  const pendingTasks = filteredTasks.filter(t=> (t.status||'').toLowerCase() !== 'completed');
 
   // prepare income/expense timeseries by day
   const series = useMemo(()=>{
@@ -199,13 +198,6 @@ export default function AdminOverview() {
           </div>
           <div className="text-2xl font-extrabold">{totalRecruited}</div>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2">
-            <ListChecks className="w-5 h-5 text-royal/90" />
-            <div className="text-royal text-sm">Pending Tasks</div>
-          </div>
-          <div className="text-2xl font-extrabold">{pendingTasks.length}</div>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -216,35 +208,6 @@ export default function AdminOverview() {
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <h3 className="text-sm text-royal mb-2">Expense Breakdown</h3>
           <PieChart parts={expenseBreakdown} />
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl p-4 shadow-sm">
-        <h3 className="text-sm text-royal mb-2">Pending Task List</h3>
-        <div className="overflow-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-[#f3f6ff] text-royal">
-              <tr>
-                <th className="p-2 text-left">Title</th>
-                <th className="p-2 text-left">Assigned To</th>
-                <th className="p-2 text-left">Category</th>
-                <th className="p-2 text-left">Deadline</th>
-                <th className="p-2 text-left">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pendingTasks.map(t => (
-                <tr key={t._id} className="border-t">
-                  <td className="p-2">{t.title}</td>
-                  <td className="p-2">{t.assignedTo?.name || t.assignedTo?.email || '-'}</td>
-                  <td className="p-2">{t.category}</td>
-                  <td className="p-2">{t.deadline ? new Date(t.deadline).toLocaleDateString() : '-'}</td>
-                  <td className="p-2">{t.status}</td>
-                </tr>
-              ))}
-              {pendingTasks.length === 0 && <tr><td className="p-3 text-royal/70" colSpan="5">No pending tasks</td></tr>}
-            </tbody>
-          </table>
         </div>
       </div>
     </div>
