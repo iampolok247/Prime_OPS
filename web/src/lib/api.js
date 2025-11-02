@@ -328,9 +328,10 @@ export const api = {
     const res = await authFetch(`${getApiBase()}/api/admission/leads${q}`, { credentials: 'include' });
     return handleJson(res, 'Load admission leads failed');
   },
-  async updateLeadStatus(id, status, notes) {
+  async updateLeadStatus(id, status, notes, courseId) {
     const body = { status };
     if (notes !== undefined && notes !== null) body.notes = notes;
+    if (courseId !== undefined && courseId !== null) body.courseId = courseId;
     const res = await authFetch(`${getApiBase()}/api/admission/leads/${id}/status`, {
       method: 'PATCH', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },

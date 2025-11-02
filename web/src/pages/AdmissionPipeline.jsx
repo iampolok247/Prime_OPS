@@ -59,6 +59,13 @@ function PipelineTable({ status, canAct }) {
   const [showHistory, setShowHistory] = useState(false);
   const [histLead, setHistLead] = useState(null);
   const [histLoading, setHistLoading] = useState(false);
+  
+  // Course selection for admission
+  const [showAdmitModal, setShowAdmitModal] = useState(false);
+  const [admitTarget, setAdmitTarget] = useState(null);
+  const [selectedCourse, setSelectedCourse] = useState('');
+  const [courses, setCourses] = useState([]);
+  const [coursesLoading, setCoursesLoading] = useState(false);
 
   const load = async () => {
     try {
@@ -68,19 +75,40 @@ function PipelineTable({ status, canAct }) {
     } catch (e) { setErr(e.message); }
   };
 
+  const loadCourses = async () => {
+    setCoursesLoading(true);
+    try {
+      const data = await api.listCourses();
+      setCourses(data?.courses || []);
+    } catch (e) {
+      console.error('Failed to load courses:', e);
+      setErr('Failed to load courses: ' + e.message);
+    } finally {
+      setCoursesLoading(false);
+    }
+  };
+
   useEffect(() => { load(); }, [status]); // eslint-disable-line
 
-  const act = async (id, action, notes) => {
+  const act = async (id, action, notes, courseId) => {
     setMsg(null); setErr(null);
     try {
-      await api.updateLeadStatus(id, action, notes);
+      await api.updateLeadStatus(id, action, notes, courseId);
       setMsg(`Status updated to ${action}`);
       setShowFollowModal(false);
       setFollowNote(''); setFollowTarget(null);
       setShowNotAdmitModal(false); setNotAdmitNote(''); setNotAdmitTarget(null);
+      setShowAdmitModal(false); setAdmitTarget(null); setSelectedCourse('');
       setShowHistory(false); setHistLead(null); setHistLoading(false);
       load();
     } catch (e) { setErr(e.message); }
+  };
+  
+  const handleAdmitClick = (rowId) => {
+    setAdmitTarget(rowId);
+    setSelectedCourse('');
+    setShowAdmitModal(true);
+    loadCourses();
   };
 
   const actions = (row) => {
@@ -91,7 +119,7 @@ function PipelineTable({ status, canAct }) {
     if (status === 'Counseling') {
       return (
         <div className="flex gap-2">
-          <ActionBtn onClick={()=>act(row._id,'Admitted')}>Admitted</ActionBtn>
+          <ActionBtn onClick={()=>handleAdmitClick(row._id)}>Admitted</ActionBtn>
           <ActionBtn onClick={()=>{ setFollowTarget(row._id); setFollowNote(''); setShowFollowModal(true); }}>Follow-Up</ActionBtn>
           <ActionBtn variant="danger" onClick={()=>{ setNotAdmitTarget(row._id); setNotAdmitNote(''); setShowNotAdmitModal(true); }}>Not Admitted</ActionBtn>
           <ActionBtn onClick={async ()=>{
@@ -110,7 +138,7 @@ function PipelineTable({ status, canAct }) {
     if (status === 'In Follow Up') {
         return (
           <div className="flex gap-2">
-            <ActionBtn onClick={()=>act(row._id,'Admitted')}>Admitted</ActionBtn>
+            <ActionBtn onClick={()=>handleAdmitClick(row._id)}>Admitted</ActionBtn>
             <ActionBtn onClick={()=>{ setFollowTarget(row._id); setFollowNote(''); setShowFollowModal(true); }}>Follow-Up Again</ActionBtn>
             <ActionBtn variant="danger" onClick={()=>{ setNotAdmitTarget(row._id); setNotAdmitNote(''); setShowNotAdmitModal(true); }}>Not Admitted</ActionBtn>
             <ActionBtn onClick={async ()=>{
@@ -133,6 +161,51 @@ function PipelineTable({ status, canAct }) {
     <div>
       {msg && <div className="mb-2 text-green-700">{msg}</div>}
       {err && <div className="mb-2 text-red-600">{err}</div>}
+      {showAdmitModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="absolute inset-0 bg-black opacity-30" onClick={()=>setShowAdmitModal(false)} />
+          <div className="bg-white rounded-xl p-6 z-10 w-full max-w-md shadow-lg">
+            <h3 className="text-xl font-bold text-navy mb-4">Select Course for Admission</h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Course <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={selectedCourse}
+                onChange={e=>setSelectedCourse(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-gold"
+                disabled={coursesLoading}
+                required
+              >
+                <option value="">{coursesLoading ? 'Loading courses...' : 'Select a course'}</option>
+                {courses.map(c => (
+                  <option key={c._id} value={c._id}>{c.name} ({c.courseId})</option>
+                ))}
+              </select>
+              {courses.length === 0 && !coursesLoading && (
+                <p className="text-xs text-red-600 mt-1">No courses available</p>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <button 
+                type="button" 
+                onClick={()=>{ setShowAdmitModal(false); setAdmitTarget(null); setSelectedCourse(''); }} 
+                className="px-4 py-2 rounded-xl border border-gray-300 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                onClick={()=>act(admitTarget,'Admitted','', selectedCourse)} 
+                className="px-4 py-2 rounded-xl bg-gold text-navy font-semibold hover:bg-yellow-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!selectedCourse || coursesLoading}
+              >
+                Confirm Admission
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {showFollowModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="absolute inset-0 bg-black opacity-30" onClick={()=>setShowFollowModal(false)} />

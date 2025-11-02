@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 const AdmissionFeeSchema = new mongoose.Schema(
   {
     lead: { type: mongoose.Schema.Types.ObjectId, ref: 'Lead', required: true, index: true },
+    courseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Course', index: true },
     courseName: { type: String, required: true },
     amount: { type: Number, required: true },
     method: {

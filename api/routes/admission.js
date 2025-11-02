@@ -34,7 +34,7 @@ router.get('/leads', requireAuth, async (req, res) => {
 // Counseling -> Admitted | In Follow Up | Not Admitted
 // In Follow Up -> Admitted | Not Admitted
 router.patch('/leads/:id/status', requireAuth, async (req, res) => {
-  const { status, notes } = req.body || {};
+  const { status, notes, courseId } = req.body || {};
   const allowed = ['Counseling', 'Admitted', 'In Follow Up', 'Not Admitted'];
   if (!allowed.includes(status)) {
     return res.status(400).json({ code: 'INVALID_STATUS', message: 'Invalid target status' });
@@ -77,6 +77,10 @@ router.patch('/leads/:id/status', requireAuth, async (req, res) => {
 
   if (status === 'Admitted') {
     lead.admittedAt = lead.admittedAt || new Date();
+    // Store the course they were admitted to
+    if (courseId) {
+      lead.admittedToCourse = courseId;
+    }
   }
 
   if (status === 'In Follow Up') {
