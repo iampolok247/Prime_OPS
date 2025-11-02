@@ -19,8 +19,7 @@ import {
   User,
   MessageSquare,
   Paperclip,
-  MoreVertical,
-  Bell
+  MoreVertical
 } from 'lucide-react';
 
 // Color coding constants
@@ -291,7 +290,6 @@ export default function TasksKanban() {
   const [selectedTask, setSelectedTask] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeId, setActiveId] = useState(null);
-  const [showNotifications, setShowNotifications] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -318,25 +316,24 @@ export default function TasksKanban() {
     loadTasks();
   }, []);
 
+  // Check if we need to open a specific task (from notification click)
+  useEffect(() => {
+    const taskIdToOpen = sessionStorage.getItem('openTaskId');
+    if (taskIdToOpen && tasks.length > 0) {
+      const task = tasks.find(t => t._id === taskIdToOpen);
+      if (task) {
+        setSelectedTask(task);
+        sessionStorage.removeItem('openTaskId');
+      }
+    }
+  }, [tasks]);
+
   const filteredTasks = tasks.filter(task => {
     if (searchQuery && !task.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     if (filterPriority && task.priority !== filterPriority) return false;
     if (filterTags.length > 0 && !filterTags.some(tag => task.tags?.includes(tag))) return false;
     return true;
   });
-
-  // Get urgent notifications (overdue or due soon)
-  const urgentTasks = tasks.filter(task => {
-    if (task.status === 'Completed') return false;
-    if (!task.dueDate) return false;
-    
-    const now = new Date();
-    const due = new Date(task.dueDate);
-    const diffDays = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
-    
-    // Show tasks that are overdue or due within 3 days
-    return diffDays <= 3;
-  }).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
 
   const handleCardClick = (task, e) => {
     // Prevent opening modal when dragging
@@ -397,75 +394,13 @@ export default function TasksKanban() {
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <h1 className="text-2xl font-bold text-navy">Task Board</h1>
-              <div className="flex items-center gap-3">
-                {/* Notification Bell */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowNotifications(!showNotifications)}
-                    className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    title="Notifications"
-                  >
-                    <Bell size={20} className="text-gray-600" />
-                    {urgentTasks.length > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                        {urgentTasks.length}
-                      </span>
-                    )}
-                  </button>
-
-                  {/* Notification Dropdown */}
-                  {showNotifications && (
-                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border z-50 max-h-96 overflow-y-auto">
-                      <div className="p-3 border-b bg-gray-50">
-                        <h3 className="font-semibold text-navy">Urgent Tasks ({urgentTasks.length})</h3>
-                      </div>
-                      {urgentTasks.length === 0 ? (
-                        <div className="p-4 text-center text-gray-500">
-                          No urgent tasks
-                        </div>
-                      ) : (
-                        <div className="divide-y">
-                          {urgentTasks.map(task => {
-                            const deadlineColor = getDeadlineColor(task.dueDate, task.status);
-                            return (
-                              <div 
-                                key={task._id}
-                                onClick={() => {
-                                  setSelectedTask(task);
-                                  setShowNotifications(false);
-                                }}
-                                className="p-3 hover:bg-gray-50 cursor-pointer"
-                              >
-                                <div className="flex items-start justify-between">
-                                  <div className="flex-1">
-                                    <p className="font-medium text-navy text-sm">{task.title}</p>
-                                    <div className={`text-xs mt-1 px-2 py-1 rounded inline-flex items-center gap-1 ${deadlineColor?.bg} ${deadlineColor?.text}`}>
-                                      <Calendar size={10} />
-                                      {new Date(task.dueDate).toLocaleDateString()}
-                                      {deadlineColor?.label && ` - ${deadlineColor.label}`}
-                                    </div>
-                                  </div>
-                                  <span className={`text-xs px-2 py-1 rounded ${PRIORITY_COLORS[task.priority]?.bg} ${PRIORITY_COLORS[task.priority]?.text}`}>
-                                    {task.priority}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <Plus size={18} />
-                  {['SuperAdmin', 'Admin'].includes(user?.role) ? 'Assign Task' : 'New Task'}
-                </button>
-              </div>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus size={18} />
+                {['SuperAdmin', 'Admin'].includes(user?.role) ? 'Assign Task' : 'New Task'}
+              </button>
             </div>
             
             {/* Filters */}

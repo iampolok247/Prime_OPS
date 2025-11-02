@@ -1,9 +1,84 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
-import { LogOut, User as UserIcon, Menu } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { LogOut, User as UserIcon, Menu, Bell, Calendar } from 'lucide-react';
+import { api } from '../lib/api.js';
 
 export default function Topbar({ onMenuClick }) {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [urgentTasks, setUrgentTasks] = useState([]);
+
+  // Fetch tasks and filter urgent ones
+  useEffect(() => {
+    const loadUrgentTasks = async () => {
+      try {
+        const isAdmin = ['SuperAdmin', 'Admin'].includes(user?.role);
+        const data = isAdmin ? await api.listAllTasks() : await api.listMyTasks();
+        const tasks = data.tasks || [];
+        
+        // Filter urgent tasks (overdue or due within 3 days)
+        const urgent = tasks.filter(task => {
+          if (task.status === 'Completed') return false;
+          if (!task.dueDate) return false;
+          
+          const now = new Date();
+          const due = new Date(task.dueDate);
+          const diffDays = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
+          
+          return diffDays <= 3;
+        }).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+        
+        setUrgentTasks(urgent);
+      } catch (error) {
+        console.error('Failed to load urgent tasks:', error);
+      }
+    };
+
+    if (user) {
+      loadUrgentTasks();
+      // Refresh every 5 minutes
+      const interval = setInterval(loadUrgentTasks, 5 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  // Get deadline color
+  const getDeadlineColor = (dueDate, status) => {
+    if (!dueDate || status === 'Completed') return null;
+    
+    const now = new Date();
+    const due = new Date(dueDate);
+    const diffTime = due - now;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) {
+      return { bg: 'bg-red-100', text: 'text-red-700', label: 'Overdue' };
+    }
+    if (diffDays <= 1) {
+      return { bg: 'bg-red-50', text: 'text-red-600', label: diffDays === 0 ? 'Due Today' : 'Due Tomorrow' };
+    }
+    if (diffDays <= 3) {
+      return { bg: 'bg-orange-50', text: 'text-orange-600', label: `${diffDays} days left` };
+    }
+    return { bg: 'bg-gray-50', text: 'text-gray-600', label: null };
+  };
+
+  const PRIORITY_COLORS = {
+    'Low': { bg: 'bg-blue-100', text: 'text-blue-600' },
+    'Medium': { bg: 'bg-yellow-100', text: 'text-yellow-600' },
+    'High': { bg: 'bg-orange-100', text: 'text-orange-600' },
+    'Critical': { bg: 'bg-red-100', text: 'text-red-600' }
+  };
+
+  const handleTaskClick = (task) => {
+    setShowNotifications(false);
+    navigate('/tasks-board');
+    // Store selected task in sessionStorage so TasksKanban can open it
+    sessionStorage.setItem('openTaskId', task._id);
+  };
+
   return (
     <header className="h-16 bg-navy text-white flex items-center justify-between px-4 shadow-soft">
       <div className="flex items-center gap-3">
@@ -22,6 +97,71 @@ export default function Topbar({ onMenuClick }) {
       </div>
       
       <div className="flex items-center gap-2 md:gap-3">
+        {/* Notification Bell */}
+        <div className="relative">
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="relative p-2 hover:bg-navy/80 rounded-lg transition"
+            title="Notifications"
+          >
+            <Bell size={20} className="text-white" />
+            {urgentTasks.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                {urgentTasks.length}
+              </span>
+            )}
+          </button>
+
+          {/* Notification Dropdown */}
+          {showNotifications && (
+            <>
+              {/* Backdrop to close dropdown when clicking outside */}
+              <div 
+                className="fixed inset-0 z-40" 
+                onClick={() => setShowNotifications(false)}
+              />
+              
+              <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border z-50 max-h-96 overflow-y-auto">
+                <div className="p-3 border-b bg-gray-50">
+                  <h3 className="font-semibold text-navy">Urgent Tasks ({urgentTasks.length})</h3>
+                </div>
+                {urgentTasks.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">
+                    No urgent tasks
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {urgentTasks.map(task => {
+                      const deadlineColor = getDeadlineColor(task.dueDate, task.status);
+                      return (
+                        <div 
+                          key={task._id}
+                          onClick={() => handleTaskClick(task)}
+                          className="p-3 hover:bg-gray-50 cursor-pointer"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="font-medium text-navy text-sm">{task.title}</p>
+                              <div className={`text-xs mt-1 px-2 py-1 rounded inline-flex items-center gap-1 ${deadlineColor?.bg} ${deadlineColor?.text}`}>
+                                <Calendar size={10} />
+                                {new Date(task.dueDate).toLocaleDateString()}
+                                {deadlineColor?.label && ` - ${deadlineColor.label}`}
+                              </div>
+                            </div>
+                            <span className={`text-xs px-2 py-1 rounded ${PRIORITY_COLORS[task.priority]?.bg} ${PRIORITY_COLORS[task.priority]?.text}`}>
+                              {task.priority}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
         <img src={user?.avatar} alt="avatar" className="w-8 h-8 md:w-9 md:h-9 rounded-full border-2 border-gold object-cover"/>
         
         {/* User info - hidden on small mobile */}
