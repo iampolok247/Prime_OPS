@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Plus, Minus } from 'lucide-react';
-import api from '../lib/api';
+import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
 const TAG_OPTIONS = ['Marketing', 'Design', 'Content', 'HR', 'Finance', 'IT', 'Admin', 'Management'];

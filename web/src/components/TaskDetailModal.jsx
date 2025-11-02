@@ -16,7 +16,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
-import api from '../lib/api';
+import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
 const PRIORITY_COLORS = {
