@@ -23,6 +23,7 @@ import {
 
 // Color coding constants
 const STATUS_COLORS = {
+  'Backlog': { bg: 'bg-gray-100', text: 'text-gray-600', border: 'border-gray-300', dot: 'bg-gray-400' },
   'To Do': { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-300', dot: 'bg-gray-500' },
   'In Progress': { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-300', dot: 'bg-blue-500' },
   'In Review': { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-300', dot: 'bg-purple-500' },
@@ -42,6 +43,9 @@ const TAG_OPTIONS = ['Marketing', 'Design', 'Content', 'HR', 'Finance', 'IT', 'A
 const BOARD_COLUMNS = ['Backlog', 'To Do', 'In Progress', 'In Review', 'Completed'];
 
 function TaskCard({ task, onClick, isDragging }) {
+  // Add safety check for task
+  if (!task) return null;
+
   const {
     attributes,
     listeners,
@@ -56,9 +60,9 @@ function TaskCard({ task, onClick, isDragging }) {
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const isOverdue = task.status !== 'Completed' && new Date(task.dueDate) < new Date();
-  const statusColor = isOverdue ? STATUS_COLORS['Overdue'] : STATUS_COLORS[task.status];
-  const priorityColor = PRIORITY_COLORS[task.priority];
+  const isOverdue = task.dueDate && task.status !== 'Completed' && new Date(task.dueDate) < new Date();
+  const statusColor = isOverdue ? STATUS_COLORS['Overdue'] : (STATUS_COLORS[task.status] || STATUS_COLORS['To Do']);
+  const priorityColor = PRIORITY_COLORS[task.priority] || PRIORITY_COLORS['Medium'];
 
   const checklistProgress = task.checklist?.length > 0
     ? `${task.checklist.filter(item => item.completed).length}/${task.checklist.length}`
@@ -71,12 +75,12 @@ function TaskCard({ task, onClick, isDragging }) {
       {...attributes}
       {...listeners}
       onClick={onClick}
-      className={`bg-white rounded-lg shadow-sm border-2 ${statusColor.border} p-4 mb-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-all`}
+      className={`bg-white rounded-lg shadow-sm border-2 ${statusColor?.border || 'border-gray-300'} p-4 mb-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-all`}
     >
       {/* Priority Badge */}
       <div className="flex items-center justify-between mb-2">
-        <span className={`text-xs px-2 py-1 rounded-full ${priorityColor.bg} ${priorityColor.text} font-semibold`}>
-          {task.priority}
+        <span className={`text-xs px-2 py-1 rounded-full ${priorityColor?.bg || 'bg-gray-100'} ${priorityColor?.text || 'text-gray-700'} font-semibold`}>
+          {task.priority || 'Medium'}
         </span>
         {isOverdue && (
           <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-600 font-semibold flex items-center gap-1">
@@ -108,10 +112,12 @@ function TaskCard({ task, onClick, isDragging }) {
       <div className="flex items-center justify-between text-xs text-gray-500 mt-3 pt-2 border-t">
         <div className="flex items-center gap-3">
           {/* Due Date */}
-          <div className="flex items-center gap-1">
-            <Calendar size={12} />
-            <span>{new Date(task.dueDate).toLocaleDateString()}</span>
-          </div>
+          {task.dueDate && (
+            <div className="flex items-center gap-1">
+              <Calendar size={12} />
+              <span>{new Date(task.dueDate).toLocaleDateString()}</span>
+            </div>
+          )}
 
           {/* Checklist Progress */}
           {checklistProgress && (
@@ -141,14 +147,24 @@ function TaskCard({ task, onClick, isDragging }) {
         {/* Assignees */}
         {task.assignedTo?.length > 0 && (
           <div className="flex -space-x-2">
-            {task.assignedTo.slice(0, 3).map(user => (
-              <img
-                key={user._id}
-                src={user.avatar}
-                alt={user.name}
-                className="w-6 h-6 rounded-full border-2 border-white"
-                title={user.name}
-              />
+            {task.assignedTo.slice(0, 3).map((user, idx) => (
+              user?.avatar ? (
+                <img
+                  key={user._id || idx}
+                  src={user.avatar}
+                  alt={user.fullName || user.name || 'User'}
+                  className="w-6 h-6 rounded-full border-2 border-white"
+                  title={user.fullName || user.name || 'User'}
+                />
+              ) : (
+                <div
+                  key={user._id || idx}
+                  className="w-6 h-6 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-xs text-white"
+                  title={user?.fullName || user?.name || 'User'}
+                >
+                  {(user?.fullName || user?.name || 'U')[0].toUpperCase()}
+                </div>
+              )
             ))}
             {task.assignedTo.length > 3 && (
               <div className="w-6 h-6 rounded-full bg-gray-300 border-2 border-white flex items-center justify-center text-xs">
