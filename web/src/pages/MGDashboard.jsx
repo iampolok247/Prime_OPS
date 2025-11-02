@@ -14,6 +14,9 @@ export default function MGDashboard() {
 
   useEffect(() => {
     loadAll();
+    // Real-time polling every 30 seconds
+    const interval = setInterval(loadAll, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   async function loadAll() {
@@ -69,28 +72,27 @@ export default function MGDashboard() {
 
     return {
       totalProduction: worksInRange.length,
-      adDesign: worksInRange.filter(w => w.type === 'Ad Design' || w.type === 'ad-design').length,
-      bannerDesign: worksInRange.filter(w => w.type === 'Banner Design' || w.type === 'banner-design').length,
-      videoProduction: worksInRange.filter(w => w.type === 'Video Production' || w.type === 'video-production').length,
-      other: worksInRange.filter(w => 
-        w.type !== 'Ad Design' && 
-        w.type !== 'ad-design' && 
-        w.type !== 'Banner Design' && 
-        w.type !== 'banner-design' && 
-        w.type !== 'Video Production' && 
-        w.type !== 'video-production'
+      // Match actual model enum values
+      adDesign: worksInRange.filter(w => w.type === 'Ad').length,
+      bannerDesign: worksInRange.filter(w => w.type === 'Banner').length,
+      // Video production includes Reel, Short, Explainer
+      videoProduction: worksInRange.filter(w => 
+        w.type === 'Reel' || w.type === 'Short' || w.type === 'Explainer'
       ).length,
-      queued: worksInRange.filter(w => w.status === 'queued').length,
-      inProgress: worksInRange.filter(w => w.status === 'in-progress').length,
-      done: worksInRange.filter(w => w.status === 'done').length
+      other: worksInRange.filter(w => w.type === 'Other').length,
+      // Match actual status enum values
+      queued: worksInRange.filter(w => w.status === 'Queued').length,
+      inProgress: worksInRange.filter(w => w.status === 'InProgress' || w.status === 'Review').length,
+      done: worksInRange.filter(w => w.status === 'Done').length,
+      hold: worksInRange.filter(w => w.status === 'Hold').length
     };
   }, [works, rangeFrom, rangeTo]);
 
   // Pie chart data
   const pieData = [
-    { label: 'Ad Design', value: stats.adDesign, color: '#3b82f6' },
-    { label: 'Banner Design', value: stats.bannerDesign, color: '#10b981' },
-    { label: 'Video Production', value: stats.videoProduction, color: '#f59e0b' },
+    { label: 'Ad', value: stats.adDesign, color: '#3b82f6' },
+    { label: 'Banner', value: stats.bannerDesign, color: '#10b981' },
+    { label: 'Video (Reel/Short/Explainer)', value: stats.videoProduction, color: '#f59e0b' },
     { label: 'Other', value: stats.other, color: '#6366f1' }
   ].filter(item => item.value > 0);
 
@@ -141,9 +143,17 @@ export default function MGDashboard() {
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-navy">Motion Graphics Dashboard</h1>
-        <p className="text-gray-600 mt-1">Production analytics and performance metrics</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-navy">Motion Graphics Dashboard</h1>
+          <p className="text-gray-600 mt-1">Production analytics and performance metrics</p>
+        </div>
+        {loading && (
+          <div className="flex items-center gap-2 text-blue-600">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+            <span className="text-sm">Updating...</span>
+          </div>
+        )}
       </div>
 
       {err && <div className="bg-red-50 text-red-600 p-4 rounded-lg">{err}</div>}
@@ -202,7 +212,7 @@ export default function MGDashboard() {
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-100 text-sm mb-1">Total Ad Design</p>
+              <p className="text-blue-100 text-sm mb-1">Ad</p>
               <p className="text-4xl font-bold">{stats.adDesign}</p>
             </div>
             <Image size={48} className="text-blue-200 opacity-80" />
@@ -212,7 +222,7 @@ export default function MGDashboard() {
         <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm mb-1">Total Banner Design</p>
+              <p className="text-green-100 text-sm mb-1">Banner</p>
               <p className="text-4xl font-bold">{stats.bannerDesign}</p>
             </div>
             <FileImage size={48} className="text-green-200 opacity-80" />
@@ -222,7 +232,7 @@ export default function MGDashboard() {
         <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-6 rounded-xl shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-orange-100 text-sm mb-1">Total Video Production</p>
+              <p className="text-orange-100 text-sm mb-1">Video (Reel/Short/Explainer)</p>
               <p className="text-4xl font-bold">{stats.videoProduction}</p>
             </div>
             <Video size={48} className="text-orange-200 opacity-80" />
@@ -263,17 +273,21 @@ export default function MGDashboard() {
                   <circle cx="50" cy="50" r="20" fill="white" />
                   <text 
                     x="50" 
-                    y="48" 
+                    y="47" 
                     textAnchor="middle" 
-                    className="text-xs font-bold fill-navy"
+                    fontSize="4"
+                    fontWeight="600"
+                    fill="#1e3a8a"
                   >
                     Total
                   </text>
                   <text 
                     x="50" 
-                    y="56" 
+                    y="55" 
                     textAnchor="middle" 
-                    className="text-lg font-bold fill-navy"
+                    fontSize="8"
+                    fontWeight="700"
+                    fill="#1e3a8a"
                   >
                     {totalForPie}
                   </text>
