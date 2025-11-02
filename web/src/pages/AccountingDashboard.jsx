@@ -1,12 +1,20 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { api, fmtBDTEn } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
-import { Wallet, CreditCard, PieChart, BarChart2 } from 'lucide-react';
+import { 
+  DollarSign, 
+  TrendingDown, 
+  TrendingUp, 
+  Wallet,
+  PieChart as PieChartIcon,
+  BarChart2,
+  Settings
+} from 'lucide-react';
 
 export default function AccountingDashboard() {
   const { user } = useAuth();
-  // allow Accountant, Admin and SuperAdmin to access accounting dashboard and manage heads
+  
   if (!['Accountant','Admin','SuperAdmin'].includes(user?.role)) {
     return <div className="text-royal">Only Accountant, Admin or SuperAdmin can access this dashboard.</div>;
   }
@@ -25,7 +33,6 @@ export default function AccountingDashboard() {
 
   const load = async () => {
     try {
-      // compute from/to based on period selection
       let qFrom, qTo;
       if (range.period === 'custom') { qFrom = range.from; qTo = range.to; }
       else if (range.period === 'lifetime') { qFrom = undefined; qTo = undefined; }
@@ -54,12 +61,10 @@ export default function AccountingDashboard() {
 
   const location = useLocation();
   useEffect(() => {
-    // load account heads from localStorage
     try {
       const raw = localStorage.getItem('accountHeads');
       setHeads(raw ? JSON.parse(raw) : { incomes: [], expenses: [] });
     } catch (e) { setHeads({ incomes: [], expenses: [] }); }
-    // if URL requests to open heads modal (from shortcut), open it
     try {
       const qp = new URLSearchParams(location.search || '');
       const open = qp.get('openHeads') || qp.get('openHeadsModal');
@@ -67,72 +72,203 @@ export default function AccountingDashboard() {
     } catch (e) { /* ignore */ }
   }, [location.search]);
 
+  const netBalance = (data.totalIncome || 0) - (data.totalExpense || 0);
+  const series = makeSeries(incomes, expenses, range);
+  const breakdown = makeBreakdown(expenses);
+
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-navy mb-3">Accounting Dashboard</h1>
-      {err && <div className="mb-2 text-red-600">{err}</div>}
-      <div className="flex gap-2 mb-4 items-end">
+    <div className="space-y-6 p-6 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <label className="block text-sm text-royal mb-1">Period</label>
-          <select value={range.period} onChange={e=>setRange(r=>({...r,period:e.target.value}))} className="input">
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-            <option value="yearly">Yearly</option>
-            <option value="lifetime">Lifetime</option>
-            <option value="custom">Custom</option>
-          </select>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Accounting Dashboard
+          </h1>
+          <p className="text-gray-600 mt-1">Financial overview and metrics</p>
         </div>
+        <button
+          onClick={() => setShowHeadsModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+        >
+          <Settings className="w-4 h-4" />
+          Manage Account Heads
+        </button>
+      </div>
+
+      {err && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+          <p className="text-red-700 font-medium">{err}</p>
+        </div>
+      )}
+
+      {/* Period Selector */}
+      <div className="flex flex-wrap items-center gap-2">
+        <select 
+          value={range.period} 
+          onChange={e=>setRange(r=>({...r,period:e.target.value}))} 
+          className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors"
+        >
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="yearly">Yearly</option>
+          <option value="lifetime">Lifetime</option>
+          <option value="custom">Custom</option>
+        </select>
         {range.period === 'custom' && (
           <>
-            <div>
-              <label className="block text-sm text-royal mb-1">From</label>
-              <input type="date" className="border rounded-xl px-3 py-2" value={range.from} onChange={e=>setRange(r=>({...r,from:e.target.value}))}/>
-            </div>
-            <div>
-              <label className="block text-sm text-royal mb-1">To</label>
-              <input type="date" className="border rounded-xl px-3 py-2" value={range.to} onChange={e=>setRange(r=>({...r,to:e.target.value}))}/>
-            </div>
+            <input 
+              type="date" 
+              value={range.from} 
+              onChange={e=>setRange(r=>({...r,from:e.target.value}))} 
+              className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors"
+            />
+            <span className="text-gray-500 font-medium">to</span>
+            <input 
+              type="date" 
+              value={range.to} 
+              onChange={e=>setRange(r=>({...r,to:e.target.value}))} 
+              className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors"
+            />
           </>
         )}
-        <button onClick={load} className="bg-gold text-navy rounded-xl px-4 py-2 font-semibold">Apply</button>
+        <button 
+          onClick={load} 
+          className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all font-medium shadow-lg"
+        >
+          Apply
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card icon={<Wallet className="w-5 h-5 text-royal/90" />} title="Income" value={fmtBDTEn(data.totalIncome || 0)} />
-        <Card icon={<CreditCard className="w-5 h-5 text-royal/90" />} title="Expense" value={fmtBDTEn(data.totalExpense || 0)} />
-        <Card icon={<BarChart2 className="w-5 h-5 text-royal/90" />} title="Profit" value={fmtBDTEn(data.profit || 0)} />
-        <Card icon={<Wallet className="w-5 h-5 text-royal/90" />} title="Net Total Balance" value={fmtBDTEn((data.totalIncome||0) - (data.totalExpense||0))} />
-      </div>
-
-      <div className="flex items-center gap-2 mb-4">
-        <button onClick={() => setShowHeadsModal(true)} className="px-3 py-2 rounded-xl bg-blue-50 text-royal">Manage Account Heads</button>
-      </div>
-
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="col-span-2 bg-white rounded-xl p-4 shadow-sm">
-          <h3 className="text-sm text-royal mb-2">Income vs Expense</h3>
-          <LineChartDual data={makeSeries(incomes, expenses, range)} />
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Income */}
+        <div className="group relative bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <TrendingUp className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <p className="text-white/80 text-xs font-medium mb-1">Income</p>
+            <h3 className="text-2xl font-bold text-white">{fmtBDTEn(data.totalIncome || 0)}</h3>
+          </div>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <h3 className="text-sm text-royal mb-2">Expense Breakdown</h3>
-          <PieChartComp parts={makeBreakdown(expenses)} />
+
+        {/* Expense */}
+        <div className="group relative bg-gradient-to-br from-red-500 to-rose-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <TrendingDown className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <p className="text-white/80 text-xs font-medium mb-1">Expense</p>
+            <h3 className="text-2xl font-bold text-white">{fmtBDTEn(data.totalExpense || 0)}</h3>
+          </div>
+        </div>
+
+        {/* Profit */}
+        <div className="group relative bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <DollarSign className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <p className="text-white/80 text-xs font-medium mb-1">Profit</p>
+            <h3 className="text-2xl font-bold text-white">{fmtBDTEn(data.profit || 0)}</h3>
+          </div>
+        </div>
+
+        {/* Net Balance */}
+        <div className="group relative bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <Wallet className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <p className="text-white/80 text-xs font-medium mb-1">Net Balance</p>
+            <h3 className="text-2xl font-bold text-white">{fmtBDTEn(netBalance)}</h3>
+          </div>
         </div>
       </div>
 
+      {/* Charts Grid */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Income vs Expense Chart */}
+        <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Income vs Expense</h3>
+              <p className="text-sm text-gray-500 mt-1">Financial trend over time</p>
+            </div>
+            <div className="flex gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                <span className="text-xs text-gray-600 font-medium">Income</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                <span className="text-xs text-gray-600 font-medium">Expense</span>
+              </div>
+            </div>
+          </div>
+          <LineChartDual data={series} />
+        </div>
+
+        {/* Expense by Head Chart */}
+        <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Expense by Head</h3>
+              <p className="text-sm text-gray-500 mt-1">Distribution breakdown</p>
+            </div>
+            <PieChartIcon className="w-5 h-5 text-gray-400" />
+          </div>
+          <PieChart data={breakdown} />
+        </div>
+      </div>
+
+      {/* Modal */}
       {showHeadsModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="absolute inset-0 bg-black opacity-30" onClick={()=>setShowHeadsModal(false)} />
-          <div className="bg-white rounded-xl p-4 z-10 w-full max-w-2xl shadow-lg">
-            <h3 className="text-lg font-semibold mb-2">Manage Account Heads</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={()=>setShowHeadsModal(false)}>
+          <div className="bg-white rounded-2xl p-6 max-w-3xl w-full shadow-2xl transform transition-all" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Account Heads Management
+              </h2>
+              <button 
+                onClick={()=>setShowHeadsModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <HeadEditor kind="incomes" heads={heads.incomes} onChange={(arr)=>setHeads(h=>({ ...h, incomes: arr }))} />
               <HeadEditor kind="expenses" heads={heads.expenses} onChange={(arr)=>setHeads(h=>({ ...h, expenses: arr }))} />
             </div>
-            <div className="mt-4 flex justify-end gap-2">
-              <button onClick={()=>setShowHeadsModal(false)} className="px-4 py-2 rounded-xl border">Close</button>
-              <button onClick={()=>{ localStorage.setItem('accountHeads', JSON.stringify(heads)); setShowHeadsModal(false); }} className="px-4 py-2 rounded-xl bg-gold text-navy">Save</button>
+
+            <div className="flex justify-end gap-2">
+              <button 
+                onClick={()=>setShowHeadsModal(false)} 
+                className="px-6 py-2 rounded-xl border-2 border-gray-200 hover:bg-gray-50 transition-colors font-medium text-gray-700"
+              >
+                Close
+              </button>
+              <button 
+                onClick={()=>{ localStorage.setItem('accountHeads', JSON.stringify(heads)); setShowHeadsModal(false); }} 
+                className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 transition-all font-medium shadow-lg hover:shadow-xl"
+              >
+                Save Changes
+              </button>
             </div>
           </div>
         </div>
@@ -144,43 +280,73 @@ export default function AccountingDashboard() {
 function HeadEditor({ kind, heads = [], onChange }){
   const [list, setList] = useState(heads || []);
   const [val, setVal] = useState('');
+  
   useEffect(()=>{ setList(heads || []); }, [heads]);
-  const add = ()=>{ if (!val) return; const next = [val.trim(), ...list]; setList(next); setVal(''); onChange && onChange(next); };
-  const remove = (i)=>{ const next = list.filter((_,idx)=>idx!==i); setList(next); onChange && onChange(next); };
+  
+  const add = ()=>{ 
+    if (!val.trim()) return; 
+    const next = [val.trim(), ...list]; 
+    setList(next); 
+    setVal(''); 
+    onChange && onChange(next); 
+  };
+  
+  const remove = (i)=>{ 
+    const next = list.filter((_,idx)=>idx!==i); 
+    setList(next); 
+    onChange && onChange(next); 
+  };
+
+  const isIncome = kind === 'incomes';
+  const bgColor = isIncome ? 'from-green-50 to-emerald-50' : 'from-red-50 to-rose-50';
+  const accentColor = isIncome ? 'from-green-600 to-emerald-600' : 'from-red-600 to-rose-600';
+
   return (
-    <div>
-      <h4 className="text-sm font-semibold capitalize mb-2">{kind === 'incomes' ? 'Income Heads' : 'Expense Heads'}</h4>
-      <div className="flex gap-2 mb-2">
-        <input value={val} onChange={e=>setVal(e.target.value)} placeholder={kind==='incomes'?'New income head':'New expense head'} className="border rounded-xl px-3 py-2 flex-1" />
-        <button onClick={add} className="px-3 py-2 bg-gold text-navy rounded-xl">Add</button>
+    <div className="space-y-3">
+      <h4 className={`text-lg font-bold bg-gradient-to-r ${accentColor} bg-clip-text text-transparent`}>
+        {kind === 'incomes' ? 'Income Heads' : 'Expense Heads'}
+      </h4>
+      
+      <div className="flex gap-2">
+        <input 
+          value={val} 
+          onChange={e=>setVal(e.target.value)} 
+          placeholder={isIncome ? 'New income head' : 'New expense head'} 
+          className="border-2 border-gray-200 rounded-xl px-4 py-2 flex-1 focus:border-blue-500 focus:outline-none transition-colors"
+          onKeyPress={(e) => e.key === 'Enter' && add()}
+        />
+        <button 
+          onClick={add} 
+          className={`px-4 py-2 bg-gradient-to-r ${accentColor} text-white rounded-xl hover:opacity-90 transition-opacity font-medium shadow-lg`}
+        >
+          Add
+        </button>
       </div>
-      <div className="flex flex-col gap-2">
+      
+      <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
         {list.map((h, i)=> (
-          <div key={h} className="flex items-center justify-between border rounded-md px-3 py-2">
-            <div className="text-sm">{h}</div>
-            <button onClick={()=>remove(i)} className="text-red-600">Remove</button>
+          <div key={h + i} className={`flex items-center justify-between bg-gradient-to-r ${bgColor} rounded-xl px-4 py-3 hover:shadow-md transition-all`}>
+            <span className="text-gray-800 font-medium">{h}</span>
+            <button 
+              onClick={()=>remove(i)} 
+              className="px-3 py-1 bg-red-100 text-red-600 text-sm rounded-lg hover:bg-red-200 transition-colors font-medium"
+            >
+              Remove
+            </button>
           </div>
         ))}
-        {list.length === 0 && <div className="text-royal/70">No heads defined</div>}
+        {list.length === 0 && (
+          <div className="text-center py-8 text-gray-400">
+            <Wallet className="w-12 h-12 mx-auto mb-2 opacity-50" />
+            <p>No {kind === 'incomes' ? 'income' : 'expense'} heads defined</p>
+          </div>
+        )}
       </div>
-    </div>
-  );
-}
-
-function Card({ title, value, icon }) {
-  return (
-    <div className="bg-white rounded-2xl shadow-soft p-4">
-      <div className="flex items-center gap-2 mb-1">
-        {icon}
-        <div className="text-royal text-sm">{title}</div>
-      </div>
-      <div className="text-2xl font-extrabold text-navy">{value}</div>
     </div>
   );
 }
 
 function makeSeries(incomes = [], expenses = [], range) {
-  // create daily series between computed from/to if available
   let from, to;
   if (range.period === 'custom') { from = new Date(range.from); to = new Date(range.to); }
   else if (range.period === 'lifetime') { return []; }
@@ -209,50 +375,210 @@ function makeSeries(incomes = [], expenses = [], range) {
 function makeBreakdown(expenses = []){
   const map = {};
   (expenses || []).forEach(e=>{ const k = e.purpose || e.category || 'Other'; map[k] = (map[k]||0) + Number(e.amount||0); });
-  return map;
+  return Object.entries(map).map(([label, value]) => ({ label, value }));
 }
 
-function LineChartDual({ data }){
-  const width = 600, height = 180, padding = 24;
-  if (!data || data.length === 0) return <div className="text-royal/70">No data</div>;
-  const max = Math.max(...data.map(d=>Math.max(d.income||0,d.expense||0)));
-  const stepX = (width - padding*2) / Math.max(1, data.length-1);
-  const incomePoints = data.map((d,i)=>`${padding + i*stepX},${height - padding - (max ? (d.income / max) * (height - padding*2) : 0)}`).join(' ');
-  const expensePoints = data.map((d,i)=>`${padding + i*stepX},${height - padding - (max ? (d.expense / max) * (height - padding*2) : 0)}`).join(' ');
+function LineChartDual({ data }) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-52 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
+        <div className="text-center">
+          <BarChart2 className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+          <p className="text-gray-500 font-medium">No data available</p>
+        </div>
+      </div>
+    );
+  }
+  
+  const w = 600, h = 250;
+  const maxVal = Math.max(...data.map(d => Math.max(d.income, d.expense)), 1);
+  const padding = { left: 50, right: 30, top: 20, bottom: 40 };
+  const graphWidth = w - padding.left - padding.right;
+  const graphHeight = h - padding.top - padding.bottom;
+  const xStep = graphWidth / (data.length - 1 || 1);
+  const yScale = (val) => padding.top + graphHeight - ((val / maxVal) * graphHeight);
+
+  const incomePath = data.map((d, i) => `${i === 0 ? 'M' : 'L'}${padding.left + i * xStep},${yScale(d.income)}`).join(' ');
+  const expensePath = data.map((d, i) => `${i === 0 ? 'M' : 'L'}${padding.left + i * xStep},${yScale(d.expense)}`).join(' ');
+  
+  const incomeArea = `${incomePath} L${padding.left + (data.length - 1) * xStep},${padding.top + graphHeight} L${padding.left},${padding.top + graphHeight} Z`;
+  const expenseArea = `${expensePath} L${padding.left + (data.length - 1) * xStep},${padding.top + graphHeight} L${padding.left},${padding.top + graphHeight} Z`;
+
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-44">
-      <polyline fill="none" stroke="#10b981" strokeWidth="2" points={incomePoints} />
-      <polyline fill="none" stroke="#ef4444" strokeWidth="2" points={expensePoints} />
-    </svg>
+    <div className="overflow-x-auto">
+      <svg width={w} height={h} className="mx-auto">
+        <defs>
+          <linearGradient id="incomeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#10b981" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#10b981" stopOpacity="0.05" />
+          </linearGradient>
+          <linearGradient id="expenseGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#ef4444" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#ef4444" stopOpacity="0.05" />
+          </linearGradient>
+        </defs>
+
+        {/* Grid lines */}
+        {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => (
+          <g key={i}>
+            <line
+              x1={padding.left}
+              y1={padding.top + graphHeight * (1 - ratio)}
+              x2={w - padding.right}
+              y2={padding.top + graphHeight * (1 - ratio)}
+              stroke="#e5e7eb"
+              strokeWidth="1"
+              strokeDasharray="4,4"
+            />
+            <text
+              x={padding.left - 10}
+              y={padding.top + graphHeight * (1 - ratio) + 4}
+              textAnchor="end"
+              fontSize="12"
+              fill="#6b7280"
+            >
+              {Math.round(maxVal * ratio)}
+            </text>
+          </g>
+        ))}
+
+        {/* Area fills */}
+        <path d={incomeArea} fill="url(#incomeGradient)" />
+        <path d={expenseArea} fill="url(#expenseGradient)" />
+
+        {/* Lines */}
+        <path d={incomePath} stroke="#10b981" strokeWidth="3" fill="none" />
+        <path d={expensePath} stroke="#ef4444" strokeWidth="3" fill="none" />
+
+        {/* Data points */}
+        {data.map((d, i) => (
+          <g key={i}>
+            <circle cx={padding.left + i * xStep} cy={yScale(d.income)} r="4" fill="#10b981" stroke="white" strokeWidth="2" />
+            <circle cx={padding.left + i * xStep} cy={yScale(d.expense)} r="4" fill="#ef4444" stroke="white" strokeWidth="2" />
+            <text 
+              x={padding.left + i * xStep} 
+              y={h - padding.bottom + 20} 
+              fontSize="12" 
+              textAnchor="middle" 
+              fill="#374151"
+              fontWeight="500"
+            >
+              {d.date.slice(5)}
+            </text>
+          </g>
+        ))}
+      </svg>
+    </div>
   );
 }
 
-function PieChartComp({ parts }){
-  const total = Object.values(parts || {}).reduce((s,n)=>s+(n||0),0);
-  const entries = Object.entries(parts || {});
-  if (total === 0) return <div className="text-royal/70">No data</div>;
-  let acc = 0;
-  const size = 120; const cx = size/2; const cy = size/2; const r = size/2 - 2;
+function PieChart({ data }) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-52 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
+        <div className="text-center">
+          <PieChartIcon className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+          <p className="text-gray-500 font-medium">No data available</p>
+        </div>
+      </div>
+    );
+  }
+  
+  const total = data.reduce((sum, d) => sum + d.value, 0);
+  if (total === 0) {
+    return (
+      <div className="flex items-center justify-center h-52 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
+        <div className="text-center">
+          <PieChartIcon className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+          <p className="text-gray-500 font-medium">No expense recorded</p>
+        </div>
+      </div>
+    );
+  }
+
+  const colors = [
+    { base: "#3b82f6", gradient: "url(#gradient0)" },
+    { base: "#8b5cf6", gradient: "url(#gradient1)" },
+    { base: "#ec4899", gradient: "url(#gradient2)" },
+    { base: "#f59e0b", gradient: "url(#gradient3)" },
+    { base: "#10b981", gradient: "url(#gradient4)" },
+    { base: "#ef4444", gradient: "url(#gradient5)" },
+    { base: "#06b6d4", gradient: "url(#gradient6)" },
+    { base: "#a855f7", gradient: "url(#gradient7)" },
+  ];
+
+  let currentAngle = -90;
+  const cx = 120, cy = 120;
+  const outerRadius = 90;
+  const innerRadius = 60;
+
+  const slices = data.map((d, i) => {
+    const sliceAngle = (d.value / total) * 360;
+    const startAngle = currentAngle * Math.PI / 180;
+    const endAngle = (currentAngle + sliceAngle) * Math.PI / 180;
+    
+    const x1 = cx + outerRadius * Math.cos(startAngle);
+    const y1 = cy + outerRadius * Math.sin(startAngle);
+    const x2 = cx + outerRadius * Math.cos(endAngle);
+    const y2 = cy + outerRadius * Math.sin(endAngle);
+    
+    const x3 = cx + innerRadius * Math.cos(endAngle);
+    const y3 = cy + innerRadius * Math.sin(endAngle);
+    const x4 = cx + innerRadius * Math.cos(startAngle);
+    const y4 = cy + innerRadius * Math.sin(startAngle);
+    
+    const largeArc = sliceAngle > 180 ? 1 : 0;
+    const path = `M${x1},${y1} A${outerRadius},${outerRadius} 0 ${largeArc},1 ${x2},${y2} L${x3},${y3} A${innerRadius},${innerRadius} 0 ${largeArc},0 ${x4},${y4} Z`;
+    
+    const percentage = ((d.value / total) * 100).toFixed(1);
+    currentAngle += sliceAngle;
+    
+    return { path, color: colors[i % colors.length], label: d.label, percentage, value: d.value };
+  });
+
   return (
-    <div className="flex items-center gap-3">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {entries.map(([k,v], idx) => {
-          const start = acc/total * Math.PI*2;
-          acc += v||0;
-          const end = acc/total * Math.PI*2;
-          const x1 = cx + r * Math.cos(start - Math.PI/2);
-          const y1 = cy + r * Math.sin(start - Math.PI/2);
-          const x2 = cx + r * Math.cos(end - Math.PI/2);
-          const y2 = cy + r * Math.sin(end - Math.PI/2);
-          const large = end - start > Math.PI ? 1 : 0;
-          const path = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
-          const colors = ['#3b82f6','#06b6d4','#f59e0b','#ef4444','#8b5cf6','#06b6d4'];
-          return <path key={k} d={path} fill={colors[idx % colors.length]} stroke="#fff" strokeWidth="1" />;
-        })}
+    <div className="flex flex-col items-center gap-4">
+      <svg width="240" height="240" className="mx-auto">
+        <defs>
+          {colors.map((c, i) => (
+            <linearGradient key={i} id={`gradient${i}`} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={c.base} stopOpacity="0.9" />
+              <stop offset="100%" stopColor={c.base} stopOpacity="0.6" />
+            </linearGradient>
+          ))}
+        </defs>
+        {slices.map((slice, i) => (
+          <path 
+            key={i} 
+            d={slice.path} 
+            fill={slice.color.gradient}
+            stroke="white"
+            strokeWidth="2"
+            className="hover:opacity-80 transition-opacity cursor-pointer"
+          />
+        ))}
+        <text x={cx} y={cy - 5} textAnchor="middle" fontSize="12" fill="#6b7280" fontWeight="500">
+          Total
+        </text>
+        <text x={cx} y={cy + 10} textAnchor="middle" fontSize="18" fill="#1f2937" fontWeight="bold">
+          {fmtBDTEn(total)}
+        </text>
       </svg>
-      <div className="flex flex-col text-sm">
-        {entries.map(([k,v], idx)=> (
-          <div key={k} className="flex items-center gap-2"><span style={{width:12,height:12,background:['#3b82f6','#06b6d4','#f59e0b','#ef4444','#8b5cf6','#06b6d4'][idx%6]}} className="inline-block rounded-sm"/> <span className="capitalize">{k.replace(/([A-Z])/g,' $1')}</span>: <strong className="ml-1">{v}</strong></div>
+      
+      <div className="grid grid-cols-2 gap-2 w-full">
+        {slices.map((slice, i) => (
+          <div key={i} className="flex items-center gap-2 text-xs">
+            <div 
+              className="w-3 h-3 rounded-full flex-shrink-0"
+              style={{ backgroundColor: colors[i % colors.length].base }}
+            ></div>
+            <span className="text-gray-700 font-medium truncate">
+              {slice.label}
+            </span>
+            <span className="text-gray-500 ml-auto">
+              {slice.percentage}%
+            </span>
+          </div>
         ))}
       </div>
     </div>
