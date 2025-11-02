@@ -1,16 +1,22 @@
 // web/src/pages/dash/DMDashboard.jsx
 import React, { useEffect, useState, useMemo } from 'react';
 import { api, fmtBDT } from '../../lib/api.js';
+import { 
+  Users, 
+  TrendingUp, 
+  DollarSign,
+  BarChart2,
+  Facebook,
+  Linkedin,
+  FileText,
+  Target
+} from 'lucide-react';
 
 export default function DMDashboard() {
   const [err, setErr] = useState('');
-
-  // filters
-  const [period, setPeriod] = useState('monthly'); // daily, weekly, monthly, yearly, lifetime, custom
+  const [period, setPeriod] = useState('monthly');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
-
-  // data
   const [leads, setLeads] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [costs, setCosts] = useState([]);
@@ -42,7 +48,6 @@ export default function DMDashboard() {
       ]);
       setLeads(leadsResp?.leads || []);
       setTasks(tasksResp?.tasks || []);
-      // costs may return { items } or array
       const c = Array.isArray(costsResp) ? costsResp : (costsResp?.items || costsResp?.costs || []);
       setCosts(c || []);
       setErr('');
@@ -51,7 +56,6 @@ export default function DMDashboard() {
     } finally { setLoading(false); }
   }
 
-  // helpers to filter by date range
   const inRange = (d, fromD, toD) => {
     if (!d) return false;
     const t = new Date(d).getTime();
@@ -62,13 +66,11 @@ export default function DMDashboard() {
 
   const { from: rangeFrom, to: rangeTo } = parseRange();
 
-  // computed metrics
   const metrics = useMemo(()=>{
     const fromD = rangeFrom ? new Date(rangeFrom) : null;
     const toD = rangeTo ? new Date(rangeTo) : null;
 
     const leadsInRange = leads.filter(l => inRange(l.createdAt || l.date || l._id && null, fromD, toD) || (!fromD && !toD));
-    // safer: use createdAt mainly
     const totalLeads = leadsInRange.length;
 
     const sourceCounts = { meta:0, linkedin:0, manual:0, others:0 };
@@ -81,13 +83,11 @@ export default function DMDashboard() {
     });
 
     const tasksInRange = tasks.filter(t => inRange(t.createdAt || t.createdAt, fromD, toD) || (!fromD && !toD));
-  const totalTasksCompleted = tasksInRange.filter(t => (t.status || '').toLowerCase() === 'completed').length;
-  const pendingTasks = tasksInRange.filter(t => (t.status || '').toLowerCase() !== 'completed');
+    const totalTasksCompleted = tasksInRange.filter(t => (t.status || '').toLowerCase() === 'completed').length;
 
     const costsInRange = costs.filter(c => inRange(c.date || c.createdAt, fromD, toD) || (!fromD && !toD));
     const totalExpense = costsInRange.reduce((s, x) => s + (Number(x.amount) || 0), 0);
 
-    // prepare series for line chart: leads per day
     const series = [];
     if (fromD && toD) {
       const cur = new Date(fromD);
@@ -102,21 +102,30 @@ export default function DMDashboard() {
       }
     }
 
-    // content published count: tasks with category containing 'content' and status completed
     const contentPublished = tasksInRange.filter(t => {
       const cat = (t.category || '').toLowerCase();
       return (cat.includes('content') || cat.includes('published')) && (t.status || '').toLowerCase() === 'completed';
     }).length;
 
-    return { totalLeads, sourceCounts, totalTasksCompleted, totalExpense, series, pendingTasks, contentPublished };
+    return { totalLeads, sourceCounts, totalTasksCompleted, totalExpense, series, contentPublished };
   }, [leads, tasks, costs, rangeFrom, rangeTo]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-navy">Digital Marketing — Dashboard</h1>
-        <div className="flex items-center gap-2">
-          <select value={period} onChange={e=>setPeriod(e.target.value)} className="border rounded-xl px-3 py-2">
+    <div className="space-y-6 p-6 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Digital Marketing Dashboard
+          </h1>
+          <p className="text-gray-600 mt-1">Track your marketing performance</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <select 
+            value={period} 
+            onChange={e=>setPeriod(e.target.value)} 
+            className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors"
+          >
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
@@ -125,122 +134,294 @@ export default function DMDashboard() {
             <option value="custom">Custom</option>
           </select>
           {period === 'custom' && (
-            <div className="flex items-center gap-2">
-              <input type="date" value={from} onChange={e=>setFrom(e.target.value)} className="border rounded-xl px-3 py-2" />
-              <input type="date" value={to} onChange={e=>setTo(e.target.value)} className="border rounded-xl px-3 py-2" />
-              <button onClick={()=>{ if (from && to) setPeriod('custom'); }} className="px-3 py-2 bg-gold rounded-xl">Apply</button>
-            </div>
+            <>
+              <input 
+                type="date" 
+                value={from} 
+                onChange={e=>setFrom(e.target.value)} 
+                className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors"
+              />
+              <span className="text-gray-500 font-medium">to</span>
+              <input 
+                type="date" 
+                value={to} 
+                onChange={e=>setTo(e.target.value)} 
+                className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors"
+              />
+            </>
           )}
         </div>
       </div>
 
-      {err && <div className="text-red-600">{err}</div>}
+      {err && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+          <p className="text-red-700 font-medium">{err}</p>
+        </div>
+      )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-        <StatCard title="Total Leads" value={metrics.totalLeads} />
-        <StatCard title="Leads from Meta" value={metrics.sourceCounts.meta} />
-        <StatCard title="Leads from LinkedIn" value={metrics.sourceCounts.linkedin} />
-        <StatCard title="Manual Leads" value={metrics.sourceCounts.manual} />
-        <StatCard title="Total Expense" value={fmtBDT(metrics.totalExpense)} />
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Total Leads */}
+        <div className="group relative bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <Users className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <p className="text-white/80 text-xs font-medium mb-1">Total Leads</p>
+            <h3 className="text-2xl font-bold text-white">{metrics.totalLeads}</h3>
+          </div>
+        </div>
+
+        {/* Meta Leads */}
+        <div className="group relative bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <Facebook className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <p className="text-white/80 text-xs font-medium mb-1">Meta Leads</p>
+            <h3 className="text-2xl font-bold text-white">{metrics.sourceCounts.meta}</h3>
+          </div>
+        </div>
+
+        {/* LinkedIn Leads */}
+        <div className="group relative bg-gradient-to-br from-cyan-500 to-teal-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <Linkedin className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <p className="text-white/80 text-xs font-medium mb-1">LinkedIn Leads</p>
+            <h3 className="text-2xl font-bold text-white">{metrics.sourceCounts.linkedin}</h3>
+          </div>
+        </div>
+
+        {/* Manual Leads */}
+        <div className="group relative bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <FileText className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <p className="text-white/80 text-xs font-medium mb-1">Manual Leads</p>
+            <h3 className="text-2xl font-bold text-white">{metrics.sourceCounts.manual}</h3>
+          </div>
+        </div>
+
+        {/* Total Expense */}
+        <div className="group relative bg-gradient-to-br from-red-500 to-pink-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <DollarSign className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <p className="text-white/80 text-xs font-medium mb-1">Total Expense</p>
+            <h3 className="text-2xl font-bold text-white">{fmtBDT(metrics.totalExpense)}</h3>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="col-span-2 bg-white rounded-xl p-4 shadow-sm">
-          <h3 className="text-sm text-royal mb-2">Leads Over Time</h3>
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Line Chart */}
+        <div className="col-span-2 bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Leads Over Time</h3>
+              <p className="text-sm text-gray-500 mt-1">Daily lead generation trend</p>
+            </div>
+          </div>
           <LineChart data={metrics.series} />
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <h3 className="text-sm text-royal mb-2">Lead Source Distribution</h3>
+
+        {/* Pie Chart */}
+        <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
+          <div className="mb-6">
+            <h3 className="text-lg font-bold text-gray-800">Lead Sources</h3>
+            <p className="text-sm text-gray-500 mt-1">Distribution by channel</p>
+          </div>
           <PieChart parts={metrics.sourceCounts} />
         </div>
       </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="col-span-2 bg-white rounded-xl p-4 shadow-sm">
-          <h3 className="text-sm text-royal mb-2">My Pending Tasks</h3>
-          {metrics.pendingTasks && metrics.pendingTasks.length > 0 ? (
-            <ul className="space-y-2">
-              {metrics.pendingTasks.slice(0,8).map(t => (
-                <li key={t._id} className={`p-2 rounded-md border ${new Date(t.deadline) < new Date() ? 'bg-red-50' : 'bg-white'}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="font-medium text-sm">{t.title}</div>
-                    <div className="text-xs text-royal/70">{new Date(t.deadline).toLocaleDateString()}</div>
-                  </div>
-                  <div className="text-xs text-royal/60">{t.category || ''} {t.assignedTo?.name ? `• ${t.assignedTo.name}` : ''}</div>
-                </li>
-              ))}
-            </ul>
-          ) : <div className="text-royal/70">No pending tasks</div>}
-        </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <h3 className="text-sm text-royal mb-2">Total Content Published</h3>
-          <div className="text-3xl font-extrabold">{metrics.contentPublished}</div>
-          <div className="text-xs text-royal/70 mt-2">(Based on completed tasks with category containing 'content')</div>
+      {/* Content Published */}
+      <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6 shadow-xl">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+            <Target className="w-8 h-8 text-white" />
+          </div>
+          <div>
+            <p className="text-white/80 text-sm font-medium">Total Content Published</p>
+            <h3 className="text-4xl font-bold text-white mt-1">{metrics.contentPublished}</h3>
+            <p className="text-white/60 text-xs mt-2">Completed content tasks</p>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function StatCard({ title, value }){
-  return (
-    <div className="bg-white rounded-xl p-4 shadow-sm">
-      <div className="text-royal text-sm">{title}</div>
-      <div className="text-2xl font-extrabold mt-1">{value}</div>
     </div>
   );
 }
 
 function LineChart({ data }){
-  const width = 600, height = 180, padding = 24;
-  if (!data || data.length === 0) return <div className="text-royal/70">No data</div>;
-  const max = Math.max(...data.map(d=>d.value));
+  const width = 600, height = 220, padding = 40;
+  
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-52 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
+        <div className="text-center">
+          <BarChart2 className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+          <p className="text-gray-500 font-medium">No data available</p>
+        </div>
+      </div>
+    );
+  }
+  
+  const max = Math.max(...data.map(d=>d.value), 1);
   const stepX = (width - padding*2) / Math.max(1, data.length-1);
+  
   const points = data.map((d,i)=>{
     const x = padding + i*stepX;
     const y = height - padding - (max ? (d.value / max) * (height - padding*2) : 0);
     return `${x},${y}`;
   }).join(' ');
+  
+  const area = `${points} ${padding + (data.length-1)*stepX},${height-padding} ${padding},${height-padding}`;
+  
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-44">
-      <polyline fill="none" stroke="#3b82f6" strokeWidth="2" points={points} />
-      {data.map((d,i)=>{
-        const x = padding + i*stepX;
-        const y = height - padding - (max ? (d.value / max) * (height - padding*2) : 0);
-        return <circle key={d.date} cx={x} cy={y} r={3} fill="#1e40af" />;
-      })}
-    </svg>
+    <div className="relative">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-56">
+        <defs>
+          <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.05" />
+          </linearGradient>
+        </defs>
+        
+        {/* Grid */}
+        {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => (
+          <line
+            key={i}
+            x1={padding}
+            y1={height - padding - (height - padding*2) * ratio}
+            x2={width - padding}
+            y2={height - padding - (height - padding*2) * ratio}
+            stroke="#e5e7eb"
+            strokeWidth="1"
+            strokeDasharray="4,4"
+          />
+        ))}
+        
+        <polygon fill="url(#lineGradient)" points={area} />
+        <polyline fill="none" stroke="#3b82f6" strokeWidth="3" points={points} strokeLinecap="round" strokeLinejoin="round" />
+        
+        {/* Points */}
+        {data.map((d,i)=>{
+          const x = padding + i*stepX;
+          const y = height - padding - (max ? (d.value / max) * (height - padding*2) : 0);
+          return <circle key={i} cx={x} cy={y} r="4" fill="#3b82f6" stroke="white" strokeWidth="2" />;
+        })}
+      </svg>
+    </div>
   );
 }
 
 function PieChart({ parts }){
   const total = Object.values(parts || {}).reduce((s,n)=>s+(n||0),0);
   const entries = Object.entries(parts || {});
-  if (total === 0) return <div className="text-royal/70">No data</div>;
+  
+  if (total === 0) {
+    return (
+      <div className="flex items-center justify-center h-48 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
+        <div className="text-center">
+          <BarChart2 className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+          <p className="text-gray-500 font-medium">No data</p>
+        </div>
+      </div>
+    );
+  }
+  
   let acc = 0;
-  const size = 120; const cx = size/2; const cy = size/2; const r = size/2 - 2;
+  const size = 160; 
+  const cx = size/2; 
+  const cy = size/2; 
+  const r = size/2 - 4;
+  const innerR = r * 0.6;
+  
+  const colors = ['#3b82f6', '#8b5cf6', '#06b6d4', '#f59e0b'];
+  
   return (
-    <div className="flex items-center gap-3">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {entries.map(([k,v], idx) => {
-          const start = acc/total * Math.PI*2;
-          acc += v||0;
-          const end = acc/total * Math.PI*2;
-          const x1 = cx + r * Math.cos(start - Math.PI/2);
-          const y1 = cy + r * Math.sin(start - Math.PI/2);
-          const x2 = cx + r * Math.cos(end - Math.PI/2);
-          const y2 = cy + r * Math.sin(end - Math.PI/2);
-          const large = end - start > Math.PI ? 1 : 0;
-          const path = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
-          const colors = ['#3b82f6','#06b6d4','#f59e0b','#ef4444'];
-          return <path key={k} d={path} fill={colors[idx % colors.length]} stroke="#fff" strokeWidth="1" />;
+    <div className="flex flex-col items-center gap-4">
+      <div className="relative">
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="drop-shadow-md">
+          {entries.map(([k,v], idx) => {
+            const start = acc/total * Math.PI*2;
+            acc += v||0;
+            const end = acc/total * Math.PI*2;
+            const x1 = cx + r * Math.cos(start - Math.PI/2);
+            const y1 = cy + r * Math.sin(start - Math.PI/2);
+            const x2 = cx + r * Math.cos(end - Math.PI/2);
+            const y2 = cy + r * Math.sin(end - Math.PI/2);
+            const ix1 = cx + innerR * Math.cos(start - Math.PI/2);
+            const iy1 = cy + innerR * Math.sin(start - Math.PI/2);
+            const ix2 = cx + innerR * Math.cos(end - Math.PI/2);
+            const iy2 = cy + innerR * Math.sin(end - Math.PI/2);
+            const large = end - start > Math.PI ? 1 : 0;
+            
+            const path = `
+              M ${x1} ${y1}
+              A ${r} ${r} 0 ${large} 1 ${x2} ${y2}
+              L ${ix2} ${iy2}
+              A ${innerR} ${innerR} 0 ${large} 0 ${ix1} ${iy1}
+              Z
+            `;
+            
+            return (
+              <path 
+                key={k} 
+                d={path} 
+                fill={colors[idx % colors.length]}
+                stroke="#fff" 
+                strokeWidth="2"
+                className="hover:opacity-80 transition-opacity cursor-pointer"
+              />
+            );
+          })}
+          
+          <circle cx={cx} cy={cy} r={innerR} fill="white" />
+          <text x={cx} y={cy - 5} textAnchor="middle" fontSize="12" fontWeight="600" fill="#6b7280">Total</text>
+          <text x={cx} y={cy + 10} textAnchor="middle" fontSize="16" fontWeight="700" fill="#1f2937">{total}</text>
+        </svg>
+      </div>
+      
+      <div className="flex flex-col gap-2 w-full">
+        {entries.map(([k,v], idx)=> {
+          const percentage = ((v/total) * 100).toFixed(1);
+          return (
+            <div key={k} className="flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex items-center gap-2">
+                <span 
+                  style={{background: colors[idx % colors.length]}} 
+                  className="w-3 h-3 rounded-full shadow-sm"
+                />
+                <span className="text-sm font-medium text-gray-700 capitalize">{k}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">{percentage}%</span>
+                <span className="text-sm font-bold text-gray-800">{v}</span>
+              </div>
+            </div>
+          );
         })}
-      </svg>
-      <div className="flex flex-col text-sm">
-        {entries.map(([k,v], idx)=> (
-          <div key={k} className="flex items-center gap-2"><span style={{width:12,height:12,background:['#3b82f6','#06b6d4','#f59e0b','#ef4444'][idx%4]}} className="inline-block rounded-sm"/> <span className="capitalize">{k.replace(/([A-Z])/g,' $1')}</span>: <strong className="ml-1">{v}</strong></div>
-        ))}
       </div>
     </div>
   );

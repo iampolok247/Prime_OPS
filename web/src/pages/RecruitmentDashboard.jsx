@@ -1,6 +1,15 @@
 // web/src/pages/RecruitmentDashboard.jsx
 import React, { useEffect, useState } from "react";
 import { api, fmtBDT } from "../lib/api";
+import { 
+  Users, 
+  UserCheck, 
+  Briefcase, 
+  Building2,
+  Clock,
+  TrendingUp,
+  BarChart2
+} from 'lucide-react';
 
 export default function RecruitmentDashboard() {
   const [candidates, setCandidates] = useState([]);
@@ -101,71 +110,259 @@ export default function RecruitmentDashboard() {
   }, [candidates, jobs, employers, rangeFrom, rangeTo]);
 
   return (
-    <div className="p-4 md:p-6 space-y-6 font-[Poppins]">
-      <h1 className="text-2xl md:text-3xl font-semibold text-[#053867]">Recruitment Dashboard</h1>
-      {err && <div className="text-red-600">{err}</div>}
-      
-      <div className="flex items-center gap-3">
-        <select value={period} onChange={e => setPeriod(e.target.value)} className="border rounded-xl px-3 py-2">
-          <option value="daily">Daily</option>
-          <option value="weekly">Weekly</option>
-          <option value="monthly">Monthly</option>
-          <option value="yearly">Yearly</option>
-          <option value="lifetime">Lifetime</option>
-          <option value="custom">Custom</option>
-        </select>
-        {period === 'custom' && (
-          <div className="flex items-center gap-2">
-            <input type="date" value={from} onChange={e=>setFrom(e.target.value)} className="border rounded-xl px-3 py-2" />
-            <input type="date" value={to} onChange={e=>setTo(e.target.value)} className="border rounded-xl px-3 py-2" />
-          </div>
-        )}
-      </div>
-
-      {/* Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card title="Total Recruitment" value={metrics.totalRecruitment} />
-        <Card title="Pending Candidate" value={metrics.pendingCandidate} />
-        <Card title="Active Job Position" value={metrics.activeJobPosition} />
-        <Card title="Total Employer" value={metrics.totalEmployer} />
-      </div>
-
-      {/* Series (simple table placeholder; you can later swap with Recharts) */}
-      <div className="bg-white shadow rounded-2xl p-4">
-        <h2 className="text-lg font-semibold text-[#253985] mb-3">Candidate vs Recruited (Last 6 months)</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-left text-[#053867]">
-                <th className="py-2">Month</th>
-                <th className="py-2">Candidates</th>
-                <th className="py-2">Recruited</th>
-              </tr>
-            </thead>
-            <tbody>
-              {metrics.series.map((r) => (
-                <tr key={r.month} className="border-t">
-                  <td className="py-2">{r.month}</td>
-                  <td className="py-2">{r.candidates}</td>
-                  <td className="py-2">{r.recruited}</td>
-                </tr>
-              ))}
-              {metrics.series.length === 0 && (
-                <tr><td className="py-2 text-gray-500" colSpan={3}>No data</td></tr>
-              )}
-            </tbody>
-          </table>
+    <div className="space-y-6 p-6 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Recruitment Dashboard
+          </h1>
+          <p className="text-gray-600 mt-1">Track candidates and job positions</p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <select 
+            value={period} 
+            onChange={e => setPeriod(e.target.value)} 
+            className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors"
+          >
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+            <option value="lifetime">Lifetime</option>
+            <option value="custom">Custom</option>
+          </select>
+          {period === 'custom' && (
+            <>
+              <input 
+                type="date" 
+                value={from} 
+                onChange={e=>setFrom(e.target.value)} 
+                className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors"
+              />
+              <span className="text-gray-500 font-medium">to</span>
+              <input 
+                type="date" 
+                value={to} 
+                onChange={e=>setTo(e.target.value)} 
+                className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors"
+              />
+            </>
+          )}
+        </div>
+      </div>
+
+      {err && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+          <p className="text-red-700 font-medium">{err}</p>
+        </div>
+      )}
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Recruitment */}
+        <div className="group relative bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <Users className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <p className="text-white/80 text-xs font-medium mb-1">Total Recruitment</p>
+            <h3 className="text-2xl font-bold text-white">{metrics.totalRecruitment}</h3>
+          </div>
+        </div>
+
+        {/* Pending Candidate */}
+        <div className="group relative bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <Clock className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <p className="text-white/80 text-xs font-medium mb-1">Pending Candidate</p>
+            <h3 className="text-2xl font-bold text-white">{metrics.pendingCandidate}</h3>
+          </div>
+        </div>
+
+        {/* Active Job Position */}
+        <div className="group relative bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <Briefcase className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <p className="text-white/80 text-xs font-medium mb-1">Active Job Position</p>
+            <h3 className="text-2xl font-bold text-white">{metrics.activeJobPosition}</h3>
+          </div>
+        </div>
+
+        {/* Total Employer */}
+        <div className="group relative bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <Building2 className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <p className="text-white/80 text-xs font-medium mb-1">Total Employer</p>
+            <h3 className="text-2xl font-bold text-white">{metrics.totalEmployer}</h3>
+          </div>
+        </div>
+      </div>
+
+      {/* Chart Section */}
+      <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-lg font-bold text-gray-800">Candidate vs Recruited</h3>
+            <p className="text-sm text-gray-500 mt-1">Last 6 months performance</p>
+          </div>
+          <div className="flex gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+              <span className="text-xs text-gray-600 font-medium">Candidates</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <span className="text-xs text-gray-600 font-medium">Recruited</span>
+            </div>
+          </div>
+        </div>
+        <RecruitmentChart data={metrics.series} />
       </div>
     </div>
   );
 }
 
-function Card({ title, value }) {
+function RecruitmentChart({ data }) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-52 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
+        <div className="text-center">
+          <BarChart2 className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+          <p className="text-gray-500 font-medium">No data available</p>
+        </div>
+      </div>
+    );
+  }
+
+  const maxValue = Math.max(...data.map(d => Math.max(d.candidates || 0, d.recruited || 0)), 1);
+  const barWidth = 40;
+  const barGap = 10;
+  const groupWidth = barWidth * 2 + barGap;
+  const padding = { left: 50, right: 30, top: 30, bottom: 60 };
+  const chartWidth = padding.left + padding.right + (groupWidth + 30) * data.length;
+  const chartHeight = 300;
+  const graphHeight = chartHeight - padding.top - padding.bottom;
+
   return (
-    <div className="bg-white rounded-2xl shadow p-4">
-      <div className="text-sm text-[#253985]">{title}</div>
-      <div className="text-2xl font-bold text-[#053867]">{typeof value === 'number' ? value : fmtBDT(value)}</div>
+    <div className="overflow-x-auto">
+      <svg width={chartWidth} height={chartHeight} className="min-w-full">
+        {/* Grid lines */}
+        {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => (
+          <g key={i}>
+            <line
+              x1={padding.left}
+              y1={padding.top + graphHeight * (1 - ratio)}
+              x2={chartWidth - padding.right}
+              y2={padding.top + graphHeight * (1 - ratio)}
+              stroke="#e5e7eb"
+              strokeWidth="1"
+              strokeDasharray="4,4"
+            />
+            <text
+              x={padding.left - 10}
+              y={padding.top + graphHeight * (1 - ratio) + 4}
+              textAnchor="end"
+              fontSize="12"
+              fill="#6b7280"
+            >
+              {Math.round(maxValue * ratio)}
+            </text>
+          </g>
+        ))}
+
+        {/* Bars */}
+        {data.map((item, index) => {
+          const x = padding.left + index * (groupWidth + 30);
+          const candidatesHeight = (item.candidates / maxValue) * graphHeight;
+          const recruitedHeight = (item.recruited / maxValue) * graphHeight;
+
+          return (
+            <g key={index}>
+              {/* Candidates bar */}
+              <rect
+                x={x}
+                y={padding.top + graphHeight - candidatesHeight}
+                width={barWidth}
+                height={candidatesHeight}
+                fill="url(#candidatesGradient)"
+                rx="4"
+              />
+              <text
+                x={x + barWidth / 2}
+                y={padding.top + graphHeight - candidatesHeight - 5}
+                textAnchor="middle"
+                fontSize="12"
+                fontWeight="600"
+                fill="#3b82f6"
+              >
+                {item.candidates}
+              </text>
+
+              {/* Recruited bar */}
+              <rect
+                x={x + barWidth + barGap}
+                y={padding.top + graphHeight - recruitedHeight}
+                width={barWidth}
+                height={recruitedHeight}
+                fill="url(#recruitedGradient)"
+                rx="4"
+              />
+              <text
+                x={x + barWidth + barGap + barWidth / 2}
+                y={padding.top + graphHeight - recruitedHeight - 5}
+                textAnchor="middle"
+                fontSize="12"
+                fontWeight="600"
+                fill="#10b981"
+              >
+                {item.recruited}
+              </text>
+
+              {/* Month label */}
+              <text
+                x={x + groupWidth / 2}
+                y={chartHeight - padding.bottom + 20}
+                textAnchor="middle"
+                fontSize="12"
+                fill="#374151"
+                fontWeight="500"
+              >
+                {item.month}
+              </text>
+            </g>
+          );
+        })}
+
+        <defs>
+          <linearGradient id="candidatesGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.6" />
+          </linearGradient>
+          <linearGradient id="recruitedGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#10b981" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#10b981" stopOpacity="0.6" />
+          </linearGradient>
+        </defs>
+      </svg>
     </div>
   );
 }

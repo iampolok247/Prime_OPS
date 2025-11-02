@@ -11,6 +11,7 @@ import Dashboard from './pages/Dashboard.jsx';
 import Profile from './pages/Profile.jsx';
 import AssignTasks from './pages/AssignTasks.jsx';
 import MyTasks from './pages/MyTasks.jsx';
+import TasksKanban from './pages/TasksKanban.jsx';
 import Employees from './pages/Employees.jsx';
 import Courses from './pages/Courses.jsx';
 import ReportsView from './pages/ReportsView.jsx';
@@ -44,6 +45,13 @@ import RecruitExpenses from './pages/RecruitExpenses.jsx';
 import MGDashboard from './pages/MGDashboard.jsx';
 import MGProduction from './pages/MGProduction.jsx';
 
+import Messages from './pages/Messages.jsx';
+import TaskReport from './pages/TaskReport.jsx';
+import AdminTaskReport from './pages/AdminTaskReport.jsx';
+
+import Login from './pages/Login.jsx';
+import NotFound from './pages/NotFound.jsx';
+
 function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -66,6 +74,9 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/my-tasks" element={<MyTasks />} />
+          <Route path="/tasks-board" element={<TasksKanban />} />
+          <Route path="/messages" element={<Messages />} />
+          <Route path="/task-report" element={<TaskReport />} />
 
           {/* SA/Admin */}
           <Route element={<RoleRoute roles={['SuperAdmin', 'Admin']} />}>
@@ -73,6 +84,7 @@ export default function App() {
             <Route path="/employees" element={<Employees />} />
             <Route path="/reports-view" element={<ReportsView />} />
             <Route path="/leads-center-view" element={<LeadsCenterView />} />
+            <Route path="/admin-task-report" element={<AdminTaskReport />} />
           </Route>
 
           {/* Courses - viewable by all except Accountant */}

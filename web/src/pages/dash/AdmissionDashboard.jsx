@@ -1,21 +1,93 @@
 // web/src/pages/dash/AdmissionDashboard.jsx
 import React, { useEffect, useState } from 'react';
 import { api } from '../../lib/api.js';
+import { 
+  Users, 
+  UserCheck, 
+  UserX, 
+  ClipboardList, 
+  PhoneCall,
+  GraduationCap,
+  TrendingUp,
+  BarChart2
+} from 'lucide-react';
 
 function fmtDT(d){ if (!d) return '-'; try { return new Date(d).toLocaleString(); } catch { return d; } }
 
 function LineChartDualSmall({ data }){
-  const width = 700, height = 180, padding = 24;
-  if (!data || data.length === 0) return <div className="text-royal/70">No data</div>;
-  const max = Math.max(...data.map(d=>Math.max(d.leads||0,d.admitted||0)));
+  const width = 700, height = 220, padding = 40;
+  
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-52 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
+        <div className="text-center">
+          <BarChart2 className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+          <p className="text-gray-500 font-medium">No data available</p>
+        </div>
+      </div>
+    );
+  }
+  
+  const max = Math.max(...data.map(d=>Math.max(d.leads||0,d.admitted||0)), 1);
   const stepX = (width - padding*2) / Math.max(1, data.length-1);
+  
   const leadsPoints = data.map((d,i)=>`${padding + i*stepX},${height - padding - (max ? (d.leads / max) * (height - padding*2) : 0)}`).join(' ');
   const admittedPoints = data.map((d,i)=>`${padding + i*stepX},${height - padding - (max ? (d.admitted / max) * (height - padding*2) : 0)}`).join(' ');
+  
+  // Create gradient fill areas
+  const leadsArea = `${leadsPoints} ${padding + (data.length-1)*stepX},${height-padding} ${padding},${height-padding}`;
+  const admittedArea = `${admittedPoints} ${padding + (data.length-1)*stepX},${height-padding} ${padding},${height-padding}`;
+  
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-44">
-      <polyline fill="none" stroke="#3b82f6" strokeWidth="2" points={leadsPoints} />
-      <polyline fill="none" stroke="#10b981" strokeWidth="2" points={admittedPoints} />
-    </svg>
+    <div className="relative">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-56">
+        <defs>
+          <linearGradient id="leadsGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.05" />
+          </linearGradient>
+          <linearGradient id="admittedGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#10b981" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#10b981" stopOpacity="0.05" />
+          </linearGradient>
+        </defs>
+        
+        {/* Grid lines */}
+        {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => (
+          <line
+            key={i}
+            x1={padding}
+            y1={height - padding - (height - padding*2) * ratio}
+            x2={width - padding}
+            y2={height - padding - (height - padding*2) * ratio}
+            stroke="#e5e7eb"
+            strokeWidth="1"
+            strokeDasharray="4,4"
+          />
+        ))}
+        
+        {/* Area fills */}
+        <polygon fill="url(#leadsGradient)" points={leadsArea} />
+        <polygon fill="url(#admittedGradient)" points={admittedArea} />
+        
+        {/* Lines */}
+        <polyline fill="none" stroke="#3b82f6" strokeWidth="3" points={leadsPoints} strokeLinecap="round" strokeLinejoin="round" />
+        <polyline fill="none" stroke="#10b981" strokeWidth="3" points={admittedPoints} strokeLinecap="round" strokeLinejoin="round" />
+        
+        {/* Data points */}
+        {data.map((d, i) => {
+          const x = padding + i * stepX;
+          const yLeads = height - padding - (max ? (d.leads / max) * (height - padding*2) : 0);
+          const yAdmitted = height - padding - (max ? (d.admitted / max) * (height - padding*2) : 0);
+          return (
+            <g key={i}>
+              <circle cx={x} cy={yLeads} r="4" fill="#3b82f6" stroke="white" strokeWidth="2" />
+              <circle cx={x} cy={yAdmitted} r="4" fill="#10b981" stroke="white" strokeWidth="2" />
+            </g>
+          );
+        })}
+      </svg>
+    </div>
   );
 }
 
@@ -126,45 +198,113 @@ export default function AdmissionDashboard() {
     return { counts, series };
   }, [allLeads, rangeFrom, rangeTo]);
 
-  return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold text-navy">Admission — Dashboard</h1>
-      {err && <div className="text-red-600">{err}</div>}
+  const getStatusIcon = (key) => {
+    const icons = {
+      'Assigned': <ClipboardList className="w-5 h-5 text-white" />,
+      'Counseling': <PhoneCall className="w-5 h-5 text-white" />,
+      'In Follow Up': <Users className="w-5 h-5 text-white" />,
+      'Admitted': <GraduationCap className="w-5 h-5 text-white" />,
+      'Not Admitted': <UserX className="w-5 h-5 text-white" />
+    };
+    return icons[key] || <Users className="w-5 h-5 text-white" />;
+  };
 
-      {/* Period Filter */}
-      <div className="bg-white p-4 rounded-xl shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center gap-3">
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-slate">Range</label>
-            <select value={period} onChange={e => setPeriod(e.target.value)} className="border rounded-xl px-3 py-2">
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="yearly">Yearly</option>
-              <option value="lifetime">Lifetime</option>
-              <option value="custom">Custom</option>
-            </select>
-          </div>
+  const getStatusColor = (key) => {
+    const colors = {
+      'Assigned': 'from-blue-500 to-indigo-600',
+      'Counseling': 'from-purple-500 to-violet-600',
+      'In Follow Up': 'from-orange-500 to-amber-600',
+      'Admitted': 'from-green-500 to-emerald-600',
+      'Not Admitted': 'from-red-500 to-pink-600'
+    };
+    return colors[key] || 'from-gray-500 to-slate-600';
+  };
+
+  return (
+    <div className="space-y-6 p-6 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Admission Dashboard
+          </h1>
+          <p className="text-gray-600 mt-1">Track student admissions and pipeline</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <select 
+            value={period} 
+            onChange={e => setPeriod(e.target.value)} 
+            className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors"
+          >
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+            <option value="lifetime">Lifetime</option>
+            <option value="custom">Custom</option>
+          </select>
           {period === 'custom' && (
             <>
-              <input type="date" className="border rounded-xl px-3 py-2" value={from} onChange={e => setFrom(e.target.value)} />
-              <input type="date" className="border rounded-xl px-3 py-2" value={to} onChange={e => setTo(e.target.value)} />
+              <input 
+                type="date" 
+                className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors" 
+                value={from} 
+                onChange={e => setFrom(e.target.value)} 
+              />
+              <span className="text-gray-500 font-medium">to</span>
+              <input 
+                type="date" 
+                className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors" 
+                value={to} 
+                onChange={e => setTo(e.target.value)} 
+              />
             </>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+      {err && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+          <p className="text-red-700 font-medium">{err}</p>
+        </div>
+      )}
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {STATUSES.map(s=>(
-          <div key={s.key} className="bg-white rounded-xl p-4 shadow-sm">
-            <div className="text-royal text-sm">{s.label}</div>
-            <div className="text-3xl font-extrabold">{metrics.counts[s.key] ?? 0}</div>
+          <div key={s.key} className={`group relative bg-gradient-to-br ${getStatusColor(s.key)} rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden`}>
+            <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                  {getStatusIcon(s.key)}
+                </div>
+              </div>
+              <p className="text-white/80 text-xs font-medium mb-1">{s.label}</p>
+              <h3 className="text-2xl font-bold text-white">{metrics.counts[s.key] ?? 0}</h3>
+            </div>
           </div>
         ))}
       </div>
 
-      <div className="bg-white rounded-xl p-4 shadow-sm">
-        <h4 className="text-sm text-royal mb-2">Leads vs Admitted</h4>
+      {/* Chart Section */}
+      <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-lg font-bold text-gray-800">Leads vs Admitted</h3>
+            <p className="text-sm text-gray-500 mt-1">Conversion tracking over time</p>
+          </div>
+          <div className="flex gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+              <span className="text-xs text-gray-600 font-medium">Leads</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <span className="text-xs text-gray-600 font-medium">Admitted</span>
+            </div>
+          </div>
+        </div>
         <LineChartDualSmall data={metrics.series} />
       </div>
     </div>

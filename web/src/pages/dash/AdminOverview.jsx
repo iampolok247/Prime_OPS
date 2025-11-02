@@ -1,7 +1,21 @@
 // web/src/pages/dash/AdminOverview.jsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { api, fmtBDTEn } from '../../lib/api.js';
-import { Wallet, CreditCard, BarChart2, BookOpen, Users, ListChecks } from 'lucide-react';
+import { 
+  Wallet, 
+  CreditCard, 
+  BarChart2, 
+  BookOpen, 
+  Users, 
+  TrendingUp, 
+  TrendingDown,
+  DollarSign,
+  GraduationCap,
+  UserCheck,
+  Briefcase,
+  ArrowUpRight,
+  ArrowDownRight
+} from 'lucide-react';
 
 function todayISO(){ return new Date().toISOString().slice(0,10); }
 function firstOfMonthISO(){ const d=new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0,10); }
@@ -97,7 +111,6 @@ export default function AdminOverview() {
   const totalLeads = filteredLeads.length;
   const totalAdmitted = filteredAdmission.filter(l=> (l.status||'').toLowerCase() === 'admitted').length;
   const totalRecruited = (recruited || []).length;
-  const pendingTasks = filteredTasks.filter(t=> (t.status||'').toLowerCase() !== 'completed');
 
   // prepare income/expense timeseries by day
   const series = useMemo(()=>{
@@ -124,11 +137,21 @@ export default function AdminOverview() {
   const onApply = (e)=>{ e?.preventDefault?.(); load(); };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-navy">Admin Overview</h1>
-        <form onSubmit={onApply} className="flex items-center gap-2">
-          <select value={period} onChange={e=>setPeriod(e.target.value)} className="input">
+    <div className="space-y-6 p-6 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Admin Dashboard
+          </h1>
+          <p className="text-gray-600 mt-1">Welcome back! Here's your business overview</p>
+        </div>
+        <form onSubmit={onApply} className="flex flex-wrap items-center gap-2">
+          <select 
+            value={period} 
+            onChange={e=>setPeriod(e.target.value)} 
+            className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors"
+          >
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
@@ -138,113 +161,171 @@ export default function AdminOverview() {
           </select>
           {period === 'custom' && (
             <>
-              <input type="date" className="input" value={from} onChange={e=>setFrom(e.target.value)} />
-              <span className="text-royal">to</span>
-              <input type="date" className="input" value={to} onChange={e=>setTo(e.target.value)} />
+              <input 
+                type="date" 
+                className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors" 
+                value={from} 
+                onChange={e=>setFrom(e.target.value)} 
+              />
+              <span className="text-gray-500 font-medium">to</span>
+              <input 
+                type="date" 
+                className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors" 
+                value={to} 
+                onChange={e=>setTo(e.target.value)} 
+              />
             </>
           )}
-          <button className="btn btn-primary">Apply</button>
+          <button className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all">
+            Apply
+          </button>
         </form>
       </div>
 
-      {err && <div className="text-red-600">{err}</div>}
+      {err && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+          <p className="text-red-700 font-medium">{err}</p>
+        </div>
+      )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2">
-            <Wallet className="w-5 h-5 text-royal/90" />
-            <div className="text-royal text-sm">Total Income</div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Income Card */}
+        <div className="group relative bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <TrendingUp className="w-5 h-5 text-white" />
+              </div>
+              <ArrowUpRight className="w-4 h-4 text-white/70" />
+            </div>
+            <p className="text-white/80 text-xs font-medium mb-1">Total Income</p>
+            <h3 className="text-2xl font-bold text-white">{fmtBDTEn(totalIncome)}</h3>
           </div>
-          <div className="text-2xl font-extrabold">{fmtBDTEn(totalIncome)}</div>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-royal/90" />
-            <div className="text-royal text-sm">Total Expense</div>
+
+        {/* Total Expense Card */}
+        <div className="group relative bg-gradient-to-br from-red-500 to-pink-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <TrendingDown className="w-5 h-5 text-white" />
+              </div>
+              <ArrowDownRight className="w-4 h-4 text-white/70" />
+            </div>
+            <p className="text-white/80 text-xs font-medium mb-1">Total Expense</p>
+            <h3 className="text-2xl font-bold text-white">{fmtBDTEn(totalExpense)}</h3>
           </div>
-          <div className="text-2xl font-extrabold">{fmtBDTEn(totalExpense)}</div>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2">
-            <BarChart2 className="w-5 h-5 text-royal/90" />
-            <div className="text-royal text-sm">Total Net Balances</div>
+
+        {/* Net Balance Card */}
+        <div className="group relative bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <DollarSign className="w-5 h-5 text-white" />
+              </div>
+              <BarChart2 className="w-4 h-4 text-white/70" />
+            </div>
+            <p className="text-white/80 text-xs font-medium mb-1">Net Balance</p>
+            <h3 className="text-2xl font-bold text-white">{fmtBDTEn(totalNet)}</h3>
           </div>
-          <div className="text-2xl font-extrabold">{fmtBDTEn(totalNet)}</div>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-royal/90" />
-            <div className="text-royal text-sm">Total Active Courses</div>
+
+        {/* Active Courses Card */}
+        <div className="group relative bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <BookOpen className="w-5 h-5 text-white" />
+              </div>
+              <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs text-white font-medium">Active</span>
+            </div>
+            <p className="text-white/80 text-xs font-medium mb-1">Active Courses</p>
+            <h3 className="text-2xl font-bold text-white">{totalActiveCourses}</h3>
           </div>
-          <div className="text-2xl font-extrabold">{totalActiveCourses}</div>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-royal/90" />
-            <div className="text-royal text-sm">Total Lead</div>
+
+        {/* Total Leads Card */}
+        <div className="group relative bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <Users className="w-5 h-5 text-white" />
+              </div>
+              <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs text-white font-medium">Leads</span>
+            </div>
+            <p className="text-white/80 text-xs font-medium mb-1">Total Leads</p>
+            <h3 className="text-2xl font-bold text-white">{totalLeads}</h3>
           </div>
-          <div className="text-2xl font-extrabold">{totalLeads}</div>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-royal/90" />
-            <div className="text-royal text-sm">Total Admitted Student</div>
+
+        {/* Admitted Students Card */}
+        <div className="group relative bg-gradient-to-br from-cyan-500 to-teal-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <GraduationCap className="w-5 h-5 text-white" />
+              </div>
+              <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs text-white font-medium">Students</span>
+            </div>
+            <p className="text-white/80 text-xs font-medium mb-1">Admitted Students</p>
+            <h3 className="text-2xl font-bold text-white">{totalAdmitted}</h3>
           </div>
-          <div className="text-2xl font-extrabold">{totalAdmitted}</div>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-royal/90" />
-            <div className="text-royal text-sm">Total Recruited People</div>
+
+        {/* Recruited People Card */}
+        <div className="group relative bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <UserCheck className="w-5 h-5 text-white" />
+              </div>
+              <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs text-white font-medium">Team</span>
+            </div>
+            <p className="text-white/80 text-xs font-medium mb-1">Recruited People</p>
+            <h3 className="text-2xl font-bold text-white">{totalRecruited}</h3>
           </div>
-          <div className="text-2xl font-extrabold">{totalRecruited}</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2">
-            <ListChecks className="w-5 h-5 text-royal/90" />
-            <div className="text-royal text-sm">Pending Tasks</div>
-          </div>
-          <div className="text-2xl font-extrabold">{pendingTasks.length}</div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="col-span-2 bg-white rounded-xl p-4 shadow-sm">
-          <h3 className="text-sm text-royal mb-2">Income vs Expense</h3>
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Income vs Expense Chart */}
+        <div className="col-span-2 bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Income vs Expense</h3>
+              <p className="text-sm text-gray-500 mt-1">Financial trend over time</p>
+            </div>
+            <div className="flex gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                <span className="text-xs text-gray-600 font-medium">Income</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                <span className="text-xs text-gray-600 font-medium">Expense</span>
+              </div>
+            </div>
+          </div>
           <LineChartDual data={series} />
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <h3 className="text-sm text-royal mb-2">Expense Breakdown</h3>
-          <PieChart parts={expenseBreakdown} />
-        </div>
-      </div>
 
-      <div className="bg-white rounded-xl p-4 shadow-sm">
-        <h3 className="text-sm text-royal mb-2">Pending Task List</h3>
-        <div className="overflow-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-[#f3f6ff] text-royal">
-              <tr>
-                <th className="p-2 text-left">Title</th>
-                <th className="p-2 text-left">Assigned To</th>
-                <th className="p-2 text-left">Category</th>
-                <th className="p-2 text-left">Deadline</th>
-                <th className="p-2 text-left">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pendingTasks.map(t => (
-                <tr key={t._id} className="border-t">
-                  <td className="p-2">{t.title}</td>
-                  <td className="p-2">{t.assignedTo?.name || t.assignedTo?.email || '-'}</td>
-                  <td className="p-2">{t.category}</td>
-                  <td className="p-2">{t.deadline ? new Date(t.deadline).toLocaleDateString() : '-'}</td>
-                  <td className="p-2">{t.status}</td>
-                </tr>
-              ))}
-              {pendingTasks.length === 0 && <tr><td className="p-3 text-royal/70" colSpan="5">No pending tasks</td></tr>}
-            </tbody>
-          </table>
+        {/* Expense Breakdown Chart */}
+        <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
+          <div className="mb-6">
+            <h3 className="text-lg font-bold text-gray-800">Expense Breakdown</h3>
+            <p className="text-sm text-gray-500 mt-1">Category-wise distribution</p>
+          </div>
+          <PieChart parts={expenseBreakdown} />
         </div>
       </div>
     </div>
@@ -252,47 +333,196 @@ export default function AdminOverview() {
 }
 
 function LineChartDual({ data }){
-  const width = 600, height = 180, padding = 24;
-  if (!data || data.length === 0) return <div className="text-royal/70">No data</div>;
-  const max = Math.max(...data.map(d=>Math.max(d.income||0,d.expense||0)));
+  const width = 600, height = 220, padding = 40;
+  
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-52 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
+        <div className="text-center">
+          <BarChart2 className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+          <p className="text-gray-500 font-medium">No data available</p>
+        </div>
+      </div>
+    );
+  }
+  
+  const max = Math.max(...data.map(d=>Math.max(d.income||0,d.expense||0)), 1);
   const stepX = (width - padding*2) / Math.max(1, data.length-1);
+  
   const incomePoints = data.map((d,i)=>`${padding + i*stepX},${height - padding - (max ? (d.income / max) * (height - padding*2) : 0)}`).join(' ');
   const expensePoints = data.map((d,i)=>`${padding + i*stepX},${height - padding - (max ? (d.expense / max) * (height - padding*2) : 0)}`).join(' ');
+  
+  // Create gradient fill areas
+  const incomeArea = `${incomePoints} ${padding + (data.length-1)*stepX},${height-padding} ${padding},${height-padding}`;
+  const expenseArea = `${expensePoints} ${padding + (data.length-1)*stepX},${height-padding} ${padding},${height-padding}`;
+  
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-44">
-      <polyline fill="none" stroke="#10b981" strokeWidth="2" points={incomePoints} />
-      <polyline fill="none" stroke="#ef4444" strokeWidth="2" points={expensePoints} />
-    </svg>
+    <div className="relative">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-56">
+        <defs>
+          <linearGradient id="incomeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#10b981" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#10b981" stopOpacity="0.05" />
+          </linearGradient>
+          <linearGradient id="expenseGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#ef4444" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#ef4444" stopOpacity="0.05" />
+          </linearGradient>
+        </defs>
+        
+        {/* Grid lines */}
+        {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => (
+          <line
+            key={i}
+            x1={padding}
+            y1={height - padding - (height - padding*2) * ratio}
+            x2={width - padding}
+            y2={height - padding - (height - padding*2) * ratio}
+            stroke="#e5e7eb"
+            strokeWidth="1"
+            strokeDasharray="4,4"
+          />
+        ))}
+        
+        {/* Area fills */}
+        <polygon fill="url(#incomeGradient)" points={incomeArea} />
+        <polygon fill="url(#expenseGradient)" points={expenseArea} />
+        
+        {/* Lines */}
+        <polyline fill="none" stroke="#10b981" strokeWidth="3" points={incomePoints} strokeLinecap="round" strokeLinejoin="round" />
+        <polyline fill="none" stroke="#ef4444" strokeWidth="3" points={expensePoints} strokeLinecap="round" strokeLinejoin="round" />
+        
+        {/* Data points */}
+        {data.map((d, i) => {
+          const x = padding + i * stepX;
+          const yIncome = height - padding - (max ? (d.income / max) * (height - padding*2) : 0);
+          const yExpense = height - padding - (max ? (d.expense / max) * (height - padding*2) : 0);
+          return (
+            <g key={i}>
+              <circle cx={x} cy={yIncome} r="4" fill="#10b981" stroke="white" strokeWidth="2" />
+              <circle cx={x} cy={yExpense} r="4" fill="#ef4444" stroke="white" strokeWidth="2" />
+            </g>
+          );
+        })}
+      </svg>
+    </div>
   );
 }
 
 function PieChart({ parts }){
   const total = Object.values(parts || {}).reduce((s,n)=>s+(n||0),0);
   const entries = Object.entries(parts || {});
-  if (total === 0) return <div className="text-royal/70">No data</div>;
+  
+  if (total === 0) {
+    return (
+      <div className="flex items-center justify-center h-48 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
+        <div className="text-center">
+          <BarChart2 className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+          <p className="text-gray-500 font-medium">No expense data</p>
+        </div>
+      </div>
+    );
+  }
+  
   let acc = 0;
-  const size = 120; const cx = size/2; const cy = size/2; const r = size/2 - 2;
+  const size = 160; 
+  const cx = size/2; 
+  const cy = size/2; 
+  const r = size/2 - 4;
+  const innerR = r * 0.6; // Donut chart
+  
+  const colors = [
+    '#3b82f6', // blue
+    '#10b981', // green
+    '#f59e0b', // amber
+    '#ef4444', // red
+    '#8b5cf6', // purple
+    '#06b6d4', // cyan
+    '#ec4899', // pink
+    '#f97316'  // orange
+  ];
+  
   return (
-    <div className="flex items-center gap-3">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {entries.map(([k,v], idx) => {
-          const start = acc/total * Math.PI*2;
-          acc += v||0;
-          const end = acc/total * Math.PI*2;
-          const x1 = cx + r * Math.cos(start - Math.PI/2);
-          const y1 = cy + r * Math.sin(start - Math.PI/2);
-          const x2 = cx + r * Math.cos(end - Math.PI/2);
-          const y2 = cy + r * Math.sin(end - Math.PI/2);
-          const large = end - start > Math.PI ? 1 : 0;
-          const path = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
-          const colors = ['#3b82f6','#06b6d4','#f59e0b','#ef4444','#8b5cf6','#06b6d4'];
-          return <path key={k} d={path} fill={colors[idx % colors.length]} stroke="#fff" strokeWidth="1" />;
+    <div className="flex flex-col items-center gap-4">
+      <div className="relative">
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="drop-shadow-md">
+          <defs>
+            {entries.map(([k], idx) => (
+              <linearGradient key={k} id={`gradient-${idx}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor={colors[idx % colors.length]} stopOpacity="1" />
+                <stop offset="100%" stopColor={colors[idx % colors.length]} stopOpacity="0.7" />
+              </linearGradient>
+            ))}
+          </defs>
+          
+          {entries.map(([k,v], idx) => {
+            const start = acc/total * Math.PI*2;
+            acc += v||0;
+            const end = acc/total * Math.PI*2;
+            const x1 = cx + r * Math.cos(start - Math.PI/2);
+            const y1 = cy + r * Math.sin(start - Math.PI/2);
+            const x2 = cx + r * Math.cos(end - Math.PI/2);
+            const y2 = cy + r * Math.sin(end - Math.PI/2);
+            const ix1 = cx + innerR * Math.cos(start - Math.PI/2);
+            const iy1 = cy + innerR * Math.sin(start - Math.PI/2);
+            const ix2 = cx + innerR * Math.cos(end - Math.PI/2);
+            const iy2 = cy + innerR * Math.sin(end - Math.PI/2);
+            const large = end - start > Math.PI ? 1 : 0;
+            
+            // Donut path
+            const path = `
+              M ${x1} ${y1}
+              A ${r} ${r} 0 ${large} 1 ${x2} ${y2}
+              L ${ix2} ${iy2}
+              A ${innerR} ${innerR} 0 ${large} 0 ${ix1} ${iy1}
+              Z
+            `;
+            
+            return (
+              <path 
+                key={k} 
+                d={path} 
+                fill={`url(#gradient-${idx})`}
+                stroke="#fff" 
+                strokeWidth="2"
+                className="hover:opacity-80 transition-opacity cursor-pointer"
+              />
+            );
+          })}
+          
+          {/* Center circle */}
+          <circle cx={cx} cy={cy} r={innerR} fill="white" />
+          <text x={cx} y={cy - 5} textAnchor="middle" fontSize="12" fontWeight="600" fill="#6b7280">
+            Total
+          </text>
+          <text x={cx} y={cy + 10} textAnchor="middle" fontSize="16" fontWeight="700" fill="#1f2937">
+            {total}
+          </text>
+        </svg>
+      </div>
+      
+      {/* Legend */}
+      <div className="flex flex-col gap-2 w-full">
+        {entries.map(([k,v], idx)=> {
+          const percentage = ((v/total) * 100).toFixed(1);
+          return (
+            <div key={k} className="flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex items-center gap-2">
+                <span 
+                  style={{background: colors[idx % colors.length]}} 
+                  className="w-3 h-3 rounded-full shadow-sm"
+                />
+                <span className="text-sm font-medium text-gray-700 capitalize">
+                  {k.replace(/([A-Z])/g,' $1')}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">{percentage}%</span>
+                <span className="text-sm font-bold text-gray-800">{v}</span>
+              </div>
+            </div>
+          );
         })}
-      </svg>
-      <div className="flex flex-col text-sm">
-        {entries.map(([k,v], idx)=> (
-          <div key={k} className="flex items-center gap-2"><span style={{width:12,height:12,background:['#3b82f6','#06b6d4','#f59e0b','#ef4444','#8b5cf6','#06b6d4'][idx%6]}} className="inline-block rounded-sm"/> <span className="capitalize">{k.replace(/([A-Z])/g,' $1')}</span>: <strong className="ml-1">{v}</strong></div>
-        ))}
       </div>
     </div>
   );
