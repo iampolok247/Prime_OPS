@@ -10,6 +10,7 @@ export default function TaskCreateModal({ isOpen, onClose, onCreated }) {
   const { user } = useAuth();
   const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [isSelfAssign, setIsSelfAssign] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -44,8 +45,10 @@ export default function TaskCreateModal({ isOpen, onClose, onCreated }) {
   const loadUsers = async () => {
     try {
       const response = await api.listAllUsers();
+      console.log('Loaded users:', response.data); // Debug log
       // Filter out SuperAdmin users from the list
       const filteredUsers = (response.data || []).filter(u => u.role !== 'SuperAdmin');
+      console.log('Filtered users (excluding SuperAdmin):', filteredUsers); // Debug log
       setAllUsers(filteredUsers);
     } catch (error) {
       console.error('Error loading users:', error);
@@ -113,35 +116,14 @@ export default function TaskCreateModal({ isOpen, onClose, onCreated }) {
 
   if (!isOpen) return null;
 
-  // If not admin, show access denied message
-  if (!isAdmin) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-          <div className="text-center">
-            <div className="text-red-500 text-5xl mb-4">🚫</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-            <p className="text-gray-600 mb-6">
-              Only Admin and SuperAdmin can assign tasks to employees.
-            </p>
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900">Assign New Task</h2>
+          <h2 className="text-2xl font-bold text-gray-900">
+            {isAdmin ? 'Assign New Task' : 'Create New Task'}
+          </h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -185,38 +167,80 @@ export default function TaskCreateModal({ isOpen, onClose, onCreated }) {
           {/* Assign To */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Assign To Employee(s) <span className="text-red-500">*</span>
+              {isAdmin ? 'Assign To Employee(s)' : 'Assign To'} <span className="text-red-500">*</span>
             </label>
-            <select
-              multiple
-              value={formData.assignedTo}
-              onChange={(e) => setFormData({ 
-                ...formData, 
-                assignedTo: Array.from(e.target.selectedOptions, opt => opt.value) 
-              })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              size={6}
-              required
-            >
-              <option value="" disabled className="text-gray-400">
-                -- Select Employee(s) --
-              </option>
-              {allUsers.length === 0 ? (
-                <option disabled>No employees available</option>
-              ) : (
-                allUsers.map(u => (
-                  <option key={u._id} value={u._id}>
-                    {u.fullName} - {u.role}
+
+            {/* Self-assign toggle for non-admin users */}
+            {!isAdmin && (
+              <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isSelfAssign}
+                    onChange={(e) => {
+                      setIsSelfAssign(e.target.checked);
+                      if (e.target.checked && user?._id) {
+                        setFormData({ ...formData, assignedTo: [user._id] });
+                      } else {
+                        setFormData({ ...formData, assignedTo: [] });
+                      }
+                    }}
+                    className="mr-2"
+                  />
+                  <span className="text-sm font-medium text-blue-900">
+                    Assign this task to myself
+                  </span>
+                </label>
+              </div>
+            )}
+
+            {/* Show dropdown only for admin or when not self-assigning */}
+            {(isAdmin || !isSelfAssign) && (
+              <>
+                <select
+                  multiple
+                  value={formData.assignedTo}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    assignedTo: Array.from(e.target.selectedOptions, opt => opt.value) 
+                  })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  size={6}
+                  required={!isSelfAssign}
+                  disabled={!isAdmin && isSelfAssign}
+                >
+                  <option value="" disabled className="text-gray-400">
+                    -- Select {isAdmin ? 'Employee(s)' : 'User(s)'} --
                   </option>
-                ))
-              )}
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              Hold Ctrl (Windows) or Cmd (Mac) to select multiple employees
-            </p>
-            <p className="text-xs text-blue-600 mt-1">
-              Note: SuperAdmins are excluded from the list
-            </p>
+                  {allUsers.length === 0 ? (
+                    <option disabled>Loading users...</option>
+                  ) : (
+                    allUsers.map(u => (
+                      <option key={u._id} value={u._id}>
+                        {u.fullName} - {u.role}
+                      </option>
+                    ))
+                  )}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Hold Ctrl (Windows) or Cmd (Mac) to select multiple users
+                </p>
+                {isAdmin && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    Note: SuperAdmins are excluded from the list
+                  </p>
+                )}
+              </>
+            )}
+
+            {/* Show selected self-assignment */}
+            {!isAdmin && isSelfAssign && user && (
+              <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
+                <p className="text-sm text-green-900">
+                  ✓ Task will be assigned to: <strong>{user.fullName}</strong>
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Priority and Due Date Row */}

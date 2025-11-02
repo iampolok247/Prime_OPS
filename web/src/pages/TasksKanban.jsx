@@ -205,14 +205,13 @@ function KanbanColumn({ column, tasks, onCardClick, onAddTask, activeId, isAdmin
           <h2 className="font-semibold text-navy">{column}</h2>
           <span className="text-sm text-gray-500">({taskCount})</span>
         </div>
-        {isAdmin && (
-          <button
-            onClick={() => onAddTask(column)}
-            className="p-1 hover:bg-gray-200 rounded transition"
-          >
-            <Plus size={16} className="text-gray-600" />
-          </button>
-        )}
+        <button
+          onClick={() => onAddTask(column)}
+          className="p-1 hover:bg-gray-200 rounded transition"
+          title={isAdmin ? 'Assign task' : 'Create task'}
+        >
+          <Plus size={16} className="text-gray-600" />
+        </button>
       </div>
 
       {/* Cards */}
@@ -339,15 +338,13 @@ export default function TasksKanban() {
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <h1 className="text-2xl font-bold text-navy">Task Board</h1>
-              {(['SuperAdmin', 'Admin'].includes(user?.role)) && (
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <Plus size={18} />
-                  Assign Task
-                </button>
-              )}
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus size={18} />
+                {['SuperAdmin', 'Admin'].includes(user?.role) ? 'Assign Task' : 'New Task'}
+              </button>
             </div>
             
             {/* Filters */}
