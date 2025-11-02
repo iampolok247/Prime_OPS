@@ -39,7 +39,7 @@ const PRIORITY_COLORS = {
   'Critical': { bg: 'bg-red-100', text: 'text-red-600', dot: 'bg-red-500' }
 };
 
-const TAG_OPTIONS = ['Marketing', 'Design', 'Content', 'HR', 'Finance', 'IT', 'Admin', 'Management'];
+const TAG_OPTIONS = ['Admission', 'Accounting', 'Recruitment', 'Digital Marketing', 'Motion Graphics', 'SEO', 'Social Media', 'Content Creation', 'Administration', 'Management'];
 
 const BOARD_COLUMNS = ['Backlog', 'To Do', 'In Progress', 'In Review', 'Completed'];
 

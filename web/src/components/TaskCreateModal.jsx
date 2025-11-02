@@ -3,7 +3,7 @@ import { X, Plus, Minus } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
-const TAG_OPTIONS = ['Marketing', 'Design', 'Content', 'HR', 'Finance', 'IT', 'Admin', 'Management'];
+const TAG_OPTIONS = ['Admission', 'Accounting', 'Recruitment', 'Digital Marketing', 'Motion Graphics', 'SEO', 'Social Media', 'Content Creation', 'Administration', 'Management'];
 const PRIORITY_OPTIONS = ['Low', 'Medium', 'High', 'Critical'];
 
 export default function TaskCreateModal({ isOpen, onClose, onCreated }) {

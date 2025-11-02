@@ -34,7 +34,7 @@ const STATUS_COLORS = {
   'Backlog': '#6B7280'
 };
 
-const TAG_OPTIONS = ['Marketing', 'Design', 'Content', 'HR', 'Finance', 'IT', 'Admin', 'Management'];
+const TAG_OPTIONS = ['Admission', 'Accounting', 'Recruitment', 'Digital Marketing', 'Motion Graphics', 'SEO', 'Social Media', 'Content Creation', 'Administration', 'Management'];
 const PRIORITY_OPTIONS = ['Low', 'Medium', 'High', 'Critical'];
 const STATUS_OPTIONS = ['To Do', 'In Progress', 'In Review', 'Completed'];
 
