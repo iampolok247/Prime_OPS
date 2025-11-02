@@ -189,109 +189,109 @@ export default function AdminOverview() {
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Income Card */}
-        <div className="group relative bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6 shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+        <div className="group relative bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
           <div className="relative">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                <TrendingUp className="w-6 h-6 text-white" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <TrendingUp className="w-5 h-5 text-white" />
               </div>
-              <ArrowUpRight className="w-5 h-5 text-white/70" />
+              <ArrowUpRight className="w-4 h-4 text-white/70" />
             </div>
-            <p className="text-white/80 text-sm font-medium mb-1">Total Income</p>
-            <h3 className="text-3xl font-bold text-white">{fmtBDTEn(totalIncome)}</h3>
+            <p className="text-white/80 text-xs font-medium mb-1">Total Income</p>
+            <h3 className="text-2xl font-bold text-white">{fmtBDTEn(totalIncome)}</h3>
           </div>
         </div>
 
         {/* Total Expense Card */}
-        <div className="group relative bg-gradient-to-br from-red-500 to-pink-600 rounded-2xl p-6 shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+        <div className="group relative bg-gradient-to-br from-red-500 to-pink-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
           <div className="relative">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                <TrendingDown className="w-6 h-6 text-white" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <TrendingDown className="w-5 h-5 text-white" />
               </div>
-              <ArrowDownRight className="w-5 h-5 text-white/70" />
+              <ArrowDownRight className="w-4 h-4 text-white/70" />
             </div>
-            <p className="text-white/80 text-sm font-medium mb-1">Total Expense</p>
-            <h3 className="text-3xl font-bold text-white">{fmtBDTEn(totalExpense)}</h3>
+            <p className="text-white/80 text-xs font-medium mb-1">Total Expense</p>
+            <h3 className="text-2xl font-bold text-white">{fmtBDTEn(totalExpense)}</h3>
           </div>
         </div>
 
         {/* Net Balance Card */}
-        <div className="group relative bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-6 shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+        <div className="group relative bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
           <div className="relative">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                <DollarSign className="w-6 h-6 text-white" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <DollarSign className="w-5 h-5 text-white" />
               </div>
-              <BarChart2 className="w-5 h-5 text-white/70" />
+              <BarChart2 className="w-4 h-4 text-white/70" />
             </div>
-            <p className="text-white/80 text-sm font-medium mb-1">Net Balance</p>
-            <h3 className="text-3xl font-bold text-white">{fmtBDTEn(totalNet)}</h3>
+            <p className="text-white/80 text-xs font-medium mb-1">Net Balance</p>
+            <h3 className="text-2xl font-bold text-white">{fmtBDTEn(totalNet)}</h3>
           </div>
         </div>
 
         {/* Active Courses Card */}
-        <div className="group relative bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl p-6 shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+        <div className="group relative bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
           <div className="relative">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                <BookOpen className="w-6 h-6 text-white" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <BookOpen className="w-5 h-5 text-white" />
               </div>
-              <span className="px-2 py-1 bg-white/20 rounded-full text-xs text-white font-medium">Active</span>
+              <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs text-white font-medium">Active</span>
             </div>
-            <p className="text-white/80 text-sm font-medium mb-1">Active Courses</p>
-            <h3 className="text-3xl font-bold text-white">{totalActiveCourses}</h3>
+            <p className="text-white/80 text-xs font-medium mb-1">Active Courses</p>
+            <h3 className="text-2xl font-bold text-white">{totalActiveCourses}</h3>
           </div>
         </div>
 
         {/* Total Leads Card */}
-        <div className="group relative bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl p-6 shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+        <div className="group relative bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
           <div className="relative">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                <Users className="w-6 h-6 text-white" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <Users className="w-5 h-5 text-white" />
               </div>
-              <span className="px-2 py-1 bg-white/20 rounded-full text-xs text-white font-medium">Leads</span>
+              <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs text-white font-medium">Leads</span>
             </div>
-            <p className="text-white/80 text-sm font-medium mb-1">Total Leads</p>
-            <h3 className="text-3xl font-bold text-white">{totalLeads}</h3>
+            <p className="text-white/80 text-xs font-medium mb-1">Total Leads</p>
+            <h3 className="text-2xl font-bold text-white">{totalLeads}</h3>
           </div>
         </div>
 
         {/* Admitted Students Card */}
-        <div className="group relative bg-gradient-to-br from-cyan-500 to-teal-600 rounded-2xl p-6 shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+        <div className="group relative bg-gradient-to-br from-cyan-500 to-teal-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
           <div className="relative">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                <GraduationCap className="w-6 h-6 text-white" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <GraduationCap className="w-5 h-5 text-white" />
               </div>
-              <span className="px-2 py-1 bg-white/20 rounded-full text-xs text-white font-medium">Students</span>
+              <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs text-white font-medium">Students</span>
             </div>
-            <p className="text-white/80 text-sm font-medium mb-1">Admitted Students</p>
-            <h3 className="text-3xl font-bold text-white">{totalAdmitted}</h3>
+            <p className="text-white/80 text-xs font-medium mb-1">Admitted Students</p>
+            <h3 className="text-2xl font-bold text-white">{totalAdmitted}</h3>
           </div>
         </div>
 
         {/* Recruited People Card */}
-        <div className="group relative bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl p-6 shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+        <div className="group relative bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
           <div className="relative">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                <UserCheck className="w-6 h-6 text-white" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <UserCheck className="w-5 h-5 text-white" />
               </div>
-              <span className="px-2 py-1 bg-white/20 rounded-full text-xs text-white font-medium">Team</span>
+              <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs text-white font-medium">Team</span>
             </div>
-            <p className="text-white/80 text-sm font-medium mb-1">Recruited People</p>
-            <h3 className="text-3xl font-bold text-white">{totalRecruited}</h3>
+            <p className="text-white/80 text-xs font-medium mb-1">Recruited People</p>
+            <h3 className="text-2xl font-bold text-white">{totalRecruited}</h3>
           </div>
         </div>
       </div>
