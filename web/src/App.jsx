@@ -45,6 +45,11 @@ import RecruitExpenses from './pages/RecruitExpenses.jsx';
 import MGDashboard from './pages/MGDashboard.jsx';
 import MGProduction from './pages/MGProduction.jsx';
 
+import Messages from './pages/Messages.jsx';
+
+import Login from './pages/Login.jsx';
+import NotFound from './pages/NotFound.jsx';
+
 function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -68,6 +73,7 @@ export default function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/my-tasks" element={<MyTasks />} />
           <Route path="/tasks-board" element={<TasksKanban />} />
+          <Route path="/messages" element={<Messages />} />
 
           {/* SA/Admin */}
           <Route element={<RoleRoute roles={['SuperAdmin', 'Admin']} />}>

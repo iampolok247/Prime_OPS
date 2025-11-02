@@ -732,4 +732,42 @@ async reportsOverview(from, to) {
   return handleJson(res, 'Load consolidated report failed');
 },
 
+// ================== Messages / Chat ==================
+async getConversations() {
+  const res = await authFetch(`${getApiBase()}/api/messages/conversations`, { credentials: 'include' });
+  return handleJson(res, 'Load conversations failed');
+},
+async getMessages(userId, params = {}) {
+  const u = new URLSearchParams();
+  if (params.limit) u.set('limit', params.limit);
+  if (params.before) u.set('before', params.before);
+  const q = u.toString() ? `?${u.toString()}` : '';
+  const res = await authFetch(`${getApiBase()}/api/messages/${userId}${q}`, { credentials: 'include' });
+  return handleJson(res, 'Load messages failed');
+},
+async sendMessage(payload) {
+  const res = await authFetch(`${getApiBase()}/api/messages/send`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return handleJson(res, 'Send message failed');
+},
+async markMessagesAsRead(userId) {
+  const res = await authFetch(`${getApiBase()}/api/messages/${userId}/read`, {
+    method: 'PATCH', credentials: 'include'
+  });
+  return handleJson(res, 'Mark messages as read failed');
+},
+async deleteMessage(messageId) {
+  const res = await authFetch(`${getApiBase()}/api/messages/${messageId}`, {
+    method: 'DELETE', credentials: 'include'
+  });
+  return handleJson(res, 'Delete message failed');
+},
+async getUnreadMessageCount() {
+  const res = await authFetch(`${getApiBase()}/api/messages/unread/count`, { credentials: 'include' });
+  return handleJson(res, 'Get unread count failed');
+},
+
 };
