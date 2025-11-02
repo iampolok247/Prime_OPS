@@ -72,12 +72,11 @@ router.post('/assign', requireAuth, async (req, res) => {
 });
 
 /**
- * List tasks (Assign Task page)
- * Only SuperAdmin/Admin can view the global assign list.
+ * List all tasks (accessible to all authenticated users)
  * Query:
- *  - status, priority, tags, boardColumn (optional filters)
+ *  - status=InProgress|Completed (optional)
  */
-router.get('/', requireAuth, authorize(['SuperAdmin', 'Admin']), async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
     const { status, priority, tags, boardColumn } = req.query;
     const q = {};
@@ -110,7 +109,8 @@ router.get('/my', requireAuth, async (req, res) => {
   try {
     // Super Admin has no "My Task" per product rule; but still allow viewing own tasks if any exists.
     const { status } = req.query;
-    const q = { assignedTo: req.user.id };
+    // Use $in operator to find tasks where user is in the assignedTo array
+    const q = { assignedTo: { $in: [req.user.id] } };
     if (status && ['InProgress', 'Completed'].includes(status)) q.status = status;
 
     const tasks = await Task.find(q)
