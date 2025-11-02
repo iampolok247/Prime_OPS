@@ -52,7 +52,7 @@ router.post('/assign', requireAuth, async (req, res) => {
       description: description || '',
       assignedBy: req.user.id,
       assignedTo: assigneeIds,
-      dueDate: new Date(dueDate),
+      dueDate: dueDate ? new Date(dueDate) : undefined,
       priority: priority || 'Medium',
       tags: tags || [],
       status: 'To Do',

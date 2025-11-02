@@ -46,13 +46,13 @@ const TaskSchema = new mongoose.Schema(
     assignedTo: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Multiple users
     
     // Dates
-    dueDate: { type: Date, required: true },
+    dueDate: { type: Date }, // Optional - not all tasks need deadlines
     completedAt: { type: Date },
     
     // Tags/Labels
     tags: [{ 
       type: String, 
-      enum: ['Marketing', 'Design', 'Content', 'HR', 'Finance', 'IT', 'Admin', 'Management'] 
+      enum: ['Admission', 'Accounting', 'Recruitment', 'Digital Marketing', 'Motion Graphics', 'SEO', 'Social Media', 'Content Creation', 'Administration', 'Management'] 
     }],
     
     // Attachments
