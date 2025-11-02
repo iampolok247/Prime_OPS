@@ -47,6 +47,7 @@ import MGProduction from './pages/MGProduction.jsx';
 
 import Messages from './pages/Messages.jsx';
 import TaskReport from './pages/TaskReport.jsx';
+import AdminTaskReport from './pages/AdminTaskReport.jsx';
 
 import Login from './pages/Login.jsx';
 import NotFound from './pages/NotFound.jsx';
@@ -83,6 +84,7 @@ export default function App() {
             <Route path="/employees" element={<Employees />} />
             <Route path="/reports-view" element={<ReportsView />} />
             <Route path="/leads-center-view" element={<LeadsCenterView />} />
+            <Route path="/admin-task-report" element={<AdminTaskReport />} />
           </Route>
 
           {/* Courses - viewable by all except Accountant */}
