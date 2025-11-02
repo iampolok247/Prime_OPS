@@ -117,26 +117,47 @@ export default function Messages() {
   // Merge conversations with all users
   // Users with conversations go first (sorted by last message), then others alphabetically
   const getUserList = () => {
-    const conversationUserIds = new Set(conversations.map(conv => conv.user._id));
+    // Use Map to deduplicate by user ID
+    const userMap = new Map();
     
-    // Users with conversations (already sorted by last message from API)
-    const usersWithChats = conversations.map(conv => ({
-      ...conv.user,
-      hasConversation: true,
-      lastMessage: conv.lastMessage,
-      unreadCount: conv.unreadCount || 0
-    }));
+    // First, add users with conversations (priority)
+    conversations.forEach(conv => {
+      if (conv.user && conv.user._id && !userMap.has(conv.user._id)) {
+        userMap.set(conv.user._id, {
+          ...conv.user,
+          hasConversation: true,
+          lastMessage: conv.lastMessage,
+          unreadCount: conv.unreadCount || 0
+        });
+      }
+    });
     
-    // Users without conversations - filter out duplicates
-    const usersWithoutChats = allUsers
-      .filter(u => !conversationUserIds.has(u._id))
-      .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-      .map(u => ({
-        ...u,
-        hasConversation: false,
-        lastMessage: null,
-        unreadCount: 0
-      }));
+    // Then add users without conversations
+    allUsers.forEach(u => {
+      if (u && u._id && !userMap.has(u._id)) {
+        userMap.set(u._id, {
+          ...u,
+          hasConversation: false,
+          lastMessage: null,
+          unreadCount: 0
+        });
+      }
+    });
+    
+    // Convert Map to array, conversations first (already in order), then sort others
+    const usersWithChats = [];
+    const usersWithoutChats = [];
+    
+    userMap.forEach(user => {
+      if (user.hasConversation) {
+        usersWithChats.push(user);
+      } else {
+        usersWithoutChats.push(user);
+      }
+    });
+    
+    // Sort users without chats alphabetically
+    usersWithoutChats.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     
     return [...usersWithChats, ...usersWithoutChats];
   };
@@ -299,7 +320,15 @@ export default function Messages() {
                 <div className="space-y-4">
                   {messages.map((msg) => {
                     // Ensure proper ID comparison (both as strings)
-                    const isOwn = msg.sender._id?.toString() === user.id?.toString();
+                    const senderId = msg.sender?._id?.toString() || msg.sender?.toString();
+                    const currentUserId = user?.id?.toString() || user?._id?.toString();
+                    const isOwn = senderId === currentUserId;
+                    
+                    // Debug log (remove after testing)
+                    if (messages.length > 0 && msg === messages[0]) {
+                      console.log('Message alignment debug:', { senderId, currentUserId, isOwn });
+                    }
+                    
                     return (
                       <div
                         key={msg._id}
