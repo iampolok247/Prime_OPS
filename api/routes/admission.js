@@ -80,6 +80,12 @@ router.patch('/leads/:id/status', requireAuth, async (req, res) => {
     // Store the course they were admitted to
     if (courseId) {
       lead.admittedToCourse = courseId;
+      // Also update interestedCourse with the actual course name for display
+      const Course = (await import('../models/Course.js')).default;
+      const course = await Course.findById(courseId);
+      if (course) {
+        lead.interestedCourse = course.name;
+      }
     }
   }
 
