@@ -44,10 +44,13 @@ export default function TaskCreateModal({ isOpen, onClose, onCreated }) {
 
   const loadUsers = async () => {
     try {
-      const response = await api.listAllUsers();
-      console.log('Loaded users:', response.data); // Debug log
+      const response = await api.listUsers();
+      console.log('Loaded users:', response); // Debug log
+      // The response might be { data: [...] } or { users: [...] }
+      const usersList = response.data || response.users || [];
+      console.log('Users list:', usersList); // Debug log
       // Filter out SuperAdmin users from the list
-      const filteredUsers = (response.data || []).filter(u => u.role !== 'SuperAdmin');
+      const filteredUsers = usersList.filter(u => u.role !== 'SuperAdmin');
       console.log('Filtered users (excluding SuperAdmin):', filteredUsers); // Debug log
       setAllUsers(filteredUsers);
     } catch (error) {

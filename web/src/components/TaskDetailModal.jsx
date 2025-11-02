@@ -81,8 +81,9 @@ export default function TaskDetailModal({ taskId, isOpen, onClose, onUpdate }) {
 
   const loadUsers = async () => {
     try {
-      const response = await api.listAllUsers();
-      setAllUsers(response.data || []);
+      const response = await api.listUsers();
+      const usersList = response.data || response.users || [];
+      setAllUsers(usersList);
     } catch (error) {
       console.error('Error loading users:', error);
     }
