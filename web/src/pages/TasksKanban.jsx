@@ -498,6 +498,7 @@ export default function TasksKanban() {
       {/* Modals */}
       {selectedTask && (
         <TaskDetailModal
+          task={selectedTask}
           taskId={selectedTask._id}
           isOpen={!!selectedTask}
           onClose={() => setSelectedTask(null)}

@@ -38,28 +38,51 @@ const TAG_OPTIONS = ['Marketing', 'Design', 'Content', 'HR', 'Finance', 'IT', 'A
 const PRIORITY_OPTIONS = ['Low', 'Medium', 'High', 'Critical'];
 const STATUS_OPTIONS = ['To Do', 'In Progress', 'In Review', 'Completed'];
 
-export default function TaskDetailModal({ taskId, isOpen, onClose, onUpdate }) {
+export default function TaskDetailModal({ task: initialTask, taskId, isOpen, onClose, onUpdate }) {
   const { user } = useAuth();
-  const [task, setTask] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [task, setTask] = useState(initialTask || null);
+  const [loading, setLoading] = useState(!initialTask);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [newComment, setNewComment] = useState('');
   const [newChecklistItem, setNewChecklistItem] = useState('');
   const [allUsers, setAllUsers] = useState([]);
 
+  // Set task from prop if provided
   useEffect(() => {
-    if (isOpen && taskId) {
-      loadTask();
+    if (initialTask) {
+      setTask(initialTask);
+      setEditForm({
+        title: initialTask.title,
+        description: initialTask.description,
+        status: initialTask.status,
+        priority: initialTask.priority,
+        dueDate: initialTask.dueDate ? initialTask.dueDate.split('T')[0] : '',
+        tags: initialTask.tags || [],
+        assignedTo: initialTask.assignedTo?.map(u => u._id || u) || []
+      });
+      setLoading(false);
+    }
+  }, [initialTask]);
+
+  useEffect(() => {
+    if (isOpen && (taskId || initialTask)) {
+      if (!initialTask) {
+        loadTask();
+      }
       loadUsers();
     }
-  }, [isOpen, taskId]);
+  }, [isOpen, taskId, initialTask]);
 
   const loadTask = async () => {
+    if (!taskId) return;
+    
     try {
       setLoading(true);
-      const response = await api.listAllTasks();
-      const foundTask = response.data.find(t => t._id === taskId);
+      const isAdmin = ['SuperAdmin', 'Admin'].includes(user?.role);
+      const response = isAdmin ? await api.listAllTasks() : await api.listMyTasks();
+      const foundTask = (response.tasks || []).find(t => t._id === taskId);
+      
       if (foundTask) {
         setTask(foundTask);
         setEditForm({
@@ -69,7 +92,7 @@ export default function TaskDetailModal({ taskId, isOpen, onClose, onUpdate }) {
           priority: foundTask.priority,
           dueDate: foundTask.dueDate ? foundTask.dueDate.split('T')[0] : '',
           tags: foundTask.tags || [],
-          assignedTo: foundTask.assignedTo?.map(u => u._id) || []
+          assignedTo: foundTask.assignedTo?.map(u => u._id || u) || []
         });
       }
     } catch (error) {
@@ -82,7 +105,7 @@ export default function TaskDetailModal({ taskId, isOpen, onClose, onUpdate }) {
   const loadUsers = async () => {
     try {
       const response = await api.listUsers();
-      const usersList = response.data || response.users || [];
+      const usersList = response.users || response.data || [];
       setAllUsers(usersList);
     } catch (error) {
       console.error('Error loading users:', error);
