@@ -351,6 +351,9 @@ router.patch('/:id/board-position', requireAuth, async (req, res) => {
       if (boardColumn === 'Completed') {
         task.status = 'Completed';
         task.completedAt = new Date();
+      } else if (boardColumn === 'Backlog') {
+        // Backlog is not a valid status, map it to 'To Do'
+        task.status = 'To Do';
       } else {
         task.status = boardColumn;
       }
