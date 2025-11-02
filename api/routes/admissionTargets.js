@@ -74,6 +74,8 @@ router.get('/', requireAuth, authorize(['Admin', 'SuperAdmin']), async (req, res
       .populate('setBy', 'name');
 
     // Calculate achievements for each target
+    const Lead = (await import('../models/Lead.js')).default;
+    
     const targetsWithAchievement = await Promise.all(
       targets.map(async (target) => {
         // Count admitted students for this course in this month
@@ -81,10 +83,11 @@ router.get('/', requireAuth, authorize(['Admin', 'SuperAdmin']), async (req, res
         const endDate = new Date(startDate);
         endDate.setMonth(endDate.getMonth() + 1);
 
-        const achieved = await AdmissionFee.countDocuments({
-          courseId: target.course._id,
-          status: 'Approved',
-          createdAt: { $gte: startDate, $lt: endDate }
+        // Count leads admitted to this course in this month
+        const achieved = await Lead.countDocuments({
+          admittedToCourse: target.course._id,
+          status: 'Admitted',
+          admittedAt: { $gte: startDate, $lt: endDate }
         });
 
         return {
