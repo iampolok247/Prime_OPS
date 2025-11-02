@@ -292,7 +292,7 @@ export default function TaskDetailModal({ taskId, isOpen, onClose, onUpdate }) {
                   size={5}
                 >
                   {allUsers.map(u => (
-                    <option key={u._id} value={u._id}>{u.fullName}</option>
+                    <option key={u._id} value={u._id}>{u.name || u.fullName}</option>
                   ))}
                 </select>
               ) : (
@@ -300,7 +300,7 @@ export default function TaskDetailModal({ taskId, isOpen, onClose, onUpdate }) {
                   {task.assignedTo?.map(u => (
                     <span key={u._id} className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
                       <User size={14} />
-                      {u.fullName}
+                      {u.name || u.fullName}
                     </span>
                   ))}
                 </div>
@@ -369,7 +369,7 @@ export default function TaskDetailModal({ taskId, isOpen, onClose, onUpdate }) {
                       </p>
                       {item.completed && item.completedBy && (
                         <p className="text-xs text-gray-400 mt-1">
-                          Completed by {item.completedBy.fullName} on {format(new Date(item.completedAt), 'MMM dd, yyyy')}
+                          Completed by {item.completedBy.name || item.completedBy.fullName} on {format(new Date(item.completedAt), 'MMM dd, yyyy')}
                         </p>
                       )}
                     </div>
@@ -409,7 +409,7 @@ export default function TaskDetailModal({ taskId, isOpen, onClose, onUpdate }) {
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-900">{attachment.name}</p>
                         <p className="text-xs text-gray-500">
-                          Uploaded by {attachment.uploadedBy?.fullName} on {format(new Date(attachment.uploadedAt), 'MMM dd, yyyy')}
+                          Uploaded by {attachment.uploadedBy?.name || attachment.uploadedBy?.fullName} on {format(new Date(attachment.uploadedAt), 'MMM dd, yyyy')}
                         </p>
                       </div>
                       <a
@@ -437,7 +437,7 @@ export default function TaskDetailModal({ taskId, isOpen, onClose, onUpdate }) {
                     <div className="flex items-center gap-2 mb-2">
                       <User size={16} className="text-gray-500" />
                       <span className="font-medium text-sm text-gray-900">
-                        {comment.author?.fullName}
+                        {comment.author?.name || comment.author?.fullName}
                       </span>
                       <span className="text-xs text-gray-500">
                         {format(new Date(comment.createdAt), 'MMM dd, yyyy HH:mm')}
@@ -448,7 +448,7 @@ export default function TaskDetailModal({ taskId, isOpen, onClose, onUpdate }) {
                       <div className="flex flex-wrap gap-1 mt-2">
                         {comment.mentions.map(mention => (
                           <span key={mention._id} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                            @{mention.fullName}
+                            @{mention.name || mention.fullName}
                           </span>
                         ))}
                       </div>
@@ -478,7 +478,7 @@ export default function TaskDetailModal({ taskId, isOpen, onClose, onUpdate }) {
             <div className="border-t pt-4 mt-6">
               <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
                 <div>
-                  <span className="font-medium">Assigned By:</span> {task.assignedBy?.fullName}
+                  <span className="font-medium">Assigned By:</span> {task.assignedBy?.name || task.assignedBy?.fullName}
                 </div>
                 <div>
                   <span className="font-medium">Created:</span> {format(new Date(task.createdAt), 'MMM dd, yyyy')}

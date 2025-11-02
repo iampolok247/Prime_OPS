@@ -220,7 +220,7 @@ export default function TaskCreateModal({ isOpen, onClose, onCreated }) {
                   ) : (
                     allUsers.map(u => (
                       <option key={u._id} value={u._id}>
-                        {u.fullName} - {u.role}
+                        {u.name || u.fullName || 'Unknown'} ({u.role})
                       </option>
                     ))
                   )}
@@ -240,7 +240,7 @@ export default function TaskCreateModal({ isOpen, onClose, onCreated }) {
             {!isAdmin && isSelfAssign && user && (
               <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
                 <p className="text-sm text-green-900">
-                  ✓ Task will be assigned to: <strong>{user.fullName}</strong>
+                  ✓ Task will be assigned to: <strong>{user.name || user.fullName}</strong>
                 </p>
               </div>
             )}
