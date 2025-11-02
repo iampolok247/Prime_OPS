@@ -92,6 +92,14 @@ function TaskCard({ task, onClick, isDragging }) {
       {/* Title */}
       <h3 className="font-semibold text-navy mb-2 text-sm">{task.title}</h3>
 
+      {/* Assigned By */}
+      {task.assignedBy && (
+        <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+          <User size={10} />
+          <span>Assigned by: <span className="font-medium text-gray-700">{task.assignedBy.name || task.assignedBy.fullName}</span></span>
+        </p>
+      )}
+
       {/* Description preview */}
       {task.description && (
         <p className="text-xs text-gray-600 mb-2 line-clamp-2">{task.description}</p>
@@ -127,13 +135,11 @@ function TaskCard({ task, onClick, isDragging }) {
             </div>
           )}
 
-          {/* Comments Count */}
-          {task.comments?.length > 0 && (
-            <div className="flex items-center gap-1">
-              <MessageSquare size={12} />
-              <span>{task.comments.length}</span>
-            </div>
-          )}
+          {/* Comments/Notes Count */}
+          <div className="flex items-center gap-1" title="Comments/Notes">
+            <MessageSquare size={12} />
+            <span>{task.comments?.length || 0}</span>
+          </div>
 
           {/* Attachments Count */}
           {task.attachments?.length > 0 && (

@@ -38,7 +38,6 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     Admin: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/assign-tasks', label: 'Assign Task', icon: <ListChecks size={18}/> },
-      { to: '/my-tasks', label: 'My Task', icon: <ListChecks size={18}/> },
       { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
       { to: '/employees', label: 'Employee', icon: <Users size={18}/> },
       { to: '/leads-center-view', label: 'Leads Center ', icon: <FolderOpen size={18}/> },
@@ -51,7 +50,6 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     ],
     DigitalMarketing: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
-      { to: '/my-tasks', label: 'My Task', icon: <ListChecks size={18}/> },
       { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
       { to: '/courses', label: 'Courses', icon: <BookOpen size={18}/> },
       { to: '/lead-entry', label: 'Lead Entry / CSV', icon: <FolderOpen size={18}/> },
@@ -60,7 +58,6 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     ],
     Admission: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
-      { to: '/my-tasks', label: 'My Task', icon: <ListChecks size={18}/> },
       { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
       { to: '/courses', label: 'Courses', icon: <BookOpen size={18}/> },
       { to: '/admission/assigned', label: 'Assigned Lead', icon: <FolderOpen size={18}/> },
@@ -72,9 +69,8 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     ],
     Accountant: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
-      { to: '/my-tasks', label: 'My Task', icon: <ListChecks size={18}/> },
       { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
-      { to: '/accounting/dashboard', label: 'Accounts Dashboard', icon: <Wallet size={18}/> },
+      { to: '/accounting', label: 'Accounting', icon: <DollarSign size={18}/> },
       { to: '/accounting/fees', label: 'Fees Approval', icon: <FolderOpen size={18}/> },
       { to: '/accounting/income', label: 'Income', icon: <FolderOpen size={18}/> },
       { to: '/accounting/expense', label: 'Expense', icon: <FolderOpen size={18}/> }
@@ -86,12 +82,8 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     ],
     Recruitment: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
-      { to: '/my-tasks', label: 'My Task', icon: <ListChecks size={18}/> },
       { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
-      { to: '/courses', label: 'Courses', icon: <BookOpen size={18}/> },
-
-      // --- Recruitment core menu ---
-      { to: '/recruitment', label: 'Recruitment Dashboard', icon: <LayoutDashboard size={18}/> },
+      { to: '/recruitment', label: 'Recruitment', icon: <Users size={18}/> },
       { to: '/recruitment/candidates', label: 'Candidates', icon: <Users size={18}/> },
       { to: '/recruitment/jobs', label: 'Job Positions', icon: <FolderOpen size={18}/> },
       { to: '/recruitment/employers', label: 'Employers', icon: <FolderOpen size={18}/> },
@@ -99,13 +91,12 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       { to: '/recruitment/expenses', label: 'Recruitment Expense', icon: <Wallet size={18}/> },
     ],
     
-MotionGraphics: [
-  { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
-  { to: '/my-tasks', label: 'My Task', icon: <ListChecks size={18}/> },
-  { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
-  { to: '/courses', label: 'Courses', icon: <BookOpen size={18}/> },
-  { to: '/mg/production', label: 'Production Log', icon: <FolderOpen size={18}/> }
-],
+    MotionGraphics: [
+      { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
+      { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
+      { to: '/mg', label: 'MG Dashboard', icon: <Video size={18}/> },
+      { to: '/mg/production', label: 'MG Production', icon: <Activity size={18}/> }
+    ]
   };
 
   let items = MENU_BY_ROLE[user?.role] || [];
