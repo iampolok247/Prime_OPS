@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { LayoutDashboard, ListChecks, Users, BookOpen, FolderOpen, Wallet, BarChart2, Film, CreditCard, Menu, X } from 'lucide-react';
+import { LayoutDashboard, ListChecks, Users, BookOpen, FolderOpen, Wallet, BarChart2, Film, CreditCard, Menu, X, Kanban } from 'lucide-react';
 
 const Item = ({ to, icon, label, onClick }) => (
   <NavLink
@@ -25,6 +25,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     SuperAdmin: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/assign-tasks', label: 'Assign Task', icon: <ListChecks size={18}/> },
+      { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
       { to: '/employees', label: 'Employee ', icon: <Users size={18}/> },
       { to: '/courses', label: 'Courses ', icon: <BookOpen size={18}/> },
       { to: '/leads-center-view', label: 'Leads Center ', icon: <FolderOpen size={18}/> },     
@@ -38,6 +39,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/assign-tasks', label: 'Assign Task', icon: <ListChecks size={18}/> },
       { to: '/my-tasks', label: 'My Task', icon: <ListChecks size={18}/> },
+      { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
       { to: '/employees', label: 'Employee', icon: <Users size={18}/> },
       { to: '/leads-center-view', label: 'Leads Center ', icon: <FolderOpen size={18}/> },
       { to: '/courses', label: 'Courses ', icon: <BookOpen size={18}/> },
@@ -50,6 +52,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     DigitalMarketing: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/my-tasks', label: 'My Task', icon: <ListChecks size={18}/> },
+      { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
       { to: '/courses', label: 'Courses', icon: <BookOpen size={18}/> },
       { to: '/lead-entry', label: 'Lead Entry / CSV', icon: <FolderOpen size={18}/> },
       { to: '/leads-center', label: 'Leads Center', icon: <FolderOpen size={18}/> },
@@ -58,6 +61,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     Admission: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/my-tasks', label: 'My Task', icon: <ListChecks size={18}/> },
+      { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
       { to: '/courses', label: 'Courses', icon: <BookOpen size={18}/> },
       { to: '/admission/assigned', label: 'Assigned Lead', icon: <FolderOpen size={18}/> },
       { to: '/admission/counseling', label: 'Counseling', icon: <FolderOpen size={18}/> },
@@ -69,6 +73,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     Accountant: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/my-tasks', label: 'My Task', icon: <ListChecks size={18}/> },
+      { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
       { to: '/accounting/dashboard', label: 'Accounts Dashboard', icon: <Wallet size={18}/> },
       { to: '/accounting/fees', label: 'Fees Approval', icon: <FolderOpen size={18}/> },
       { to: '/accounting/income', label: 'Income', icon: <FolderOpen size={18}/> },
@@ -82,6 +87,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     Recruitment: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/my-tasks', label: 'My Task', icon: <ListChecks size={18}/> },
+      { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
       { to: '/courses', label: 'Courses', icon: <BookOpen size={18}/> },
 
       // --- Recruitment core menu ---
@@ -96,6 +102,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 MotionGraphics: [
   { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
   { to: '/my-tasks', label: 'My Task', icon: <ListChecks size={18}/> },
+  { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
   { to: '/courses', label: 'Courses', icon: <BookOpen size={18}/> },
   { to: '/mg/production', label: 'Production Log', icon: <FolderOpen size={18}/> }
 ],

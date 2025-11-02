@@ -211,6 +211,52 @@ export const api = {
     });
     return handleJson(res, 'Update task status failed');
   },
+  async updateTask(id, payload) {
+    const res = await authFetch(`${getApiBase()}/api/tasks/${id}`, {
+      method: 'PUT', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return handleJson(res, 'Update task failed');
+  },
+  async deleteTask(id) {
+    const res = await authFetch(`${getApiBase()}/api/tasks/${id}`, {
+      method: 'DELETE', credentials: 'include'
+    });
+    return handleJson(res, 'Delete task failed');
+  },
+  async addTaskComment(id, payload) {
+    const res = await authFetch(`${getApiBase()}/api/tasks/${id}/comments`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return handleJson(res, 'Add comment failed');
+  },
+  async addTaskAttachment(id, payload) {
+    const res = await authFetch(`${getApiBase()}/api/tasks/${id}/attachments`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return handleJson(res, 'Add attachment failed');
+  },
+  async updateChecklistItem(taskId, itemId, completed) {
+    const res = await authFetch(`${getApiBase()}/api/tasks/${taskId}/checklist/${itemId}`, {
+      method: 'PATCH', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ completed })
+    });
+    return handleJson(res, 'Update checklist failed');
+  },
+  async updateBoardPosition(id, payload) {
+    const res = await authFetch(`${getApiBase()}/api/tasks/${id}/board-position`, {
+      method: 'PATCH', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return handleJson(res, 'Update board position failed');
+  },
 
   // ---- Courses ----
   async listCourses() {

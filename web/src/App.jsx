@@ -11,6 +11,7 @@ import Dashboard from './pages/Dashboard.jsx';
 import Profile from './pages/Profile.jsx';
 import AssignTasks from './pages/AssignTasks.jsx';
 import MyTasks from './pages/MyTasks.jsx';
+import TasksKanban from './pages/TasksKanban.jsx';
 import Employees from './pages/Employees.jsx';
 import Courses from './pages/Courses.jsx';
 import ReportsView from './pages/ReportsView.jsx';
@@ -66,6 +67,7 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/my-tasks" element={<MyTasks />} />
+          <Route path="/tasks-board" element={<TasksKanban />} />
 
           {/* SA/Admin */}
           <Route element={<RoleRoute roles={['SuperAdmin', 'Admin']} />}>
