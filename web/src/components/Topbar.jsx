@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, User as UserIcon, Menu, Bell, Calendar } from 'lucide-react';
+import { LogOut, User as UserIcon, Menu, Bell, Calendar, MessageCircle } from 'lucide-react';
 import { api } from '../lib/api.js';
 
 export default function Topbar({ onMenuClick }) {
@@ -10,6 +10,7 @@ export default function Topbar({ onMenuClick }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [urgentTasks, setUrgentTasks] = useState([]);
   const [readNotifications, setReadNotifications] = useState([]);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
 
   // Load read notifications from localStorage
   useEffect(() => {
@@ -22,6 +23,25 @@ export default function Topbar({ onMenuClick }) {
       }
     }
   }, []);
+
+  // Fetch unread message count
+  useEffect(() => {
+    const loadUnreadMessages = async () => {
+      try {
+        const data = await api.getUnreadMessageCount();
+        setUnreadMessageCount(data.count || 0);
+      } catch (error) {
+        console.error('Failed to load unread messages:', error);
+      }
+    };
+
+    if (user) {
+      loadUnreadMessages();
+      // Refresh every 10 seconds for real-time updates
+      const interval = setInterval(loadUnreadMessages, 10 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   // Fetch tasks and filter urgent ones
   useEffect(() => {
@@ -140,6 +160,22 @@ export default function Topbar({ onMenuClick }) {
       </div>
       
       <div className="flex items-center gap-2 md:gap-3">
+        {/* Message Notification */}
+        <div className="relative">
+          <button
+            onClick={() => navigate('/messages')}
+            className="relative p-2 hover:bg-navy/80 rounded-lg transition"
+            title="Messages"
+          >
+            <MessageCircle size={20} className="text-white" />
+            {unreadMessageCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold animate-pulse">
+                {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
+              </span>
+            )}
+          </button>
+        </div>
+
         {/* Notification Bell */}
         <div className="relative">
           <button
