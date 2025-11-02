@@ -117,7 +117,7 @@ export default function Messages() {
   // Merge conversations with all users
   // Users with conversations go first (sorted by last message), then others alphabetically
   const getUserList = () => {
-    const conversationUserIds = conversations.map(conv => conv.user._id);
+    const conversationUserIds = new Set(conversations.map(conv => conv.user._id));
     
     // Users with conversations (already sorted by last message from API)
     const usersWithChats = conversations.map(conv => ({
@@ -127,9 +127,9 @@ export default function Messages() {
       unreadCount: conv.unreadCount || 0
     }));
     
-    // Users without conversations
+    // Users without conversations - filter out duplicates
     const usersWithoutChats = allUsers
-      .filter(u => !conversationUserIds.includes(u._id))
+      .filter(u => !conversationUserIds.has(u._id))
       .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
       .map(u => ({
         ...u,
@@ -298,18 +298,21 @@ export default function Messages() {
               ) : (
                 <div className="space-y-4">
                   {messages.map((msg) => {
-                    const isOwn = msg.sender._id === user.id;
+                    // Ensure proper ID comparison (both as strings)
+                    const isOwn = msg.sender._id?.toString() === user.id?.toString();
                     return (
                       <div
                         key={msg._id}
                         className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
                       >
                         <div className={`flex gap-2 max-w-[70%] ${isOwn ? 'flex-row-reverse' : ''}`}>
-                          <img
-                            src={msg.sender.avatar}
-                            alt={msg.sender.name}
-                            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                          />
+                          {!isOwn && (
+                            <img
+                              src={msg.sender.avatar}
+                              alt={msg.sender.name}
+                              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                            />
+                          )}
                           <div>
                             <div
                               className={`p-3 rounded-lg ${
