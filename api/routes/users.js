@@ -8,9 +8,9 @@ const router = express.Router();
 
 /**
  * List all employees
- * Admin + SuperAdmin only (full list)
+ * All authenticated users can view user list (for task assignment)
  */
-router.get('/', requireAuth, authorize(['Admin', 'SuperAdmin']), async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   const users = await User.find().select('-password');
   return res.json({ users });
 });

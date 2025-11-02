@@ -181,14 +181,15 @@ export default function TaskCreateModal({ isOpen, onClose, onCreated }) {
                     type="checkbox"
                     checked={isSelfAssign}
                     onChange={(e) => {
-                      setIsSelfAssign(e.target.checked);
-                      if (e.target.checked && user?._id) {
+                      const checked = e.target.checked;
+                      setIsSelfAssign(checked);
+                      if (checked && user?._id) {
                         setFormData({ ...formData, assignedTo: [user._id] });
                       } else {
                         setFormData({ ...formData, assignedTo: [] });
                       }
                     }}
-                    className="mr-2"
+                    className="mr-2 w-4 h-4"
                   />
                   <span className="text-sm font-medium text-blue-900">
                     Assign this task to myself

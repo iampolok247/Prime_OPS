@@ -12,10 +12,10 @@ const router = express.Router();
 const isSuperAdmin = (u) => u?.role === 'SuperAdmin';
 
 /**
- * Assign Task (Super Admin + Admin)
+ * Assign Task (All authenticated users can create tasks)
  * Enhanced with new fields: priority, tags, multiple assignees, checklist, etc.
  */
-router.post('/assign', requireAuth, authorize(['SuperAdmin', 'Admin']), async (req, res) => {
+router.post('/assign', requireAuth, async (req, res) => {
   try {
     const { 
       title, 
@@ -28,8 +28,8 @@ router.post('/assign', requireAuth, authorize(['SuperAdmin', 'Admin']), async (r
       boardColumn 
     } = req.body || {};
 
-    if (!title || !assignedTo || !dueDate) {
-      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'title, assignedTo, dueDate are required' });
+    if (!title || !assignedTo) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'title and assignedTo are required' });
     }
 
     // Handle multiple assignees
