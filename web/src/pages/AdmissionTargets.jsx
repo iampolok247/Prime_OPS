@@ -43,10 +43,16 @@ export default function AdmissionTargets() {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
+        console.log('Fetching courses...');
         const data = await api.listCourses();
+        console.log('Courses response:', data);
         setCourses(data?.courses || []);
+        if (!data?.courses || data.courses.length === 0) {
+          setError('No courses found. Please add courses first.');
+        }
       } catch (e) {
         console.error('Failed to load courses:', e);
+        setError('Failed to load courses: ' + e.message);
       }
     };
     fetchCourses();
@@ -143,18 +149,24 @@ export default function AdmissionTargets() {
         </h2>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Course</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Course {courses.length > 0 && <span className="text-xs text-gray-500">({courses.length} available)</span>}
+            </label>
             <select
               value={formData.courseId}
               onChange={(e) => setFormData({ ...formData, courseId: e.target.value })}
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
               required
+              disabled={courses.length === 0}
             >
-              <option value="">Select Course</option>
+              <option value="">{courses.length === 0 ? 'No courses available' : 'Select Course'}</option>
               {courses.map((c) => (
                 <option key={c._id} value={c._id}>{c.title}</option>
               ))}
             </select>
+            {courses.length === 0 && (
+              <p className="text-xs text-red-600 mt-1">Please add courses first from the Courses page</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Month</label>
