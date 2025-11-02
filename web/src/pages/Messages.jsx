@@ -16,6 +16,7 @@ import {
 export default function Messages() {
   const { user } = useAuth();
   const [conversations, setConversations] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -34,9 +35,10 @@ export default function Messages() {
     scrollToBottom();
   }, [messages]);
 
-  // Load conversations
+  // Load conversations and all users
   useEffect(() => {
     loadConversations();
+    loadAllUsers();
     // Poll for new messages every 5 seconds
     const interval = setInterval(loadConversations, 5000);
     return () => clearInterval(interval);
@@ -60,6 +62,17 @@ export default function Messages() {
       console.error('Error loading conversations:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAllUsers = async () => {
+    try {
+      const response = await api.listUsers();
+      // Filter out current user
+      const otherUsers = (response.users || []).filter(u => u._id !== user.id);
+      setAllUsers(otherUsers);
+    } catch (error) {
+      console.error('Error loading users:', error);
     }
   };
 
@@ -101,9 +114,37 @@ export default function Messages() {
     setSelectedUser(conversationUser);
   };
 
-  const filteredConversations = conversations.filter(conv => 
-    conv.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    conv.user?.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  // Merge conversations with all users
+  // Users with conversations go first (sorted by last message), then others alphabetically
+  const getUserList = () => {
+    const conversationUserIds = conversations.map(conv => conv.user._id);
+    
+    // Users with conversations (already sorted by last message from API)
+    const usersWithChats = conversations.map(conv => ({
+      ...conv.user,
+      hasConversation: true,
+      lastMessage: conv.lastMessage,
+      unreadCount: conv.unreadCount || 0
+    }));
+    
+    // Users without conversations
+    const usersWithoutChats = allUsers
+      .filter(u => !conversationUserIds.includes(u._id))
+      .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+      .map(u => ({
+        ...u,
+        hasConversation: false,
+        lastMessage: null,
+        unreadCount: 0
+      }));
+    
+    return [...usersWithChats, ...usersWithoutChats];
+  };
+
+  const filteredConversations = getUserList().filter(user => 
+    user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user?.designation?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const formatTime = (date) => {
@@ -163,45 +204,52 @@ export default function Messages() {
           {filteredConversations.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               <MessageCircle size={48} className="mx-auto mb-3 text-gray-300" />
-              <p>No conversations yet</p>
-              <p className="text-sm mt-1">Start a conversation with a colleague</p>
+              <p>No colleagues found</p>
+              <p className="text-sm mt-1">Try adjusting your search</p>
             </div>
           ) : (
-            filteredConversations.map((conv) => (
+            filteredConversations.map((colleague) => (
               <div
-                key={conv.user._id}
-                onClick={() => handleSelectUser(conv.user)}
+                key={colleague._id}
+                onClick={() => handleSelectUser(colleague)}
                 className={`p-4 border-b cursor-pointer hover:bg-gray-50 transition ${
-                  selectedUser?._id === conv.user._id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                  selectedUser?._id === colleague._id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                } ${
+                  colleague.hasConversation ? 'bg-gradient-to-r from-blue-50/30 to-transparent' : ''
                 }`}
               >
                 <div className="flex items-start gap-3">
-                  <img
-                    src={conv.user.avatar}
-                    alt={conv.user.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
+                  <div className="relative">
+                    <img
+                      src={colleague.avatar}
+                      alt={colleague.name}
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                    {colleague.hasConversation && (
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full border-2 border-white"></div>
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <h3 className="font-semibold text-navy truncate">{conv.user.name}</h3>
-                      {conv.lastMessage && (
+                      <h3 className="font-semibold text-navy truncate">{colleague.name}</h3>
+                      {colleague.lastMessage && (
                         <span className="text-xs text-gray-500">
-                          {formatTime(conv.lastMessage.createdAt)}
+                          {formatTime(colleague.lastMessage.createdAt)}
                         </span>
                       )}
                     </div>
                     <p className="text-sm text-gray-600 truncate">
-                      {conv.user.designation || conv.user.role}
+                      {colleague.designation || colleague.role}
                     </p>
-                    {conv.lastMessage && (
+                    {colleague.lastMessage && (
                       <p className="text-sm text-gray-500 truncate mt-1">
-                        {conv.lastMessage.sender.toString() === user.id ? 'You: ' : ''}
-                        {conv.lastMessage.content}
+                        {colleague.lastMessage.sender.toString() === user.id ? 'You: ' : ''}
+                        {colleague.lastMessage.content}
                       </p>
                     )}
-                    {conv.unreadCount > 0 && (
+                    {colleague.unreadCount > 0 && (
                       <span className="inline-block mt-1 px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">
-                        {conv.unreadCount} new
+                        {colleague.unreadCount} new
                       </span>
                     )}
                   </div>
