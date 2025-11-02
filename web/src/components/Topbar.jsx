@@ -9,6 +9,19 @@ export default function Topbar({ onMenuClick }) {
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [urgentTasks, setUrgentTasks] = useState([]);
+  const [readNotifications, setReadNotifications] = useState([]);
+
+  // Load read notifications from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('readNotifications');
+    if (stored) {
+      try {
+        setReadNotifications(JSON.parse(stored));
+      } catch (e) {
+        console.error('Failed to parse read notifications:', e);
+      }
+    }
+  }, []);
 
   // Fetch tasks and filter urgent ones
   useEffect(() => {
@@ -38,11 +51,24 @@ export default function Topbar({ onMenuClick }) {
 
     if (user) {
       loadUrgentTasks();
-      // Refresh every 5 minutes
-      const interval = setInterval(loadUrgentTasks, 5 * 60 * 1000);
+      // Refresh every minute for real-time updates
+      const interval = setInterval(loadUrgentTasks, 60 * 1000);
       return () => clearInterval(interval);
     }
   }, [user]);
+
+  // Clean up old read notifications (older than 7 days)
+  useEffect(() => {
+    const cleanup = () => {
+      const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+      const filtered = readNotifications.filter(n => n.readAt > sevenDaysAgo);
+      if (filtered.length !== readNotifications.length) {
+        setReadNotifications(filtered);
+        localStorage.setItem('readNotifications', JSON.stringify(filtered));
+      }
+    };
+    cleanup();
+  }, [readNotifications]);
 
   // Get deadline color
   const getDeadlineColor = (dueDate, status) => {
@@ -73,11 +99,28 @@ export default function Topbar({ onMenuClick }) {
   };
 
   const handleTaskClick = (task) => {
+    // Mark notification as read
+    const newRead = [...readNotifications.filter(n => n.taskId !== task._id), {
+      taskId: task._id,
+      readAt: Date.now()
+    }];
+    setReadNotifications(newRead);
+    localStorage.setItem('readNotifications', JSON.stringify(newRead));
+    
     setShowNotifications(false);
-    navigate('/tasks-board');
-    // Store selected task in sessionStorage so TasksKanban can open it
+    
+    // Store the full task object so TasksKanban can access it
     sessionStorage.setItem('openTaskId', task._id);
+    sessionStorage.setItem('openTaskData', JSON.stringify(task));
+    
+    // Navigate to tasks board
+    navigate('/tasks-board');
   };
+
+  // Count unread urgent tasks
+  const unreadCount = urgentTasks.filter(task => 
+    !readNotifications.some(n => n.taskId === task._id)
+  ).length;
 
   return (
     <header className="h-16 bg-navy text-white flex items-center justify-between px-4 shadow-soft">
@@ -105,9 +148,9 @@ export default function Topbar({ onMenuClick }) {
             title="Notifications"
           >
             <Bell size={20} className="text-white" />
-            {urgentTasks.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                {urgentTasks.length}
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold animate-pulse">
+                {unreadCount}
               </span>
             )}
           </button>
@@ -122,8 +165,13 @@ export default function Topbar({ onMenuClick }) {
               />
               
               <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border z-50 max-h-96 overflow-y-auto">
-                <div className="p-3 border-b bg-gray-50">
+                <div className="p-3 border-b bg-gray-50 flex items-center justify-between">
                   <h3 className="font-semibold text-navy">Urgent Tasks ({urgentTasks.length})</h3>
+                  {unreadCount > 0 && (
+                    <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">
+                      {unreadCount} new
+                    </span>
+                  )}
                 </div>
                 {urgentTasks.length === 0 ? (
                   <div className="p-4 text-center text-gray-500">
@@ -133,15 +181,21 @@ export default function Topbar({ onMenuClick }) {
                   <div className="divide-y">
                     {urgentTasks.map(task => {
                       const deadlineColor = getDeadlineColor(task.dueDate, task.status);
+                      const isUnread = !readNotifications.some(n => n.taskId === task._id);
                       return (
                         <div 
                           key={task._id}
                           onClick={() => handleTaskClick(task)}
-                          className="p-3 hover:bg-gray-50 cursor-pointer"
+                          className={`p-3 hover:bg-gray-50 cursor-pointer relative ${isUnread ? 'bg-blue-50' : ''}`}
                         >
-                          <div className="flex items-start justify-between">
+                          {isUnread && (
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+                          )}
+                          <div className="flex items-start justify-between gap-2">
                             <div className="flex-1">
-                              <p className="font-medium text-navy text-sm">{task.title}</p>
+                              <p className={`text-sm ${isUnread ? 'font-semibold text-navy' : 'font-medium text-gray-700'}`}>
+                                {task.title}
+                              </p>
                               <div className={`text-xs mt-1 px-2 py-1 rounded inline-flex items-center gap-1 ${deadlineColor?.bg} ${deadlineColor?.text}`}>
                                 <Calendar size={10} />
                                 {new Date(task.dueDate).toLocaleDateString()}

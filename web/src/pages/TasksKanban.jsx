@@ -319,11 +319,32 @@ export default function TasksKanban() {
   // Check if we need to open a specific task (from notification click)
   useEffect(() => {
     const taskIdToOpen = sessionStorage.getItem('openTaskId');
-    if (taskIdToOpen && tasks.length > 0) {
-      const task = tasks.find(t => t._id === taskIdToOpen);
-      if (task) {
-        setSelectedTask(task);
-        sessionStorage.removeItem('openTaskId');
+    const taskDataToOpen = sessionStorage.getItem('openTaskData');
+    
+    if (taskIdToOpen) {
+      // First try to find task in current tasks
+      if (tasks.length > 0) {
+        const task = tasks.find(t => t._id === taskIdToOpen);
+        if (task) {
+          setSelectedTask(task);
+          sessionStorage.removeItem('openTaskId');
+          sessionStorage.removeItem('openTaskData');
+          return;
+        }
+      }
+      
+      // If task not found in current tasks but we have the data, use it
+      if (taskDataToOpen) {
+        try {
+          const taskData = JSON.parse(taskDataToOpen);
+          setSelectedTask(taskData);
+          sessionStorage.removeItem('openTaskId');
+          sessionStorage.removeItem('openTaskData');
+        } catch (e) {
+          console.error('Failed to parse task data:', e);
+          sessionStorage.removeItem('openTaskId');
+          sessionStorage.removeItem('openTaskData');
+        }
       }
     }
   }, [tasks]);
