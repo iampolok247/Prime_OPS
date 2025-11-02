@@ -178,7 +178,7 @@ function TaskCard({ task, onClick, isDragging }) {
   );
 }
 
-function KanbanColumn({ column, tasks, onCardClick, onAddTask, activeId }) {
+function KanbanColumn({ column, tasks, onCardClick, onAddTask, activeId, isAdmin }) {
   const columnTasks = tasks.filter(t => t.boardColumn === column);
   const taskCount = columnTasks.length;
   const taskIds = columnTasks.map(t => t._id);
@@ -205,12 +205,14 @@ function KanbanColumn({ column, tasks, onCardClick, onAddTask, activeId }) {
           <h2 className="font-semibold text-navy">{column}</h2>
           <span className="text-sm text-gray-500">({taskCount})</span>
         </div>
-        <button
-          onClick={() => onAddTask(column)}
-          className="p-1 hover:bg-gray-200 rounded transition"
-        >
-          <Plus size={16} className="text-gray-600" />
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => onAddTask(column)}
+            className="p-1 hover:bg-gray-200 rounded transition"
+          >
+            <Plus size={16} className="text-gray-600" />
+          </button>
+        )}
       </div>
 
       {/* Cards */}
@@ -337,13 +339,15 @@ export default function TasksKanban() {
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <h1 className="text-2xl font-bold text-navy">Task Board</h1>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Plus size={18} />
-                New Task
-              </button>
+              {(['SuperAdmin', 'Admin'].includes(user?.role)) && (
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Plus size={18} />
+                  Assign Task
+                </button>
+              )}
             </div>
             
             {/* Filters */}
@@ -399,6 +403,7 @@ export default function TasksKanban() {
                   onCardClick={handleCardClick}
                   onAddTask={handleAddTask}
                   activeId={activeId}
+                  isAdmin={['SuperAdmin', 'Admin'].includes(user?.role)}
                 />
               ))}
             </div>

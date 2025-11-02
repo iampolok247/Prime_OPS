@@ -21,6 +21,9 @@ export default function TaskCreateModal({ isOpen, onClose, onCreated }) {
   });
   const [newChecklistItem, setNewChecklistItem] = useState('');
 
+  // Check if user is admin
+  const isAdmin = user?.role === 'SuperAdmin' || user?.role === 'Admin';
+
   useEffect(() => {
     if (isOpen) {
       loadUsers();
@@ -41,7 +44,9 @@ export default function TaskCreateModal({ isOpen, onClose, onCreated }) {
   const loadUsers = async () => {
     try {
       const response = await api.listAllUsers();
-      setAllUsers(response.data || []);
+      // Filter out SuperAdmin users from the list
+      const filteredUsers = (response.data || []).filter(u => u.role !== 'SuperAdmin');
+      setAllUsers(filteredUsers);
     } catch (error) {
       console.error('Error loading users:', error);
     }
@@ -108,12 +113,35 @@ export default function TaskCreateModal({ isOpen, onClose, onCreated }) {
 
   if (!isOpen) return null;
 
+  // If not admin, show access denied message
+  if (!isAdmin) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+          <div className="text-center">
+            <div className="text-red-500 text-5xl mb-4">🚫</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+            <p className="text-gray-600 mb-6">
+              Only Admin and SuperAdmin can assign tasks to employees.
+            </p>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900">Create New Task</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Assign New Task</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -157,7 +185,7 @@ export default function TaskCreateModal({ isOpen, onClose, onCreated }) {
           {/* Assign To */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Assign To <span className="text-red-500">*</span>
+              Assign To Employee(s) <span className="text-red-500">*</span>
             </label>
             <select
               multiple
@@ -167,16 +195,28 @@ export default function TaskCreateModal({ isOpen, onClose, onCreated }) {
                 assignedTo: Array.from(e.target.selectedOptions, opt => opt.value) 
               })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              size={5}
+              size={6}
               required
             >
-              {allUsers.map(u => (
-                <option key={u._id} value={u._id}>
-                  {u.fullName} ({u.role})
-                </option>
-              ))}
+              <option value="" disabled className="text-gray-400">
+                -- Select Employee(s) --
+              </option>
+              {allUsers.length === 0 ? (
+                <option disabled>No employees available</option>
+              ) : (
+                allUsers.map(u => (
+                  <option key={u._id} value={u._id}>
+                    {u.fullName} - {u.role}
+                  </option>
+                ))
+              )}
             </select>
-            <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple users</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Hold Ctrl (Windows) or Cmd (Mac) to select multiple employees
+            </p>
+            <p className="text-xs text-blue-600 mt-1">
+              Note: SuperAdmins are excluded from the list
+            </p>
           </div>
 
           {/* Priority and Due Date Row */}
