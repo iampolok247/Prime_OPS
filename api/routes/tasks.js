@@ -342,56 +342,71 @@ router.patch('/:id/board-position', requireAuth, async (req, res) => {
   try {
     const { boardColumn, boardPosition } = req.body;
     
-    console.log('Moving task:', req.params.id, 'to column:', boardColumn, 'position:', boardPosition);
+    console.log('[BOARD-POSITION] Moving task:', req.params.id, 'to column:', boardColumn, 'position:', boardPosition);
     
     const task = await Task.findById(req.params.id);
     if (!task) {
-      console.log('Task not found:', req.params.id);
+      console.log('[BOARD-POSITION] Task not found:', req.params.id);
       return res.status(404).json({ code: 'NOT_FOUND', message: 'Task not found' });
     }
 
-    // Update using findByIdAndUpdate to bypass some validation issues
+    console.log('[BOARD-POSITION] Current task state:', {
+      id: task._id,
+      boardColumn: task.boardColumn,
+      status: task.status,
+      assignedTo: task.assignedTo
+    });
+
+    // Prepare update - only update the fields we need
     const updateData = {};
     
     if (boardColumn) {
       updateData.boardColumn = boardColumn;
       
-      // Auto-update status to match column - use exact enum values
-      if (boardColumn === 'Completed') {
-        updateData.status = 'Completed';
+      // Map boardColumn to status enum
+      const columnToStatus = {
+        'Backlog': 'To Do',
+        'To Do': 'To Do',
+        'In Progress': 'In Progress',
+        'In Review': 'In Review',
+        'Completed': 'Completed'
+      };
+      
+      updateData.status = columnToStatus[boardColumn] || 'To Do';
+      
+      if (boardColumn === 'Completed' && !task.completedAt) {
         updateData.completedAt = new Date();
-      } else if (boardColumn === 'Backlog' || boardColumn === 'To Do') {
-        updateData.status = 'To Do';
-      } else if (boardColumn === 'In Progress') {
-        updateData.status = 'In Progress';
-      } else if (boardColumn === 'In Review') {
-        updateData.status = 'In Review';
-      } else {
-        // Default to To Do for any unknown column
-        updateData.status = 'To Do';
       }
       
-      console.log('Updating task with:', updateData);
+      console.log('[BOARD-POSITION] Will update to:', updateData);
     }
     
     if (boardPosition !== undefined) {
       updateData.boardPosition = boardPosition;
     }
     
-    const updatedTask = await Task.findByIdAndUpdate(
-      req.params.id,
-      { $set: updateData },
-      { new: true, runValidators: true }
-    )
+    // Use updateOne to avoid validation issues and populate after
+    await Task.updateOne(
+      { _id: req.params.id },
+      { $set: updateData }
+    );
+    
+    console.log('[BOARD-POSITION] Update successful, fetching updated task');
+    
+    const updatedTask = await Task.findById(req.params.id)
       .populate('assignedBy', 'name email role')
       .populate('assignedTo', 'name email role');
     
-    console.log('Task updated successfully');
+    console.log('[BOARD-POSITION] Returning updated task');
     return res.json({ task: updatedTask });
   } catch (e) {
-    console.error('Error moving task:', e);
-    console.error('Error stack:', e.stack);
-    return res.status(500).json({ code: 'SERVER_ERROR', message: e.message, details: e.toString() });
+    console.error('[BOARD-POSITION] Error moving task:', e.message);
+    console.error('[BOARD-POSITION] Error stack:', e.stack);
+    return res.status(500).json({ 
+      code: 'SERVER_ERROR', 
+      message: e.message,
+      stack: e.stack
+    });
   }
 });
 
