@@ -342,8 +342,13 @@ router.patch('/:id/board-position', requireAuth, async (req, res) => {
   try {
     const { boardColumn, boardPosition } = req.body;
     
+    console.log('Moving task:', req.params.id, 'to column:', boardColumn, 'position:', boardPosition);
+    
     const task = await Task.findById(req.params.id);
-    if (!task) return res.status(404).json({ code: 'NOT_FOUND', message: 'Task not found' });
+    if (!task) {
+      console.log('Task not found:', req.params.id);
+      return res.status(404).json({ code: 'NOT_FOUND', message: 'Task not found' });
+    }
 
     if (boardColumn) {
       task.boardColumn = boardColumn;
@@ -351,17 +356,21 @@ router.patch('/:id/board-position', requireAuth, async (req, res) => {
       if (boardColumn === 'Completed') {
         task.status = 'Completed';
         task.completedAt = new Date();
-      } else if (boardColumn === 'Backlog') {
-        // Backlog is not a valid status, map it to 'To Do'
+      } else if (boardColumn === 'Backlog' || boardColumn === 'To Do') {
+        // Both Backlog and To Do map to 'To Do' status
         task.status = 'To Do';
-      } else {
-        task.status = boardColumn;
+      } else if (boardColumn === 'In Progress') {
+        task.status = 'In Progress';
+      } else if (boardColumn === 'In Review') {
+        task.status = 'In Review';
       }
+      console.log('Updated task status to:', task.status, 'boardColumn:', task.boardColumn);
     }
     
     if (boardPosition !== undefined) task.boardPosition = boardPosition;
     
     await task.save();
+    console.log('Task saved successfully');
 
     const populated = await Task.findById(task._id)
       .populate('assignedBy', 'name email role')
@@ -369,6 +378,7 @@ router.patch('/:id/board-position', requireAuth, async (req, res) => {
     
     return res.json({ task: populated });
   } catch (e) {
+    console.error('Error moving task:', e);
     return res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
   }
 });
