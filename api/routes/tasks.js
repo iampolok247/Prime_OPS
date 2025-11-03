@@ -350,36 +350,48 @@ router.patch('/:id/board-position', requireAuth, async (req, res) => {
       return res.status(404).json({ code: 'NOT_FOUND', message: 'Task not found' });
     }
 
+    // Update using findByIdAndUpdate to bypass some validation issues
+    const updateData = {};
+    
     if (boardColumn) {
-      task.boardColumn = boardColumn;
-      // Auto-update status to match column
+      updateData.boardColumn = boardColumn;
+      
+      // Auto-update status to match column - use exact enum values
       if (boardColumn === 'Completed') {
-        task.status = 'Completed';
-        task.completedAt = new Date();
+        updateData.status = 'Completed';
+        updateData.completedAt = new Date();
       } else if (boardColumn === 'Backlog' || boardColumn === 'To Do') {
-        // Both Backlog and To Do map to 'To Do' status
-        task.status = 'To Do';
+        updateData.status = 'To Do';
       } else if (boardColumn === 'In Progress') {
-        task.status = 'In Progress';
+        updateData.status = 'In Progress';
       } else if (boardColumn === 'In Review') {
-        task.status = 'In Review';
+        updateData.status = 'In Review';
+      } else {
+        // Default to To Do for any unknown column
+        updateData.status = 'To Do';
       }
-      console.log('Updated task status to:', task.status, 'boardColumn:', task.boardColumn);
+      
+      console.log('Updating task with:', updateData);
     }
     
-    if (boardPosition !== undefined) task.boardPosition = boardPosition;
+    if (boardPosition !== undefined) {
+      updateData.boardPosition = boardPosition;
+    }
     
-    await task.save();
-    console.log('Task saved successfully');
-
-    const populated = await Task.findById(task._id)
+    const updatedTask = await Task.findByIdAndUpdate(
+      req.params.id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    )
       .populate('assignedBy', 'name email role')
       .populate('assignedTo', 'name email role');
     
-    return res.json({ task: populated });
+    console.log('Task updated successfully');
+    return res.json({ task: updatedTask });
   } catch (e) {
     console.error('Error moving task:', e);
-    return res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    console.error('Error stack:', e.stack);
+    return res.status(500).json({ code: 'SERVER_ERROR', message: e.message, details: e.toString() });
   }
 });
 
