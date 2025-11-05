@@ -129,17 +129,47 @@ router.get('/', requireAuth, authorize(['Admin', 'SuperAdmin', 'Admission', 'Rec
       .sort({ targetType: 1, 'course.name': 1 });
 
     // Calculate achievements
-    const startDate = new Date(`${month}-01`);
+    // Use UTC dates to avoid timezone issues
+    const startDate = new Date(`${month}-01T00:00:00.000Z`);
     const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + 1);
+    endDate.setUTCMonth(endDate.getUTCMonth() + 1);
+    
+    // Get current date at start of day UTC
+    const now = new Date();
+    now.setUTCHours(23, 59, 59, 999); // End of current day
     
     // Cap endDate to current date/time if the month is current or future
-    const now = new Date();
     const effectiveEndDate = endDate > now ? now : endDate;
+    
+    // Check if the month is entirely in the future (start of month is after today)
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const isFutureMonth = startDate > todayStart;
+    
+    // Debug logging
+    console.log(`[Targets] Month: ${month}, Start: ${startDate.toISOString()}, End: ${endDate.toISOString()}, Now: ${now.toISOString()}, Effective: ${effectiveEndDate.toISOString()}, IsFuture: ${isFutureMonth}`);
 
     const targetsWithAchievement = await Promise.all(
       targets.map(async (target) => {
         let achieved = 0;
+        
+        // Skip achievement calculation for future months
+        if (isFutureMonth) {
+          return {
+            _id: target._id,
+            targetType: target.targetType,
+            course: target.course,
+            month: target.month,
+            targetValue: target.targetValue,
+            achieved: 0,
+            percentage: 0,
+            assignedTo: target.assignedTo,
+            setBy: target.setBy,
+            note: target.note,
+            createdAt: target.createdAt,
+            updatedAt: target.updatedAt
+          };
+        }
 
         switch (target.targetType) {
           case 'AdmissionStudent':
@@ -152,7 +182,9 @@ router.get('/', requireAuth, authorize(['Admin', 'SuperAdmin', 'Admission', 'Rec
             if (target.assignedTo) {
               studentQuery.assignedTo = target.assignedTo._id;
             }
+            console.log(`[Targets] AdmissionStudent query for course ${target.course?.name}:`, JSON.stringify(studentQuery));
             achieved = await Lead.countDocuments(studentQuery);
+            console.log(`[Targets] Found ${achieved} students`);
             break;
 
           case 'AdmissionRevenue':
