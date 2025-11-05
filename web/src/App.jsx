@@ -49,6 +49,7 @@ import Messages from './pages/Messages.jsx';
 import TaskReport from './pages/TaskReport.jsx';
 import AdminTaskReport from './pages/AdminTaskReport.jsx';
 import Targets from './pages/Targets.jsx';
+import MyTargets from './pages/MyTargets.jsx';
 import Batches from './pages/Batches.jsx';
 
 import Login from './pages/Login.jsx';
@@ -111,6 +112,7 @@ export default function App() {
           {/* Admission */}
          <Route element={<RoleRoute roles={['Admission','Admin','SuperAdmin']} />}>
          <Route path="/admission/dashboard" element={<AdmissionDashboard />} />   {/* <-- NEW */}
+         <Route path="/my-targets" element={<MyTargets />} />
          <Route path="/admission/assigned" element={<AdmissionPipeline />} />
          <Route path="/admission/counseling" element={<AdmissionPipeline />} />
          <Route path="/admission/follow-up" element={<AdmissionPipeline />} />
