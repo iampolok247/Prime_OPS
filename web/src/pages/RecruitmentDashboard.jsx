@@ -8,7 +8,9 @@ import {
   Building2,
   Clock,
   TrendingUp,
-  BarChart2
+  BarChart2,
+  Target,
+  DollarSign
 } from 'lucide-react';
 
 export default function RecruitmentDashboard() {
@@ -18,6 +20,10 @@ export default function RecruitmentDashboard() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
   
+  // Target data
+  const [targets, setTargets] = useState([]);
+  const [loadingTargets, setLoadingTargets] = useState(false);
+  
   // filters
   const [period, setPeriod] = useState('monthly');
   const [from, setFrom] = useState('');
@@ -25,6 +31,7 @@ export default function RecruitmentDashboard() {
 
   useEffect(() => {
     loadAll();
+    loadTargets();
   }, []);
 
   async function loadAll() {
@@ -43,6 +50,32 @@ export default function RecruitmentDashboard() {
       setErr(e.message || 'Failed to load');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadTargets() {
+    setLoadingTargets(true);
+    try {
+      // Get current month in YYYY-MM format
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const currentMonth = `${year}-${month}`;
+      
+      // Get recruitment targets for current month
+      const resp = await api.getTargets(currentMonth, null, null);
+      const allTargets = resp?.targets || [];
+      
+      // Filter only recruitment targets
+      const recruitmentTargets = allTargets.filter(t => 
+        t.targetType === 'RecruitmentCandidate' || t.targetType === 'RecruitmentRevenue'
+      );
+      
+      setTargets(recruitmentTargets);
+    } catch (e) {
+      console.error('Failed to load targets:', e);
+    } finally {
+      setLoadingTargets(false);
     }
   }
 
@@ -155,6 +188,100 @@ export default function RecruitmentDashboard() {
       {err && (
         <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
           <p className="text-red-700 font-medium">{err}</p>
+        </div>
+      )}
+
+      {/* Team Target Card */}
+      {!loadingTargets && targets.length > 0 && (
+        <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-2xl p-8 shadow-2xl border border-white/20">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+              <Target className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-white">Team Targets</h2>
+              <p className="text-white/80 text-sm">
+                {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {targets.map((target) => {
+              const isCandidate = target.targetType === 'RecruitmentCandidate';
+              const achieved = target.achieved || 0;
+              const targetValue = target.targetValue || 0;
+              const percentage = targetValue > 0 ? Math.round((achieved / targetValue) * 100) : 0;
+              const assignedUser = target.assignedTo?.name || 'Team';
+              
+              return (
+                <div key={target._id} className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white/20 rounded-lg">
+                        {isCandidate ? (
+                          <Users className="w-5 h-5 text-white" />
+                        ) : (
+                          <DollarSign className="w-5 h-5 text-white" />
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-white">
+                          {isCandidate ? 'Candidates' : 'Revenue'}
+                        </h3>
+                        <p className="text-white/70 text-sm">{assignedUser}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <p className="text-white/70 text-sm mb-1">Achievement</p>
+                        <p className="text-3xl font-bold text-white">
+                          {isCandidate ? achieved : fmtBDT(achieved)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-white/70 text-sm mb-1">Target</p>
+                        <p className="text-xl font-semibold text-white">
+                          {isCandidate ? targetValue : fmtBDT(targetValue)}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Progress Bar */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-white/80 font-medium">Progress</span>
+                        <span className="text-white font-bold">{percentage}%</span>
+                      </div>
+                      <div className="h-3 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            percentage >= 100
+                              ? 'bg-gradient-to-r from-green-400 to-emerald-500'
+                              : percentage >= 75
+                              ? 'bg-gradient-to-r from-blue-400 to-cyan-500'
+                              : percentage >= 50
+                              ? 'bg-gradient-to-r from-yellow-400 to-orange-500'
+                              : 'bg-gradient-to-r from-red-400 to-pink-500'
+                          }`}
+                          style={{ width: `${Math.min(percentage, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                    
+                    {target.note && (
+                      <p className="text-white/70 text-sm mt-3 italic">
+                        "{target.note}"
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

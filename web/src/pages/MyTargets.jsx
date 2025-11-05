@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { api } from '../lib/api.js';
-import { AuthContext } from '../context/AuthContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { Target, Calendar, TrendingUp } from 'lucide-react';
 
 export default function MyTargets() {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const [targets, setTargets] = useState([]);
   const [selectedMonth, setSelectedMonth] = useState('');
   const [loading, setLoading] = useState(false);
