@@ -105,9 +105,10 @@ export default function AdmissionDashboard() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [allLeads, setAllLeads] = useState([]);
+  const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Load all leads once
+  // Load all leads and batches once
   useEffect(()=> {
     loadAll();
   }, []);
@@ -115,10 +116,14 @@ export default function AdmissionDashboard() {
   async function loadAll() {
     setLoading(true);
     try {
-      // Fetch all leads without status filter to get complete dataset
-      const resp = await api.listAdmissionLeads().catch(()=>({ leads: [] }));
-      const leads = resp?.leads || resp || [];
+      // Fetch all leads and batches
+      const [leadsResp, batchesResp] = await Promise.all([
+        api.listAdmissionLeads().catch(()=>({ leads: [] })),
+        api.listBatches().catch(()=>({ batches: [] }))
+      ]);
+      const leads = leadsResp?.leads || leadsResp || [];
       setAllLeads(Array.isArray(leads) ? leads : []);
+      setBatches(batchesResp?.batches || []);
       setErr('');
     } catch(e) { 
       setErr(e.message || 'Failed to load'); 
@@ -286,6 +291,106 @@ export default function AdmissionDashboard() {
           </div>
         ))}
       </div>
+
+      {/* Batch Overview Section */}
+      {batches.length > 0 && (
+        <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
+          <div className="mb-6">
+            <h3 className="text-lg font-bold text-gray-800">Active Batches Overview</h3>
+            <p className="text-sm text-gray-500 mt-1">Track progress across all batches</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {batches
+              .filter(b => b.status === 'Active')
+              .map(batch => {
+                const admitted = batch.admittedStudents?.length || 0;
+                const target = batch.targetedStudent || 0;
+                const progress = target > 0 ? Math.round((admitted / target) * 100) : 0;
+                
+                return (
+                  <div 
+                    key={batch._id} 
+                    className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-5 border-2 border-blue-100 hover:border-blue-300 hover:shadow-lg transition-all duration-300"
+                  >
+                    {/* Batch Header */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h4 className="font-bold text-gray-800 text-base mb-1">{batch.batchName}</h4>
+                        <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium">
+                          {batch.category}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-gray-500 mb-1">Batch ID</div>
+                        <div className="text-xs font-mono font-semibold text-gray-700">{batch.batchId}</div>
+                      </div>
+                    </div>
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="bg-white rounded-lg p-3 shadow-sm">
+                        <div className="text-xs text-gray-500 mb-1">Target</div>
+                        <div className="text-2xl font-bold text-gray-800">{target}</div>
+                      </div>
+                      <div className="bg-white rounded-lg p-3 shadow-sm">
+                        <div className="text-xs text-gray-500 mb-1">Admitted</div>
+                        <div className="text-2xl font-bold text-blue-600">{admitted}</div>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-600 font-medium">Progress</span>
+                        <span className={`font-bold ${
+                          progress >= 100 ? 'text-green-600' : 
+                          progress >= 75 ? 'text-blue-600' : 
+                          progress >= 50 ? 'text-yellow-600' : 'text-orange-600'
+                        }`}>
+                          {progress}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                        <div 
+                          className={`h-3 rounded-full transition-all duration-500 ${
+                            progress >= 100 ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 
+                            progress >= 75 ? 'bg-gradient-to-r from-blue-500 to-indigo-500' : 
+                            progress >= 50 ? 'bg-gradient-to-r from-yellow-500 to-amber-500' : 
+                            'bg-gradient-to-r from-orange-500 to-red-500'
+                          }`}
+                          style={{ width: `${Math.min(progress, 100)}%` }}
+                        />
+                      </div>
+                      {progress >= 100 && (
+                        <div className="flex items-center gap-1 text-green-600 text-xs font-medium mt-1">
+                          <GraduationCap className="w-3 h-3" />
+                          <span>Target Achieved! 🎉</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Remaining Spots */}
+                    {admitted < target && (
+                      <div className="mt-3 text-center">
+                        <span className="text-xs text-gray-600">
+                          {target - admitted} spot{target - admitted !== 1 ? 's' : ''} remaining
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+
+          {batches.filter(b => b.status === 'Active').length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <Users className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+              <p>No active batches available</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Chart Section */}
       <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
