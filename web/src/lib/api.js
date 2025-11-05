@@ -305,6 +305,15 @@ export const api = {
     });
     return handleJson(res, 'Assign lead failed');
   },
+  async bulkAssignLeads(leadIds, assignedTo) {
+    const res = await authFetch(`${getApiBase()}/api/leads/bulk-assign`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leadIds, assignedTo })
+    });
+    return handleJson(res, 'Bulk assign failed');
+  },
   async createLead(payload) {
     const res = await authFetch(`${getApiBase()}/api/leads`, {
       method: 'POST', credentials: 'include',

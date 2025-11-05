@@ -5,27 +5,38 @@ import { useAuth } from '../context/AuthContext.jsx';
 export default function LeadsCenter() {
   const { user } = useAuth();
   const [status, setStatus] = useState('Assigned');
+  const [courseFilter, setCourseFilter] = useState('All');
+  const [courses, setCourses] = useState([]);
   const [leads, setLeads] = useState([]);
   const [admissions, setAdmissions] = useState([]);
+  const [selectedLeads, setSelectedLeads] = useState([]);
   const [msg, setMsg] = useState(null);
   const [err, setErr] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
   const [histLead, setHistLead] = useState(null);
   const [histLoading, setHistLoading] = useState(false);
+  const [bulkAssigning, setBulkAssigning] = useState(false);
+  const [bulkAssignTo, setBulkAssignTo] = useState('');
 
   const canAssign = user?.role === 'DigitalMarketing';
 
   const load = async () => {
     try {
-  const calls = [status === 'All Leads' ? api.listLeads() : api.listLeads(status)];
+      const calls = [
+        status === 'All Leads' ? api.listLeads() : api.listLeads(status),
+        api.listCourses()
+      ];
       if (canAssign) calls.push(api.listAdmissionUsers());
       const results = await Promise.all(calls);
 
       const leadsResp = results[0];
-      const admissionsResp = canAssign ? results[1] : { users: [] };
+      const coursesResp = results[1];
+      const admissionsResp = canAssign ? results[2] : { users: [] };
 
       setLeads(leadsResp?.leads || []);
+      setCourses(coursesResp?.courses || []);
       setAdmissions(admissionsResp?.users || []);
+      setSelectedLeads([]);
       setErr(null);
     } catch (e) {
       setErr(e.message);
@@ -43,27 +54,122 @@ export default function LeadsCenter() {
     } catch (e) { setErr(e.message); }
   };
 
+  const bulkAssign = async () => {
+    if (selectedLeads.length === 0 || !bulkAssignTo) return;
+    setMsg(null); setErr(null);
+    setBulkAssigning(true);
+    try {
+      const res = await api.bulkAssignLeads(selectedLeads, bulkAssignTo);
+      setMsg(res.message || `${selectedLeads.length} lead(s) assigned`);
+      setBulkAssignTo('');
+      load();
+    } catch (e) { 
+      setErr(e.message); 
+    } finally {
+      setBulkAssigning(false);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedLeads.length === filteredLeads.length) {
+      setSelectedLeads([]);
+    } else {
+      setSelectedLeads(filteredLeads.map(l => l._id));
+    }
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedLeads(prev => 
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  // Filter leads by course
+  const filteredLeads = useMemo(() => {
+    if (courseFilter === 'All') return leads;
+    return leads.filter(l => l.interestedCourse === courseFilter);
+  }, [leads, courseFilter]);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
         <h1 className="text-2xl font-bold text-navy">Leads Center</h1>
-        <select value={status} onChange={e=>setStatus(e.target.value)} className="border rounded-xl px-3 py-2">
-          <option>All Leads</option>
-          <option>Assigned</option>
-          <option>Counseling</option>
-          <option>In Follow Up</option>
-          <option>Admitted</option>
-          <option>Not Admitted</option>
-        </select>
+        <div className="flex items-center gap-3">
+          {/* Course Filter */}
+          <select 
+            value={courseFilter} 
+            onChange={e=>setCourseFilter(e.target.value)} 
+            className="border rounded-xl px-3 py-2"
+          >
+            <option value="All">All Courses</option>
+            {courses.map(c => (
+              <option key={c._id} value={c.name}>{c.name}</option>
+            ))}
+          </select>
+
+          {/* Status Filter */}
+          <select 
+            value={status} 
+            onChange={e=>setStatus(e.target.value)} 
+            className="border rounded-xl px-3 py-2"
+          >
+            <option>All Leads</option>
+            <option>Assigned</option>
+            <option>Counseling</option>
+            <option>In Follow Up</option>
+            <option>Admitted</option>
+            <option>Not Admitted</option>
+          </select>
+        </div>
       </div>
 
-      {msg && <div className="mb-2 text-green-700">{msg}</div>}
-      {err && <div className="mb-2 text-red-600">{err}</div>}
+      {msg && <div className="mb-2 p-3 bg-green-100 text-green-700 rounded-xl">{msg}</div>}
+      {err && <div className="mb-2 p-3 bg-red-100 text-red-600 rounded-xl">{err}</div>}
+
+      {/* Bulk Assign Bar */}
+      {canAssign && selectedLeads.length > 0 && (
+        <div className="mb-3 p-3 bg-blue-50 rounded-xl flex items-center gap-3">
+          <span className="font-medium text-blue-900">{selectedLeads.length} lead(s) selected</span>
+          <select 
+            value={bulkAssignTo} 
+            onChange={e=>setBulkAssignTo(e.target.value)} 
+            className="border rounded-xl px-3 py-2"
+          >
+            <option value="">Select Admission Member</option>
+            {admissions.map(a => (
+              <option key={a._id} value={a._id}>{a.name}</option>
+            ))}
+          </select>
+          <button 
+            onClick={bulkAssign}
+            disabled={bulkAssigning || !bulkAssignTo}
+            className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {bulkAssigning ? 'Assigning...' : 'Bulk Assign'}
+          </button>
+          <button 
+            onClick={() => setSelectedLeads([])}
+            className="px-3 py-2 text-royal hover:text-red-600"
+          >
+            Clear Selection
+          </button>
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl shadow-soft overflow-auto">
         <table className="min-w-full text-sm">
           <thead className="bg-[#f3f6ff] text-royal">
             <tr>
+              {canAssign && (
+                <th className="p-3">
+                  <input 
+                    type="checkbox"
+                    checked={filteredLeads.length > 0 && selectedLeads.length === filteredLeads.length}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 cursor-pointer"
+                  />
+                </th>
+              )}
               <th className="text-left p-3">Lead ID</th>
               <th className="text-left p-3">Name</th>
               <th className="text-left p-3">Phone / Email</th>
@@ -75,8 +181,18 @@ export default function LeadsCenter() {
             </tr>
           </thead>
           <tbody>
-            {leads.map(l => (
-              <tr key={l._id} className="border-t">
+            {filteredLeads.map(l => (
+              <tr key={l._id} className="border-t hover:bg-gray-50">
+                {canAssign && (
+                  <td className="p-3">
+                    <input 
+                      type="checkbox"
+                      checked={selectedLeads.includes(l._id)}
+                      onChange={() => toggleSelect(l._id)}
+                      className="w-4 h-4 cursor-pointer"
+                    />
+                  </td>
+                )}
                 <td className="p-3">{l.leadId}</td>
                 <td className="p-3">{l.name}</td>
                 <td className="p-3">
@@ -111,8 +227,10 @@ export default function LeadsCenter() {
                 )}
               </tr>
             ))}
-            {leads.length === 0 && (
-              <tr><td className="p-4 text-royal/70" colSpan={canAssign ? 7 : 6}>No leads</td></tr>
+            {filteredLeads.length === 0 && (
+              <tr><td className="p-4 text-royal/70 text-center" colSpan={canAssign ? 9 : 7}>
+                {leads.length === 0 ? 'No leads' : 'No leads match the selected course filter'}
+              </td></tr>
             )}
           </tbody>
         </table>

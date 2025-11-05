@@ -140,6 +140,46 @@ const assignHandler = async (req, res) => {
 router.post('/:id/assign', requireAuth, authorize(['DigitalMarketing']), assignHandler);
 router.patch('/:id/assign', requireAuth, authorize(['DigitalMarketing']), assignHandler); // <-- added
 
+// Bulk assign multiple leads to an Admission member (DM only)
+router.post('/bulk-assign', requireAuth, authorize(['DigitalMarketing']), async (req, res) => {
+  try {
+    const { leadIds, assignedTo } = req.body || {};
+    
+    if (!Array.isArray(leadIds) || leadIds.length === 0) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'leadIds array required' });
+    }
+    
+    if (!assignedTo) {
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'assignedTo required' });
+    }
+
+    const user = await User.findById(assignedTo);
+    if (!user || user.role !== 'Admission') {
+      return res.status(400).json({ code: 'INVALID_ASSIGNEE', message: 'Assignee must be Admission member' });
+    }
+
+    // Update all leads in one operation
+    const result = await Lead.updateMany(
+      { _id: { $in: leadIds } },
+      { 
+        $set: { 
+          assignedTo: user._id,
+          status: 'Assigned',
+          assignedAt: new Date()
+        }
+      }
+    );
+
+    return res.json({ 
+      ok: true, 
+      assigned: result.modifiedCount,
+      message: `${result.modifiedCount} lead(s) assigned successfully` 
+    });
+  } catch (e) {
+    return res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+  }
+});
+
 // Single-lead history (populated followUps.by).
 // Accessible to Admin, SuperAdmin, DigitalMarketing. Admission may view only if assignedTo === self.
 router.get('/:id/history', requireAuth, async (req, res) => {
