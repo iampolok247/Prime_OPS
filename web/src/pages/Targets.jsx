@@ -385,6 +385,39 @@ export default function Targets() {
           </div>
         </div>
 
+        {/* Future Month Warning */}
+        {(() => {
+          const currentMonth = new Date().toISOString().slice(0, 7);
+          const isFutureMonth = selectedMonth > currentMonth;
+          const isCurrentMonth = selectedMonth === currentMonth;
+          
+          if (isFutureMonth) {
+            return (
+              <div className="mb-4 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg flex items-start gap-2">
+                <Calendar size={18} className="mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Future Month Selected</p>
+                  <p className="text-sm">You are viewing targets for {monthOptions.find(m => m.value === selectedMonth)?.label}. Achievement data will be calculated as the month progresses.</p>
+                </div>
+              </div>
+            );
+          }
+          
+          if (isCurrentMonth) {
+            return (
+              <div className="mb-4 bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg flex items-start gap-2">
+                <Calendar size={18} className="mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Current Month</p>
+                  <p className="text-sm">Achievement is calculated up to today. Final results will be available at month end.</p>
+                </div>
+              </div>
+            );
+          }
+          
+          return null;
+        })()}
+
         {loading ? (
           <div className="text-center py-8 text-gray-500">Loading targets...</div>
         ) : targets.length === 0 ? (

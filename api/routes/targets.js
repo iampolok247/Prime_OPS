@@ -132,6 +132,10 @@ router.get('/', requireAuth, authorize(['Admin', 'SuperAdmin', 'Admission', 'Rec
     const startDate = new Date(`${month}-01`);
     const endDate = new Date(startDate);
     endDate.setMonth(endDate.getMonth() + 1);
+    
+    // Cap endDate to current date/time if the month is current or future
+    const now = new Date();
+    const effectiveEndDate = endDate > now ? now : endDate;
 
     const targetsWithAchievement = await Promise.all(
       targets.map(async (target) => {
@@ -143,7 +147,7 @@ router.get('/', requireAuth, authorize(['Admin', 'SuperAdmin', 'Admission', 'Rec
             const studentQuery = {
               admittedToCourse: target.course?._id,
               status: 'Admitted',
-              admittedAt: { $gte: startDate, $lt: endDate }
+              admittedAt: { $gte: startDate, $lt: effectiveEndDate }
             };
             if (target.assignedTo) {
               studentQuery.assignedTo = target.assignedTo._id;
@@ -154,7 +158,7 @@ router.get('/', requireAuth, authorize(['Admin', 'SuperAdmin', 'Admission', 'Rec
           case 'AdmissionRevenue':
             // Sum approved admission fees
             const revenueQuery = {
-              paymentDate: { $gte: startDate, $lt: endDate },
+              paymentDate: { $gte: startDate, $lt: effectiveEndDate },
               status: 'Approved'
             };
             if (target.assignedTo) {
@@ -171,7 +175,7 @@ router.get('/', requireAuth, authorize(['Admin', 'SuperAdmin', 'Admission', 'Rec
             // Count placed candidates
             const candidateQuery = {
               status: 'Placed',
-              placementDate: { $gte: startDate, $lt: endDate }
+              placementDate: { $gte: startDate, $lt: effectiveEndDate }
             };
             if (target.assignedTo) {
               candidateQuery.assignedTo = target.assignedTo._id;
@@ -182,7 +186,7 @@ router.get('/', requireAuth, authorize(['Admin', 'SuperAdmin', 'Admission', 'Rec
           case 'RecruitmentRevenue':
             // Sum recruitment income
             const incomeQuery = {
-              date: { $gte: startDate, $lt: endDate }
+              date: { $gte: startDate, $lt: effectiveEndDate }
             };
             if (target.assignedTo) {
               incomeQuery.receivedBy = target.assignedTo._id;
