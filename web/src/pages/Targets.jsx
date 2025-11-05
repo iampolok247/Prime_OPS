@@ -27,10 +27,20 @@ export default function Targets() {
   const generateMonthOptions = () => {
     const options = [];
     const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+    
     for (let i = 0; i < 12; i++) {
-      const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
-      const yearMonth = date.toISOString().slice(0, 7); // YYYY-MM
-      const label = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+      const year = currentYear + Math.floor((currentMonth + i) / 12);
+      const month = (currentMonth + i) % 12;
+      
+      // Create YYYY-MM string directly without timezone issues
+      const yearMonth = `${year}-${String(month + 1).padStart(2, '0')}`;
+      
+      // Create label using the same year/month values
+      const labelDate = new Date(year, month, 1);
+      const label = labelDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+      
       options.push({ value: yearMonth, label });
     }
     return options;
@@ -375,7 +385,10 @@ export default function Targets() {
             {/* Month Selector */}
             <select
               value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
+              onChange={(e) => {
+                console.log('[Month Filter] Changing from', selectedMonth, 'to', e.target.value);
+                setSelectedMonth(e.target.value);
+              }}
               className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
             >
               {monthOptions.map((opt) => (
