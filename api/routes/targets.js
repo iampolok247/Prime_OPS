@@ -129,22 +129,19 @@ router.get('/', requireAuth, authorize(['Admin', 'SuperAdmin', 'Admission', 'Rec
       .sort({ targetType: 1, 'course.name': 1 });
 
     // Calculate achievements
-    // Use UTC dates to avoid timezone issues
-    const startDate = new Date(`${month}-01T00:00:00.000Z`);
-    const endDate = new Date(startDate);
-    endDate.setUTCMonth(endDate.getUTCMonth() + 1);
+    // Parse month and create date range
+    const [year, monthNum] = month.split('-').map(Number);
+    const startDate = new Date(Date.UTC(year, monthNum - 1, 1, 0, 0, 0, 0));
+    const endDate = new Date(Date.UTC(year, monthNum, 1, 0, 0, 0, 0)); // First day of next month
     
-    // Get current date at start of day UTC
+    // Get current date/time
     const now = new Date();
-    now.setUTCHours(23, 59, 59, 999); // End of current day
     
     // Cap endDate to current date/time if the month is current or future
     const effectiveEndDate = endDate > now ? now : endDate;
     
     // Check if the month is entirely in the future (start of month is after today)
-    const todayStart = new Date();
-    todayStart.setUTCHours(0, 0, 0, 0);
-    const isFutureMonth = startDate > todayStart;
+    const isFutureMonth = startDate > now;
     
     // Debug logging
     console.log(`[Targets] Month: ${month}, Start: ${startDate.toISOString()}, End: ${endDate.toISOString()}, Now: ${now.toISOString()}, Effective: ${effectiveEndDate.toISOString()}, IsFuture: ${isFutureMonth}`);
