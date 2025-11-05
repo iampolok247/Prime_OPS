@@ -288,24 +288,83 @@ export default function LeadsCenter() {
           <div className="absolute inset-0 bg-black opacity-30" onClick={()=>setShowHistory(false)} />
           <div className="bg-white rounded-xl p-4 z-10 w-full max-w-2xl shadow-lg">
             <h3 className="text-lg font-semibold mb-2">Lead History — {histLead.leadId}</h3>
-            <div className="grid grid-cols-1 gap-2">
-              <div>Assigned At: <strong>{(histLead.assignedAt || histLead.updatedAt) ? new Date(histLead.assignedAt || histLead.updatedAt).toLocaleString() : '-'}</strong></div>
-              <div>Counseling At: <strong>{(histLead.counselingAt || histLead.updatedAt) ? new Date(histLead.counselingAt || histLead.updatedAt).toLocaleString() : '-'}</strong></div>
-              <div>Admitted At: <strong>{(histLead.admittedAt || histLead.updatedAt) ? new Date(histLead.admittedAt || histLead.updatedAt).toLocaleString() : '-'}</strong></div>
-              <div>Follow-ups ({(histLead.followUps||[]).length}):</div>
-              <div className="pl-2">
-                {(histLead.followUps||[]).length === 0 ? <div className="text-royal/70">No follow-ups</div> : (
-                  (histLead.followUps||[]).map((f, i)=> (
-                    <div key={i} className="mb-2">
-                      <div className="text-sm font-medium">{new Date(f.at).toLocaleString()} {f.by?.name ? ` — ${f.by.name}` : ''}</div>
-                      <div className="text-royal/70">{f.note || '-'}</div>
-                    </div>
-                  ))
-                )}
+            <div className="grid grid-cols-1 gap-3">
+              <div className="flex items-start gap-2">
+                <span className="text-royal/70 min-w-[140px]">Created At:</span>
+                <strong>{histLead.createdAt ? new Date(histLead.createdAt).toLocaleString('en-GB', { 
+                  day: '2-digit', 
+                  month: 'short', 
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                }) : '-'}</strong>
+              </div>
+              
+              <div className="flex items-start gap-2">
+                <span className="text-royal/70 min-w-[140px]">Assigned At:</span>
+                <strong>{histLead.assignedAt ? new Date(histLead.assignedAt).toLocaleString('en-GB', { 
+                  day: '2-digit', 
+                  month: 'short', 
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                }) : <span className="text-royal/50">Not yet assigned</span>}</strong>
+              </div>
+              
+              <div className="flex items-start gap-2">
+                <span className="text-royal/70 min-w-[140px]">Counseling At:</span>
+                <strong>{histLead.counselingAt ? new Date(histLead.counselingAt).toLocaleString('en-GB', { 
+                  day: '2-digit', 
+                  month: 'short', 
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                }) : <span className="text-royal/50">Not yet in counseling</span>}</strong>
+              </div>
+              
+              <div className="flex items-start gap-2">
+                <span className="text-royal/70 min-w-[140px]">Admitted At:</span>
+                <strong>{histLead.admittedAt ? new Date(histLead.admittedAt).toLocaleString('en-GB', { 
+                  day: '2-digit', 
+                  month: 'short', 
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                }) : <span className="text-royal/50">Not yet admitted</span>}</strong>
+              </div>
+
+              <div className="border-t pt-3 mt-2">
+                <div className="font-medium mb-2">Follow-ups ({(histLead.followUps||[]).length})</div>
+                <div className="pl-2">
+                  {(histLead.followUps||[]).length === 0 ? (
+                    <div className="text-royal/70 italic">No follow-ups yet</div>
+                  ) : (
+                    (histLead.followUps||[]).map((f, i)=> (
+                      <div key={i} className="mb-3 p-2 bg-gray-50 rounded-lg">
+                        <div className="text-sm font-medium text-royal">
+                          {new Date(f.at).toLocaleString('en-GB', { 
+                            day: '2-digit', 
+                            month: 'short', 
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                          })}
+                          {f.by?.name && <span className="ml-2 text-blue-600">— {f.by.name}</span>}
+                        </div>
+                        <div className="text-sm text-royal/70 mt-1">{f.note || 'No notes'}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
             <div className="mt-4 text-right">
-              <button onClick={()=>setShowHistory(false)} className="px-3 py-2 rounded-xl border">Close</button>
+              <button onClick={()=>setShowHistory(false)} className="px-4 py-2 bg-royal text-white rounded-xl hover:bg-royal/90">Close</button>
             </div>
           </div>
         </div>
