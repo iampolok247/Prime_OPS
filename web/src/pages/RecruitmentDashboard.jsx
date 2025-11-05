@@ -23,6 +23,7 @@ export default function RecruitmentDashboard() {
   // Target data
   const [targets, setTargets] = useState([]);
   const [loadingTargets, setLoadingTargets] = useState(false);
+  const [selectedTargetMonth, setSelectedTargetMonth] = useState('');
   
   // filters
   const [period, setPeriod] = useState('monthly');
@@ -31,7 +32,13 @@ export default function RecruitmentDashboard() {
 
   useEffect(() => {
     loadAll();
-    loadTargets();
+    // Initialize with current month
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const currentMonth = `${year}-${month}`;
+    setSelectedTargetMonth(currentMonth);
+    loadTargets(currentMonth);
   }, []);
 
   async function loadAll() {
@@ -53,23 +60,21 @@ export default function RecruitmentDashboard() {
     }
   }
 
-  async function loadTargets() {
+  async function loadTargets(month) {
     setLoadingTargets(true);
     try {
-      // Get current month in YYYY-MM format
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const currentMonth = `${year}-${month}`;
-      
-      // Get recruitment targets for current month
-      const resp = await api.getTargets(currentMonth, null, null);
+      // Get recruitment targets for selected month
+      const resp = await api.getTargets(month, null, null);
       const allTargets = resp?.targets || [];
+      
+      console.log('All targets for month:', month, allTargets);
       
       // Filter only recruitment targets
       const recruitmentTargets = allTargets.filter(t => 
         t.targetType === 'RecruitmentCandidate' || t.targetType === 'RecruitmentRevenue'
       );
+      
+      console.log('Filtered recruitment targets:', recruitmentTargets);
       
       setTargets(recruitmentTargets);
     } catch (e) {
@@ -78,6 +83,28 @@ export default function RecruitmentDashboard() {
       setLoadingTargets(false);
     }
   }
+
+  // Generate month options (last 12 months + next 3 months)
+  const generateMonthOptions = () => {
+    const options = [];
+    const now = new Date();
+    
+    for (let i = -12; i <= 3; i++) {
+      const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const yearMonth = `${year}-${String(month).padStart(2, '0')}`;
+      const label = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      options.push({ value: yearMonth, label });
+    }
+    
+    return options;
+  };
+
+  const handleMonthChange = (month) => {
+    setSelectedTargetMonth(month);
+    loadTargets(month);
+  };
 
   const parseRange = () => {
     if (period === 'lifetime') return { from: null, to: null };
@@ -252,24 +279,36 @@ export default function RecruitmentDashboard() {
 
       {/* Team Target Card */}
       {!loadingTargets && (
-        <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-2xl p-8 shadow-2xl border border-white/20">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-              <Target className="w-8 h-8 text-white" />
+        <div className="bg-white rounded-2xl p-8 shadow-xl border border-gray-200">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
+                <Target className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">Team Targets</h2>
+                <p className="text-gray-500 text-sm">Recruitment performance tracking</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-2xl font-bold text-white">Team Targets</h2>
-              <p className="text-white/80 text-sm">
-                {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-              </p>
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-gray-400" />
+              <select
+                value={selectedTargetMonth}
+                onChange={(e) => handleMonthChange(e.target.value)}
+                className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-indigo-400 focus:border-indigo-500 focus:outline-none transition-colors font-medium text-gray-700"
+              >
+                {generateMonthOptions().map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
             </div>
           </div>
           
           {targets.length === 0 ? (
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-12 border border-white/20 text-center">
-              <Target className="w-16 h-16 text-white/50 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-white mb-2">No Targets Set</h3>
-              <p className="text-white/70 text-sm">
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-12 border-2 border-dashed border-gray-300 text-center">
+              <Target className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-gray-700 mb-2">No Targets Set</h3>
+              <p className="text-gray-500 text-sm">
                 Contact your admin to set recruitment targets for this month
               </p>
             </div>
@@ -283,21 +322,25 @@ export default function RecruitmentDashboard() {
               const assignedUser = target.assignedTo?.name || 'Team';
               
               return (
-                <div key={target._id} className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+                <div key={target._id} className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-6 border-2 border-gray-200 hover:border-indigo-300 hover:shadow-lg transition-all duration-300">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-white/20 rounded-lg">
+                      <div className={`p-3 rounded-lg shadow-md ${
+                        isCandidate 
+                          ? 'bg-gradient-to-br from-blue-500 to-indigo-600' 
+                          : 'bg-gradient-to-br from-green-500 to-emerald-600'
+                      }`}>
                         {isCandidate ? (
-                          <Users className="w-5 h-5 text-white" />
+                          <Users className="w-6 h-6 text-white" />
                         ) : (
-                          <DollarSign className="w-5 h-5 text-white" />
+                          <DollarSign className="w-6 h-6 text-white" />
                         )}
                       </div>
                       <div>
-                        <h3 className="text-lg font-bold text-white">
+                        <h3 className="text-lg font-bold text-gray-800">
                           {isCandidate ? 'Candidates' : 'Revenue'}
                         </h3>
-                        <p className="text-white/70 text-sm">{assignedUser}</p>
+                        <p className="text-gray-500 text-sm">{assignedUser}</p>
                       </div>
                     </div>
                   </div>
@@ -305,14 +348,14 @@ export default function RecruitmentDashboard() {
                   <div className="space-y-3">
                     <div className="flex items-end justify-between">
                       <div>
-                        <p className="text-white/70 text-sm mb-1">Achievement</p>
-                        <p className="text-3xl font-bold text-white">
+                        <p className="text-gray-500 text-sm mb-1">Achievement</p>
+                        <p className="text-3xl font-bold text-gray-800">
                           {isCandidate ? achieved : fmtBDT(achieved)}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-white/70 text-sm mb-1">Target</p>
-                        <p className="text-xl font-semibold text-white">
+                        <p className="text-gray-500 text-sm mb-1">Target</p>
+                        <p className="text-xl font-semibold text-gray-600">
                           {isCandidate ? targetValue : fmtBDT(targetValue)}
                         </p>
                       </div>
@@ -321,19 +364,23 @@ export default function RecruitmentDashboard() {
                     {/* Progress Bar */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-white/80 font-medium">Progress</span>
-                        <span className="text-white font-bold">{percentage}%</span>
+                        <span className="text-gray-600 font-medium">Progress</span>
+                        <span className={`font-bold ${
+                          percentage >= 100 ? 'text-green-600' :
+                          percentage >= 75 ? 'text-blue-600' :
+                          percentage >= 50 ? 'text-orange-600' : 'text-red-600'
+                        }`}>{percentage}%</span>
                       </div>
-                      <div className="h-3 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
+                      <div className="h-3 bg-gray-200 rounded-full overflow-hidden shadow-inner">
                         <div
                           className={`h-full rounded-full transition-all duration-500 ${
                             percentage >= 100
-                              ? 'bg-gradient-to-r from-green-400 to-emerald-500'
+                              ? 'bg-gradient-to-r from-green-500 to-emerald-600'
                               : percentage >= 75
-                              ? 'bg-gradient-to-r from-blue-400 to-cyan-500'
+                              ? 'bg-gradient-to-r from-blue-500 to-indigo-600'
                               : percentage >= 50
-                              ? 'bg-gradient-to-r from-yellow-400 to-orange-500'
-                              : 'bg-gradient-to-r from-red-400 to-pink-500'
+                              ? 'bg-gradient-to-r from-orange-500 to-amber-600'
+                              : 'bg-gradient-to-r from-red-500 to-rose-600'
                           }`}
                           style={{ width: `${Math.min(percentage, 100)}%` }}
                         />
@@ -341,7 +388,7 @@ export default function RecruitmentDashboard() {
                     </div>
                     
                     {target.note && (
-                      <p className="text-white/70 text-sm mt-3 italic">
+                      <p className="text-gray-600 text-sm mt-3 italic bg-gray-50 p-2 rounded border-l-4 border-indigo-400">
                         "{target.note}"
                       </p>
                     )}
