@@ -34,7 +34,7 @@ router.get('/leads', requireAuth, async (req, res) => {
 // Counseling -> Admitted | In Follow Up | Not Admitted
 // In Follow Up -> Admitted | Not Admitted
 router.patch('/leads/:id/status', requireAuth, async (req, res) => {
-  const { status, notes, courseId } = req.body || {};
+  const { status, notes, courseId, batchId } = req.body || {};
   const allowed = ['Counseling', 'Admitted', 'In Follow Up', 'Not Admitted'];
   if (!allowed.includes(status)) {
     return res.status(400).json({ code: 'INVALID_STATUS', message: 'Invalid target status' });
@@ -85,6 +85,26 @@ router.patch('/leads/:id/status', requireAuth, async (req, res) => {
       const course = await Course.findById(courseId);
       if (course) {
         lead.interestedCourse = course.name;
+      }
+    }
+    
+    // Store the batch they were admitted to
+    if (batchId) {
+      lead.admittedToBatch = batchId;
+      // Also add student to batch's admittedStudents array
+      const Batch = (await import('../models/Batch.js')).default;
+      const batch = await Batch.findById(batchId);
+      if (batch) {
+        const alreadyInBatch = batch.admittedStudents.some(
+          s => s.lead.toString() === lead._id.toString()
+        );
+        if (!alreadyInBatch) {
+          batch.admittedStudents.push({
+            lead: lead._id,
+            admittedAt: new Date()
+          });
+          await batch.save();
+        }
       }
     }
   }

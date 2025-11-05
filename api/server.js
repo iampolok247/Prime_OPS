@@ -21,6 +21,7 @@ import recruitmentRoutes from './routes/recruitment.js';
 import mgRoutes from './routes/mg.js';
 import messagesRoutes from './routes/messages.js';
 import admissionTargetsRoutes from './routes/admissionTargets.js';
+import batchRoutes from './routes/batches.js';
 
 dotenv.config();
 
@@ -69,6 +70,7 @@ app.use('/api/mg', mgRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/admission-targets', admissionTargetsRoutes);
+app.use('/api/batches', batchRoutes);
 
 // 👉 Mount recruitment under /api/recruitment  (matches frontend)
 app.use('/api/recruitment', recruitmentRoutes);

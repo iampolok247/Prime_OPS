@@ -60,11 +60,13 @@ function PipelineTable({ status, canAct }) {
   const [histLead, setHistLead] = useState(null);
   const [histLoading, setHistLoading] = useState(false);
   
-  // Course selection for admission
+  // Course and Batch selection for admission
   const [showAdmitModal, setShowAdmitModal] = useState(false);
   const [admitTarget, setAdmitTarget] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState('');
+  const [selectedBatch, setSelectedBatch] = useState('');
   const [courses, setCourses] = useState([]);
+  const [batches, setBatches] = useState([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
 
   const load = async () => {
@@ -78,11 +80,15 @@ function PipelineTable({ status, canAct }) {
   const loadCourses = async () => {
     setCoursesLoading(true);
     try {
-      const data = await api.listCourses();
-      setCourses(data?.courses || []);
+      const [coursesData, batchesData] = await Promise.all([
+        api.listCourses(),
+        api.listBatches('Active') // Load only active batches
+      ]);
+      setCourses(coursesData?.courses || []);
+      setBatches(batchesData?.batches || []);
     } catch (e) {
-      console.error('Failed to load courses:', e);
-      setErr('Failed to load courses: ' + e.message);
+      console.error('Failed to load courses/batches:', e);
+      setErr('Failed to load courses/batches: ' + e.message);
     } finally {
       setCoursesLoading(false);
     }
@@ -90,15 +96,15 @@ function PipelineTable({ status, canAct }) {
 
   useEffect(() => { load(); }, [status]); // eslint-disable-line
 
-  const act = async (id, action, notes, courseId) => {
+  const act = async (id, action, notes, courseId, batchId) => {
     setMsg(null); setErr(null);
     try {
-      await api.updateLeadStatus(id, action, notes, courseId);
+      await api.updateLeadStatus(id, action, notes, courseId, batchId);
       setMsg(`Status updated to ${action}`);
       setShowFollowModal(false);
       setFollowNote(''); setFollowTarget(null);
       setShowNotAdmitModal(false); setNotAdmitNote(''); setNotAdmitTarget(null);
-      setShowAdmitModal(false); setAdmitTarget(null); setSelectedCourse('');
+      setShowAdmitModal(false); setAdmitTarget(null); setSelectedCourse(''); setSelectedBatch('');
       setShowHistory(false); setHistLead(null); setHistLoading(false);
       load();
     } catch (e) { setErr(e.message); }
@@ -107,6 +113,7 @@ function PipelineTable({ status, canAct }) {
   const handleAdmitClick = (rowId) => {
     setAdmitTarget(rowId);
     setSelectedCourse('');
+    setSelectedBatch('');
     setShowAdmitModal(true);
     loadCourses();
   };
@@ -165,40 +172,67 @@ function PipelineTable({ status, canAct }) {
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="absolute inset-0 bg-black opacity-30" onClick={()=>setShowAdmitModal(false)} />
           <div className="bg-white rounded-xl p-6 z-10 w-full max-w-md shadow-lg">
-            <h3 className="text-xl font-bold text-navy mb-4">Select Course for Admission</h3>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Course <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={selectedCourse}
-                onChange={e=>setSelectedCourse(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-gold"
-                disabled={coursesLoading}
-                required
-              >
-                <option value="">{coursesLoading ? 'Loading courses...' : 'Select a course'}</option>
-                {courses.map(c => (
-                  <option key={c._id} value={c._id}>{c.name} ({c.courseId})</option>
-                ))}
-              </select>
-              {courses.length === 0 && !coursesLoading && (
-                <p className="text-xs text-red-600 mt-1">No courses available</p>
-              )}
+            <h3 className="text-xl font-bold text-navy mb-4">Admit Student</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Course <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={selectedCourse}
+                  onChange={e=>setSelectedCourse(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-gold"
+                  disabled={coursesLoading}
+                  required
+                >
+                  <option value="">{coursesLoading ? 'Loading...' : 'Select a course'}</option>
+                  {courses.map(c => (
+                    <option key={c._id} value={c._id}>{c.name} ({c.courseId})</option>
+                  ))}
+                </select>
+                {courses.length === 0 && !coursesLoading && (
+                  <p className="text-xs text-red-600 mt-1">No courses available</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Batch <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={selectedBatch}
+                  onChange={e=>setSelectedBatch(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-gold"
+                  disabled={coursesLoading}
+                  required
+                >
+                  <option value="">{coursesLoading ? 'Loading...' : 'Select a batch'}</option>
+                  {batches.map(b => (
+                    <option key={b._id} value={b._id}>
+                      {b.batchName} - {b.category} ({b.admittedStudents?.length || 0}/{b.targetedStudent})
+                    </option>
+                  ))}
+                </select>
+                {batches.length === 0 && !coursesLoading && (
+                  <p className="text-xs text-red-600 mt-1">No active batches available. Contact admin to create a batch.</p>
+                )}
+              </div>
             </div>
-            <div className="flex justify-end gap-2">
+
+            <div className="flex justify-end gap-2 mt-6">
               <button 
                 type="button" 
-                onClick={()=>{ setShowAdmitModal(false); setAdmitTarget(null); setSelectedCourse(''); }} 
+                onClick={()=>{ setShowAdmitModal(false); setAdmitTarget(null); setSelectedCourse(''); setSelectedBatch(''); }} 
                 className="px-4 py-2 rounded-xl border border-gray-300 hover:bg-gray-50 transition-colors"
               >
                 Cancel
               </button>
               <button 
                 type="button" 
-                onClick={()=>act(admitTarget,'Admitted','', selectedCourse)} 
+                onClick={()=>act(admitTarget,'Admitted','', selectedCourse, selectedBatch)} 
                 className="px-4 py-2 rounded-xl bg-gold text-navy font-semibold hover:bg-yellow-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!selectedCourse || coursesLoading}
+                disabled={!selectedCourse || !selectedBatch || coursesLoading}
               >
                 Confirm Admission
               </button>

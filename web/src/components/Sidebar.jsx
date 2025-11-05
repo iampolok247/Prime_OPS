@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { LayoutDashboard, ListChecks, Users, BookOpen, FolderOpen, Wallet, BarChart2, Film, CreditCard, Menu, X, Kanban, DollarSign, Video, Activity, MessageCircle, FileText, Target } from 'lucide-react';
+import { LayoutDashboard, ListChecks, Users, BookOpen, FolderOpen, Wallet, BarChart2, Film, CreditCard, Menu, X, Kanban, DollarSign, Video, Activity, MessageCircle, FileText, Target, Layers } from 'lucide-react';
 
 const Item = ({ to, icon, label, onClick }) => (
   <NavLink
@@ -31,6 +31,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       { to: '/employees', label: 'Employee ', icon: <Users size={18}/> },
       { to: '/courses', label: 'Courses ', icon: <BookOpen size={18}/> },
       { to: '/admission-targets', label: 'Admission Targets', icon: <Target size={18}/> },
+      { to: '/batches', label: 'Batches', icon: <Layers size={18}/> },
       { to: '/leads-center-view', label: 'Leads Center ', icon: <FolderOpen size={18}/> },     
       { to: '/admission/dashboard', label: 'Admission Reports', icon: <FolderOpen size={18}/> },
       { to: '/recruitment', label: 'Recruitment Reports', icon: <LayoutDashboard size={18}/> },
@@ -48,6 +49,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       { to: '/leads-center-view', label: 'Leads Center ', icon: <FolderOpen size={18}/> },
       { to: '/courses', label: 'Courses ', icon: <BookOpen size={18}/> },
       { to: '/admission-targets', label: 'Admission Targets', icon: <Target size={18}/> },
+      { to: '/batches', label: 'Batches', icon: <Layers size={18}/> },
       { to: '/admission/dashboard', label: 'Admission Reports', icon: <FolderOpen size={18}/> },
       { to: '/recruitment', label: 'Recruitment Reports', icon: <LayoutDashboard size={18}/> },
       { to: '/accounting/dashboard', label: 'Accounts Dashboard', icon: <Wallet size={18}/> },
@@ -70,6 +72,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
       { to: '/task-report', label: 'Task Report', icon: <FileText size={18}/> },
       { to: '/courses', label: 'Courses', icon: <BookOpen size={18}/> },
+      { to: '/batches', label: 'Batches', icon: <Layers size={18}/> },
       { to: '/admission/assigned', label: 'Assigned Lead', icon: <FolderOpen size={18}/> },
       { to: '/admission/counseling', label: 'Counseling', icon: <FolderOpen size={18}/> },
       { to: '/admission/follow-up', label: 'In Follow-Up', icon: <FolderOpen size={18}/> },

@@ -23,6 +23,7 @@ const LeadSchema = new mongoose.Schema(
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Admission member
     assignedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // DM user
     admittedToCourse: { type: mongoose.Schema.Types.ObjectId, ref: 'Course' }, // Course they were admitted to
+    admittedToBatch: { type: mongoose.Schema.Types.ObjectId, ref: 'Batch' }, // Batch they were admitted to
     notes: { type: String, default: '' },
     // stage timestamps
     assignedAt: { type: Date },

@@ -337,10 +337,11 @@ export const api = {
     const res = await authFetch(`${getApiBase()}/api/admission/leads${q}`, { credentials: 'include' });
     return handleJson(res, 'Load admission leads failed');
   },
-  async updateLeadStatus(id, status, notes, courseId) {
+  async updateLeadStatus(id, status, notes, courseId, batchId) {
     const body = { status };
     if (notes !== undefined && notes !== null) body.notes = notes;
     if (courseId !== undefined && courseId !== null) body.courseId = courseId;
+    if (batchId !== undefined && batchId !== null) body.batchId = batchId;
     const res = await authFetch(`${getApiBase()}/api/admission/leads/${id}/status`, {
       method: 'PATCH', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -802,6 +803,56 @@ async deleteAdmissionTarget(id) {
     method: 'DELETE', credentials: 'include'
   });
   return handleJson(res, 'Delete admission target failed');
+},
+
+// ---- Batches ----
+async listBatches(status, category) {
+  let url = `${getApiBase()}/api/batches`;
+  const params = new URLSearchParams();
+  if (status) params.append('status', status);
+  if (category) params.append('category', category);
+  if (params.toString()) url += `?${params.toString()}`;
+  
+  const res = await authFetch(url, { credentials: 'include' });
+  return handleJson(res, 'Load batches failed');
+},
+async getBatch(id) {
+  const res = await authFetch(`${getApiBase()}/api/batches/${id}`, { credentials: 'include' });
+  return handleJson(res, 'Load batch failed');
+},
+async getBatchReport(id) {
+  const res = await authFetch(`${getApiBase()}/api/batches/${id}/report`, { credentials: 'include' });
+  return handleJson(res, 'Load batch report failed');
+},
+async createBatch(payload) {
+  const res = await authFetch(`${getApiBase()}/api/batches`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return handleJson(res, 'Create batch failed');
+},
+async updateBatch(id, payload) {
+  const res = await authFetch(`${getApiBase()}/api/batches/${id}`, {
+    method: 'PATCH', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return handleJson(res, 'Update batch failed');
+},
+async deleteBatch(id) {
+  const res = await authFetch(`${getApiBase()}/api/batches/${id}`, {
+    method: 'DELETE', credentials: 'include'
+  });
+  return handleJson(res, 'Delete batch failed');
+},
+async addStudentToBatch(batchId, leadId) {
+  const res = await authFetch(`${getApiBase()}/api/batches/${batchId}/add-student`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ leadId })
+  });
+  return handleJson(res, 'Add student to batch failed');
 },
 
 };
