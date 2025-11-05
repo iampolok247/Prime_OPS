@@ -106,6 +106,7 @@ export default function AdmissionDashboard() {
   const [to, setTo] = useState('');
   const [allLeads, setAllLeads] = useState([]);
   const [batches, setBatches] = useState([]);
+  const [batchCategoryFilter, setBatchCategoryFilter] = useState('All');
   const [loading, setLoading] = useState(false);
 
   // Load all leads and batches once
@@ -295,14 +296,27 @@ export default function AdmissionDashboard() {
       {/* Batch Overview Section */}
       {batches.length > 0 && (
         <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
-          <div className="mb-6">
-            <h3 className="text-lg font-bold text-gray-800">Active Batches Overview</h3>
-            <p className="text-sm text-gray-500 mt-1">Track progress across all batches</p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Active Batches Overview</h3>
+              <p className="text-sm text-gray-500 mt-1">Track progress across all batches</p>
+            </div>
+            {/* Category Filter */}
+            <select 
+              value={batchCategoryFilter} 
+              onChange={e => setBatchCategoryFilter(e.target.value)}
+              className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors text-sm"
+            >
+              <option value="All">📚 All Categories</option>
+              {[...new Set(batches.filter(b => b.status === 'Active').map(b => b.category))].map(cat => (
+                <option key={cat} value={cat}>📁 {cat}</option>
+              ))}
+            </select>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {batches
-              .filter(b => b.status === 'Active')
+              .filter(b => b.status === 'Active' && (batchCategoryFilter === 'All' || b.category === batchCategoryFilter))
               .map(batch => {
                 const admitted = batch.admittedStudents?.length || 0;
                 const target = batch.targetedStudent || 0;
@@ -311,49 +325,48 @@ export default function AdmissionDashboard() {
                 return (
                   <div 
                     key={batch._id} 
-                    className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-5 border-2 border-blue-100 hover:border-blue-300 hover:shadow-lg transition-all duration-300"
+                    className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-3 border border-blue-100 hover:border-blue-300 hover:shadow-md transition-all duration-200"
                   >
-                    {/* Batch Header */}
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h4 className="font-bold text-gray-800 text-base mb-1">{batch.batchName}</h4>
-                        <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium">
+                    {/* Batch Header - Compact */}
+                    <div className="mb-2">
+                      <h4 className="font-bold text-gray-800 text-sm mb-1 line-clamp-1" title={batch.batchName}>
+                        {batch.batchName}
+                      </h4>
+                      <div className="flex items-center justify-between">
+                        <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">
                           {batch.category}
                         </span>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs text-gray-500 mb-1">Batch ID</div>
-                        <div className="text-xs font-mono font-semibold text-gray-700">{batch.batchId}</div>
+                        <span className="text-xs font-mono text-gray-500">{batch.batchId.split('-').pop()}</span>
                       </div>
                     </div>
 
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="bg-white rounded-lg p-3 shadow-sm">
-                        <div className="text-xs text-gray-500 mb-1">Target</div>
-                        <div className="text-2xl font-bold text-gray-800">{target}</div>
+                    {/* Stats - Compact Row */}
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="bg-white rounded p-2 flex-1 text-center">
+                        <div className="text-xs text-gray-500">Target</div>
+                        <div className="text-lg font-bold text-gray-800">{target}</div>
                       </div>
-                      <div className="bg-white rounded-lg p-3 shadow-sm">
-                        <div className="text-xs text-gray-500 mb-1">Admitted</div>
-                        <div className="text-2xl font-bold text-blue-600">{admitted}</div>
+                      <div className="bg-white rounded p-2 flex-1 text-center">
+                        <div className="text-xs text-gray-500">Admitted</div>
+                        <div className="text-lg font-bold text-blue-600">{admitted}</div>
                       </div>
                     </div>
 
-                    {/* Progress Bar */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-gray-600 font-medium">Progress</span>
-                        <span className={`font-bold ${
+                    {/* Progress Bar - Compact */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className={`text-xs font-bold ${
                           progress >= 100 ? 'text-green-600' : 
                           progress >= 75 ? 'text-blue-600' : 
                           progress >= 50 ? 'text-yellow-600' : 'text-orange-600'
                         }`}>
                           {progress}%
                         </span>
+                        {progress >= 100 && <span className="text-xs">🎉</span>}
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                      <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                         <div 
-                          className={`h-3 rounded-full transition-all duration-500 ${
+                          className={`h-2 rounded-full transition-all duration-500 ${
                             progress >= 100 ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 
                             progress >= 75 ? 'bg-gradient-to-r from-blue-500 to-indigo-500' : 
                             progress >= 50 ? 'bg-gradient-to-r from-yellow-500 to-amber-500' : 
@@ -362,31 +375,23 @@ export default function AdmissionDashboard() {
                           style={{ width: `${Math.min(progress, 100)}%` }}
                         />
                       </div>
-                      {progress >= 100 && (
-                        <div className="flex items-center gap-1 text-green-600 text-xs font-medium mt-1">
-                          <GraduationCap className="w-3 h-3" />
-                          <span>Target Achieved! 🎉</span>
+                      {admitted < target && (
+                        <div className="text-center text-xs text-gray-500">
+                          {target - admitted} left
                         </div>
                       )}
                     </div>
-
-                    {/* Remaining Spots */}
-                    {admitted < target && (
-                      <div className="mt-3 text-center">
-                        <span className="text-xs text-gray-600">
-                          {target - admitted} spot{target - admitted !== 1 ? 's' : ''} remaining
-                        </span>
-                      </div>
-                    )}
                   </div>
                 );
               })}
           </div>
 
-          {batches.filter(b => b.status === 'Active').length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <Users className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-              <p>No active batches available</p>
+          {batches.filter(b => b.status === 'Active' && (batchCategoryFilter === 'All' || b.category === batchCategoryFilter)).length === 0 && (
+            <div className="text-center py-6 text-gray-500">
+              <Users className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+              <p className="text-sm">
+                {batchCategoryFilter === 'All' ? 'No active batches available' : `No active batches in "${batchCategoryFilter}" category`}
+              </p>
             </div>
           )}
         </div>
