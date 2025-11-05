@@ -391,6 +391,9 @@ export default function Targets() {
           const isFutureMonth = selectedMonth > currentMonth;
           const isCurrentMonth = selectedMonth === currentMonth;
           
+          // Debug logging
+          console.log('[Banner] currentMonth:', currentMonth, 'selectedMonth:', selectedMonth, 'isFuture:', isFutureMonth, 'isCurrent:', isCurrentMonth);
+          
           if (isFutureMonth) {
             return (
               <div className="mb-4 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg flex items-start gap-2">
