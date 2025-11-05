@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 export default function Courses() {
   const { user } = useAuth();
   const [list, setList] = useState([]);
+  const [categoryFilter, setCategoryFilter] = useState('All');
   const [open, setOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [viewCourse, setViewCourse] = useState(null);
@@ -14,6 +15,14 @@ export default function Courses() {
   const [ok, setOk] = useState(null);
 
   const canEdit = user?.role === 'Admin' || user?.role === 'SuperAdmin';
+
+  // Get unique categories from courses
+  const categories = ['All', ...new Set(list.map(c => c.category).filter(Boolean))];
+
+  // Filter courses by category
+  const filteredList = categoryFilter === 'All' 
+    ? list 
+    : list.filter(c => c.category === categoryFilter);
 
   const load = async () => {
     try {
@@ -72,11 +81,25 @@ export default function Courses() {
     <div>
       <div className="flex items-center justify-between mb-3">
         <h1 className="text-2xl font-bold text-navy">Courses</h1>
-        {canEdit && <button onClick={startAdd} className="bg-gold text-navy rounded-xl px-4 py-2 font-semibold hover:bg-lightgold">+ Add Course</button>}
+        <div className="flex items-center gap-3">
+          {/* Category Filter */}
+          <select 
+            value={categoryFilter} 
+            onChange={e=>setCategoryFilter(e.target.value)} 
+            className="border rounded-xl px-4 py-2 text-sm"
+          >
+            {categories.map(cat => (
+              <option key={cat} value={cat}>
+                {cat === 'All' ? '📚 All Categories' : `📁 ${cat}`}
+              </option>
+            ))}
+          </select>
+          {canEdit && <button onClick={startAdd} className="bg-gold text-navy rounded-xl px-4 py-2 font-semibold hover:bg-lightgold">+ Add Course</button>}
+        </div>
       </div>
 
-      {ok && <div className="mb-2 text-green-700">{ok}</div>}
-      {err && <div className="mb-2 text-red-600">{err}</div>}
+      {ok && <div className="mb-2 p-3 bg-green-100 text-green-700 rounded-xl">{ok}</div>}
+      {err && <div className="mb-2 p-3 bg-red-100 text-red-600 rounded-xl">{err}</div>}
 
       <div className="bg-white rounded-2xl shadow-soft overflow-auto">
         <table className="min-w-full text-sm">
@@ -94,16 +117,28 @@ export default function Courses() {
             </tr>
           </thead>
           <tbody>
-            {list.map(c => (
-              <tr key={c._id} className="border-t">
+            {filteredList.map(c => (
+              <tr key={c._id} className="border-t hover:bg-gray-50">
                 <td className="p-3">{c.courseId}</td>
                 <td className="p-3 font-semibold text-navy">{c.name}</td>
-                <td className="p-3">{c.category || '-'}</td>
+                <td className="p-3">
+                  {c.category ? (
+                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium">
+                      {c.category}
+                    </span>
+                  ) : '-'}
+                </td>
                 <td className="p-3">{c.duration || '-'}</td>
                 <td className="p-3">৳ {c.regularFee}</td>
                 <td className="p-3">৳ {c.discountFee}</td>
                 <td className="p-3">{c.teacher || '-'}</td>
-                <td className="p-3">{c.status}</td>
+                <td className="p-3">
+                  <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                    c.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                  }`}>
+                    {c.status}
+                  </span>
+                </td>
                 <td className="p-3">
                   <button onClick={()=>startView(c)} className="px-3 py-1 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 mr-2">View</button>
                   {canEdit && (
@@ -115,8 +150,10 @@ export default function Courses() {
                 </td>
               </tr>
             ))}
-            {list.length === 0 && (
-              <tr><td className="p-4 text-royal/70" colSpan="9">No courses</td></tr>
+            {filteredList.length === 0 && (
+              <tr><td className="p-4 text-royal/70 text-center" colSpan="9">
+                {list.length === 0 ? 'No courses' : 'No courses in this category'}
+              </td></tr>
             )}
           </tbody>
         </table>
