@@ -6,6 +6,7 @@ export default function LeadsCenter() {
   const { user } = useAuth();
   const [status, setStatus] = useState('Assigned');
   const [courseFilter, setCourseFilter] = useState('All');
+  const [sortBy, setSortBy] = useState('date-desc'); // date-desc, date-asc, member-asc, member-desc
   const [courses, setCourses] = useState([]);
   const [leads, setLeads] = useState([]);
   const [admissions, setAdmissions] = useState([]);
@@ -84,17 +85,48 @@ export default function LeadsCenter() {
     );
   };
 
-  // Filter leads by course
+  // Filter and sort leads
   const filteredLeads = useMemo(() => {
-    if (courseFilter === 'All') return leads;
-    return leads.filter(l => l.interestedCourse === courseFilter);
-  }, [leads, courseFilter]);
+    let filtered = courseFilter === 'All' ? leads : leads.filter(l => l.interestedCourse === courseFilter);
+    
+    // Sort leads
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortBy === 'date-desc') {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      } else if (sortBy === 'date-asc') {
+        return new Date(a.createdAt) - new Date(b.createdAt);
+      } else if (sortBy === 'member-asc') {
+        const nameA = a.assignedTo?.name || 'Unassigned';
+        const nameB = b.assignedTo?.name || 'Unassigned';
+        return nameA.localeCompare(nameB);
+      } else if (sortBy === 'member-desc') {
+        const nameA = a.assignedTo?.name || 'Unassigned';
+        const nameB = b.assignedTo?.name || 'Unassigned';
+        return nameB.localeCompare(nameA);
+      }
+      return 0;
+    });
+    
+    return sorted;
+  }, [leads, courseFilter, sortBy]);
 
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
         <h1 className="text-2xl font-bold text-navy">Leads Center</h1>
         <div className="flex items-center gap-3">
+          {/* Sort By */}
+          <select 
+            value={sortBy} 
+            onChange={e=>setSortBy(e.target.value)} 
+            className="border rounded-xl px-3 py-2"
+          >
+            <option value="date-desc">📅 Newest First</option>
+            <option value="date-asc">📅 Oldest First</option>
+            <option value="member-asc">👤 Member (A-Z)</option>
+            <option value="member-desc">👤 Member (Z-A)</option>
+          </select>
+
           {/* Course Filter */}
           <select 
             value={courseFilter} 
@@ -171,6 +203,7 @@ export default function LeadsCenter() {
                 </th>
               )}
               <th className="text-left p-3">Lead ID</th>
+              <th className="text-left p-3">Added Date</th>
               <th className="text-left p-3">Name</th>
               <th className="text-left p-3">Phone / Email</th>
               <th className="text-left p-3">Interested Course</th>
@@ -194,6 +227,21 @@ export default function LeadsCenter() {
                   </td>
                 )}
                 <td className="p-3">{l.leadId}</td>
+                <td className="p-3">
+                  <div className="text-sm">
+                    {new Date(l.createdAt).toLocaleDateString('en-GB', { 
+                      day: '2-digit', 
+                      month: 'short', 
+                      year: 'numeric' 
+                    })}
+                  </div>
+                  <div className="text-xs text-royal/70">
+                    {new Date(l.createdAt).toLocaleTimeString('en-US', { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </div>
+                </td>
                 <td className="p-3">{l.name}</td>
                 <td className="p-3">
                   <div>{l.phone}</div>
@@ -228,7 +276,7 @@ export default function LeadsCenter() {
               </tr>
             ))}
             {filteredLeads.length === 0 && (
-              <tr><td className="p-4 text-royal/70 text-center" colSpan={canAssign ? 9 : 7}>
+              <tr><td className="p-4 text-royal/70 text-center" colSpan={canAssign ? 10 : 8}>
                 {leads.length === 0 ? 'No leads' : 'No leads match the selected course filter'}
               </td></tr>
             )}
