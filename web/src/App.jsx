@@ -48,7 +48,7 @@ import MGProduction from './pages/MGProduction.jsx';
 import Messages from './pages/Messages.jsx';
 import TaskReport from './pages/TaskReport.jsx';
 import AdminTaskReport from './pages/AdminTaskReport.jsx';
-import AdmissionTargets from './pages/AdmissionTargets.jsx';
+import Targets from './pages/Targets.jsx';
 import Batches from './pages/Batches.jsx';
 
 import Login from './pages/Login.jsx';
@@ -87,7 +87,7 @@ export default function App() {
             <Route path="/reports-view" element={<ReportsView />} />
             <Route path="/leads-center-view" element={<LeadsCenterView />} />
             <Route path="/admin-task-report" element={<AdminTaskReport />} />
-            <Route path="/admission-targets" element={<AdmissionTargets />} />
+            <Route path="/admission-targets" element={<Targets />} />
             <Route path="/batches" element={<Batches />} />
           </Route>
 

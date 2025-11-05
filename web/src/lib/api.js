@@ -805,6 +805,39 @@ async deleteAdmissionTarget(id) {
   return handleJson(res, 'Delete admission target failed');
 },
 
+// ---- Targets (New Unified System) ----
+async setTarget(payload) {
+  const res = await authFetch(`${getApiBase()}/api/targets`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return handleJson(res, 'Set target failed');
+},
+async getTargets(month, targetType, assignedTo) {
+  let url = `${getApiBase()}/api/targets?month=${month}`;
+  if (targetType) url += `&targetType=${targetType}`;
+  if (assignedTo) url += `&assignedTo=${assignedTo}`;
+  const res = await authFetch(url, { credentials: 'include' });
+  return handleJson(res, 'Get targets failed');
+},
+async getAllTargets() {
+  const res = await authFetch(`${getApiBase()}/api/targets/all`, { credentials: 'include' });
+  return handleJson(res, 'Get all targets failed');
+},
+async deleteTarget(id) {
+  const res = await authFetch(`${getApiBase()}/api/targets/${id}`, {
+    method: 'DELETE', credentials: 'include'
+  });
+  return handleJson(res, 'Delete target failed');
+},
+async getTeamMembers(role) {
+  let url = `${getApiBase()}/api/targets/team-members`;
+  if (role) url += `?role=${role}`;
+  const res = await authFetch(url, { credentials: 'include' });
+  return handleJson(res, 'Get team members failed');
+},
+
 // ---- Batches ----
 async listBatches(status, category) {
   let url = `${getApiBase()}/api/batches`;
