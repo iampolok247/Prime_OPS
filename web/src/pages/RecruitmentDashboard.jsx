@@ -192,7 +192,7 @@ export default function RecruitmentDashboard() {
       )}
 
       {/* Team Target Card */}
-      {!loadingTargets && targets.length > 0 && (
+      {!loadingTargets && (
         <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-2xl p-8 shadow-2xl border border-white/20">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
@@ -206,7 +206,16 @@ export default function RecruitmentDashboard() {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {targets.length === 0 ? (
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-12 border border-white/20 text-center">
+              <Target className="w-16 h-16 text-white/50 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-white mb-2">No Targets Set</h3>
+              <p className="text-white/70 text-sm">
+                Contact your admin to set recruitment targets for this month
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {targets.map((target) => {
               const isCandidate = target.targetType === 'RecruitmentCandidate';
               const achieved = target.achieved || 0;
@@ -281,7 +290,8 @@ export default function RecruitmentDashboard() {
                 </div>
               );
             })}
-          </div>
+            </div>
+          )}
         </div>
       )}
 
