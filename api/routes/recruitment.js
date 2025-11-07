@@ -274,10 +274,21 @@ router.delete(
 router.get(
   '/income',
   requireAuth,
-  authorize(R_VIEW),
-  async (_req, res) => {
-    const items = await RIncome.find().sort({ date: -1, createdAt: -1 });
-    res.json(items);
+  authorize([...R_VIEW, 'Accountant']), // Accountant can also view
+  async (req, res) => {
+    try {
+      const { status } = req.query; // 'Pending' | 'Approved' | 'Rejected'
+      const query = {};
+      if (status) query.status = status;
+      
+      const items = await RIncome.find(query)
+        .sort({ date: -1, createdAt: -1 })
+        .populate('submittedBy', 'name email role')
+        .populate('approvedBy', 'name email role');
+      res.json(items);
+    } catch (e) {
+      res.status(500).json({ message: e.message || 'Failed to load income' });
+    }
   }
 );
 
@@ -287,11 +298,72 @@ router.post(
   authorize(R_WRITE),
   async (req, res) => {
     try {
-      const { date, source, amount } = req.body;
-      const created = await RIncome.create({ date, source, amount });
-      res.status(201).json(created);
+      const { date, source, amount, description } = req.body;
+      const created = await RIncome.create({ 
+        date, 
+        source, 
+        amount, 
+        description,
+        status: 'Pending',
+        submittedBy: req.user._id 
+      });
+      const populated = await RIncome.findById(created._id)
+        .populate('submittedBy', 'name email role');
+      res.status(201).json(populated);
     } catch (e) {
       res.status(400).json({ message: e.message || 'Failed to add income' });
+    }
+  }
+);
+
+// Approve income (Accountant only)
+router.post(
+  '/income/:id/approve',
+  requireAuth,
+  authorize(['Accountant', 'Admin', 'SuperAdmin']),
+  async (req, res) => {
+    try {
+      const updated = await RIncome.findByIdAndUpdate(
+        req.params.id,
+        {
+          status: 'Approved',
+          approvedBy: req.user._id,
+          approvedAt: new Date()
+        },
+        { new: true }
+      ).populate('submittedBy approvedBy', 'name email role');
+      
+      if (!updated) return res.status(404).json({ message: 'Income not found' });
+      res.json(updated);
+    } catch (e) {
+      res.status(400).json({ message: e.message || 'Failed to approve income' });
+    }
+  }
+);
+
+// Reject income (Accountant only)
+router.post(
+  '/income/:id/reject',
+  requireAuth,
+  authorize(['Accountant', 'Admin', 'SuperAdmin']),
+  async (req, res) => {
+    try {
+      const { reason } = req.body;
+      const updated = await RIncome.findByIdAndUpdate(
+        req.params.id,
+        {
+          status: 'Rejected',
+          approvedBy: req.user._id,
+          approvedAt: new Date(),
+          rejectionReason: reason || ''
+        },
+        { new: true }
+      ).populate('submittedBy approvedBy', 'name email role');
+      
+      if (!updated) return res.status(404).json({ message: 'Income not found' });
+      res.json(updated);
+    } catch (e) {
+      res.status(400).json({ message: e.message || 'Failed to reject income' });
     }
   }
 );
@@ -299,7 +371,7 @@ router.post(
 router.delete(
   '/income/:id',
   requireAuth,
-  authorize(R_WRITE),
+  authorize([...R_WRITE, 'Admin', 'SuperAdmin']), // Only allow deletion by Recruitment, Admin, SuperAdmin
   async (req, res) => {
     try {
       await RIncome.findByIdAndDelete(req.params.id);

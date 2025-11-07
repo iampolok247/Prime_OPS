@@ -546,6 +546,21 @@ export const api = {
     });
     return handleJson(res, 'Add recruitment income failed');
   },
+  async approveRecIncome(id) {
+    const res = await authFetch(`${getApiBase()}/api/recruitment/income/${id}/approve`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return handleJson(res, 'Approve recruitment income failed');
+  },
+  async rejectRecIncome(id, reason) {
+    const res = await authFetch(`${getApiBase()}/api/recruitment/income/${id}/reject`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason })
+    });
+    return handleJson(res, 'Reject recruitment income failed');
+  },
   async deleteRecIncome(id) {
     const res = await authFetch(`${getApiBase()}/api/recruitment/income/${id}`, {
       method: 'DELETE', credentials: 'include'

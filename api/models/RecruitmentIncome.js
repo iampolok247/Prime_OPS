@@ -1,13 +1,25 @@
-// api/models/RecruitmentExpense.js
+// api/models/RecruitmentIncome.js
 import mongoose from 'mongoose';
 
-const RecruitmentExpenseSchema = new mongoose.Schema({
+const RecruitmentIncomeSchema = new mongoose.Schema({
   date: { type: Date, default: Date.now },
-  purpose: { type: String, required: true, trim: true },
-  amount: { type: Number, required: true, min: 0 }
+  source: { type: String, required: true, trim: true }, // Commission, Training Fee, Placement Fee, etc.
+  amount: { type: Number, required: true, min: 0 },
+  description: { type: String, trim: true },
+  
+  // Approval workflow
+  status: { 
+    type: String, 
+    enum: ['Pending', 'Approved', 'Rejected'], 
+    default: 'Pending' 
+  },
+  submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Recruitment person who submitted
+  approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Accountant who approved/rejected
+  approvedAt: { type: Date },
+  rejectionReason: { type: String, trim: true }
 }, { timestamps: true });
 
-const RecruitmentExpense = mongoose.models.RecruitmentExpense
-  || mongoose.model('RecruitmentExpense', RecruitmentExpenseSchema);
+const RecruitmentIncome = mongoose.models.RecruitmentIncome
+  || mongoose.model('RecruitmentIncome', RecruitmentIncomeSchema);
 
-export default RecruitmentExpense;
+export default RecruitmentIncome;
