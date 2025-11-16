@@ -99,6 +99,45 @@ router.post('/bulk', requireAuth, authorize(['DigitalMarketing']), async (req, r
   }
 });
 
+// Get today's assigned leads grouped by admission member and course (DM only)
+router.get('/today-assignments', requireAuth, authorize(['DigitalMarketing']), async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Get leads assigned today
+    const leads = await Lead.find({
+      assignedAt: { $gte: today, $lt: tomorrow },
+      assignedTo: { $ne: null }
+    })
+      .populate('assignedTo', 'name email role')
+      .sort({ assignedTo: 1, interestedCourse: 1 });
+
+    // Group by admission member and course
+    const grouped = {};
+    leads.forEach(lead => {
+      const memberName = lead.assignedTo?.name || 'Unknown';
+      const course = lead.interestedCourse || 'No Course Specified';
+      
+      if (!grouped[memberName]) {
+        grouped[memberName] = {};
+      }
+      
+      if (!grouped[memberName][course]) {
+        grouped[memberName][course] = 0;
+      }
+      
+      grouped[memberName][course]++;
+    });
+
+    return res.json({ grouped, total: leads.length });
+  } catch (e) {
+    return res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+  }
+});
+
 // List leads (DM full view; Admin/SuperAdmin view-only)
 router.get('/', requireAuth, authorize(['DigitalMarketing', 'Admin', 'SuperAdmin']), async (req, res) => {
   const { status } = req.query;

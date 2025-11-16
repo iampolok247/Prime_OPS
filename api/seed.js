@@ -28,7 +28,10 @@ const users = [
   { name: 'J. R. Polok', email: 'polok@primeacademy.org', role: 'DigitalMarketing', department: 'Marketing', designation: 'Digital Marketing Executive' },
 
   // Motion Graphics
-  { name: 'Shuvo Kumar Das', email: 'shuvo@primeacademy.org', role: 'MotionGraphics', department: 'Creative', designation: 'Motion Graphics Designer' }
+  { name: 'Shuvo Kumar Das', email: 'shuvo@primeacademy.org', role: 'MotionGraphics', department: 'Creative', designation: 'Motion Graphics Designer' },
+
+  // Coordinator
+  { name: 'Zerin Tasnim', email: 'zerin@primeacademy.org', role: 'Coordinator', department: 'Operations', designation: 'Fees Collection Coordinator' }
 ];
 
 (async () => {

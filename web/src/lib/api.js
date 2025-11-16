@@ -292,6 +292,10 @@ export const api = {
     const res = await authFetch(`${getApiBase()}/api/leads${q}`, { credentials: 'include' });
     return handleJson(res, 'Load leads failed');
   },
+  async getTodayAssignments() {
+    const res = await authFetch(`${getApiBase()}/api/leads/today-assignments`, { credentials: 'include' });
+    return handleJson(res, 'Load today assignments failed');
+  },
   async getLeadHistory(id) {
     const res = await authFetch(`${getApiBase()}/api/leads/${id}/history`, { credentials: 'include' });
     return handleJson(res, 'Load lead history failed');
@@ -337,11 +341,12 @@ export const api = {
     const res = await authFetch(`${getApiBase()}/api/admission/leads${q}`, { credentials: 'include' });
     return handleJson(res, 'Load admission leads failed');
   },
-  async updateLeadStatus(id, status, notes, courseId, batchId) {
+  async updateLeadStatus(id, status, notes, courseId, batchId, nextFollowUpDate) {
     const body = { status };
     if (notes !== undefined && notes !== null) body.notes = notes;
     if (courseId !== undefined && courseId !== null) body.courseId = courseId;
     if (batchId !== undefined && batchId !== null) body.batchId = batchId;
+    if (nextFollowUpDate !== undefined && nextFollowUpDate !== null && nextFollowUpDate !== '') body.nextFollowUpDate = nextFollowUpDate;
     const res = await authFetch(`${getApiBase()}/api/admission/leads/${id}/status`, {
       method: 'PATCH', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -362,6 +367,10 @@ export const api = {
       body: JSON.stringify(payload)
     });
     return handleJson(res, 'Create fee failed');
+  },
+  async getAdmissionFollowUpNotifications() {
+    const res = await authFetch(`${getApiBase()}/api/admission/follow-up-notifications`, { credentials: 'include' });
+    return handleJson(res, 'Load follow-up notifications failed');
   },
 
   // ---- Accounting (Accountant/Admin/SA) ----
@@ -413,6 +422,29 @@ export const api = {
       method: 'DELETE', credentials: 'include'
     });
     return handleJson(res, 'Delete expense failed');
+  },
+
+  // ---- Due Collections ----
+  async getDueCollections(status) {
+    const q = status ? `?status=${encodeURIComponent(status)}` : '';
+    const res = await authFetch(`${getApiBase()}/api/accounting/due-collections${q}`, { credentials: 'include' });
+    return handleJson(res, 'Load due collections failed');
+  },
+  async approveDueCollection(id, reviewNote) {
+    const res = await authFetch(`${getApiBase()}/api/accounting/due-collections/${id}/approve`, {
+      method: 'PATCH', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reviewNote: reviewNote || '' })
+    });
+    return handleJson(res, 'Approve due collection failed');
+  },
+  async rejectDueCollection(id, reviewNote) {
+    const res = await authFetch(`${getApiBase()}/api/accounting/due-collections/${id}/reject`, {
+      method: 'PATCH', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reviewNote: reviewNote || '' })
+    });
+    return handleJson(res, 'Reject due collection failed');
   },
 
   async accountingSummary(from, to) {
@@ -901,6 +933,182 @@ async addStudentToBatch(batchId, leadId) {
     body: JSON.stringify({ leadId })
   });
   return handleJson(res, 'Add student to batch failed');
+},
+
+// ---- Coordinator ----
+async getStudentsWithDues() {
+  const res = await authFetch(`${getApiBase()}/api/coordinator/students-with-dues`, { credentials: 'include' });
+  return handleJson(res, 'Load students with dues failed');
+},
+async getPaymentNotifications() {
+  const res = await authFetch(`${getApiBase()}/api/coordinator/payment-notifications`, { credentials: 'include' });
+  return handleJson(res, 'Load payment notifications failed');
+},
+async getStudentHistory(admissionFeeId) {
+  const res = await authFetch(`${getApiBase()}/api/coordinator/student-history/${admissionFeeId}`, { credentials: 'include' });
+  return handleJson(res, 'Load student history failed');
+},
+async addFollowUp(payload) {
+  const res = await authFetch(`${getApiBase()}/api/coordinator/add-follow-up`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return handleJson(res, 'Add follow-up failed');
+},
+async updatePaymentDate(admissionFeeId, nextPaymentDate) {
+  const res = await authFetch(`${getApiBase()}/api/coordinator/update-payment-date/${admissionFeeId}`, {
+    method: 'PATCH', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nextPaymentDate })
+  });
+  return handleJson(res, 'Update payment date failed');
+},
+async getCoordinatorDashboardStats() {
+  const res = await authFetch(`${getApiBase()}/api/coordinator/dashboard-stats`, { credentials: 'include' });
+  return handleJson(res, 'Load dashboard stats failed');
+},
+async updateAdmissionFeePayment(payload) {
+  const res = await authFetch(`${getApiBase()}/api/coordinator/collect-due`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return handleJson(res, 'Collect due payment failed');
+},
+
+// ---- Leave Applications ----
+async createLeaveApplication(payload) {
+  const res = await authFetch(`${getApiBase()}/api/leave`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return handleJson(res, 'Submit leave application failed');
+},
+async getMyLeaveApplications() {
+  const res = await authFetch(`${getApiBase()}/api/leave/my-applications`, { credentials: 'include' });
+  return handleJson(res, 'Load leave applications failed');
+},
+async getAllLeaveApplications(status) {
+  const q = status ? `?status=${encodeURIComponent(status)}` : '';
+  const res = await authFetch(`${getApiBase()}/api/leave${q}`, { credentials: 'include' });
+  return handleJson(res, 'Load leave applications failed');
+},
+async approveLeaveApplication(id, reviewNote) {
+  const res = await authFetch(`${getApiBase()}/api/leave/${id}/approve`, {
+    method: 'PATCH', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reviewNote })
+  });
+  return handleJson(res, 'Approve leave failed');
+},
+async rejectLeaveApplication(id, reviewNote) {
+  const res = await authFetch(`${getApiBase()}/api/leave/${id}/reject`, {
+    method: 'PATCH', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reviewNote })
+  });
+  return handleJson(res, 'Reject leave failed');
+},
+async getHandoverRequests() {
+  const res = await authFetch(`${getApiBase()}/api/leave/handover-requests`, { credentials: 'include' });
+  return handleJson(res, 'Load handover requests failed');
+},
+async acceptHandover(id, handoverNote) {
+  const res = await authFetch(`${getApiBase()}/api/leave/${id}/handover/accept`, {
+    method: 'PATCH', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ handoverNote })
+  });
+  return handleJson(res, 'Accept handover failed');
+},
+async denyHandover(id, handoverNote) {
+  const res = await authFetch(`${getApiBase()}/api/leave/${id}/handover/deny`, {
+    method: 'PATCH', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ handoverNote })
+  });
+  return handleJson(res, 'Deny handover failed');
+},
+
+// ---- TA/DA Applications ----
+async createTADAApplication(payload) {
+  const res = await authFetch(`${getApiBase()}/api/tada`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return handleJson(res, 'Submit TA/DA application failed');
+},
+async getMyTADAApplications() {
+  const res = await authFetch(`${getApiBase()}/api/tada/my-applications`, { credentials: 'include' });
+  return handleJson(res, 'Load TA/DA applications failed');
+},
+async getAdminTADAApplications(adminStatus) {
+  const q = adminStatus ? `?adminStatus=${encodeURIComponent(adminStatus)}` : '';
+  const res = await authFetch(`${getApiBase()}/api/tada/admin${q}`, { credentials: 'include' });
+  return handleJson(res, 'Load TA/DA applications failed');
+},
+async getAccountantTADAApplications(paymentStatus) {
+  const q = paymentStatus ? `?paymentStatus=${encodeURIComponent(paymentStatus)}` : '';
+  const res = await authFetch(`${getApiBase()}/api/tada/accountant${q}`, { credentials: 'include' });
+  return handleJson(res, 'Load TA/DA applications failed');
+},
+async approveTADAApplication(id, adminReviewNote) {
+  const res = await authFetch(`${getApiBase()}/api/tada/${id}/approve`, {
+    method: 'PATCH', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ adminReviewNote })
+  });
+  return handleJson(res, 'Approve TA/DA failed');
+},
+async rejectTADAApplication(id, adminReviewNote) {
+  const res = await authFetch(`${getApiBase()}/api/tada/${id}/reject`, {
+    method: 'PATCH', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ adminReviewNote })
+  });
+  return handleJson(res, 'Reject TA/DA failed');
+},
+async payTADAApplication(id, paymentNote) {
+  const res = await authFetch(`${getApiBase()}/api/tada/${id}/pay`, {
+    method: 'PATCH', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ paymentNote })
+  });
+  return handleJson(res, 'Process payment failed');
+},
+
+// ---- Notifications ----
+async getNotifications(isRead, limit = 50) {
+  const params = new URLSearchParams();
+  if (isRead !== undefined) params.append('isRead', isRead);
+  params.append('limit', limit);
+  const res = await authFetch(`${getApiBase()}/api/notifications?${params}`, { credentials: 'include' });
+  return handleJson(res, 'Load notifications failed');
+},
+async getUnreadCount() {
+  const res = await authFetch(`${getApiBase()}/api/notifications/unread-count`, { credentials: 'include' });
+  return handleJson(res, 'Load unread count failed');
+},
+async markNotificationRead(id) {
+  const res = await authFetch(`${getApiBase()}/api/notifications/${id}/read`, {
+    method: 'PATCH', credentials: 'include'
+  });
+  return handleJson(res, 'Mark notification read failed');
+},
+async markAllNotificationsRead() {
+  const res = await authFetch(`${getApiBase()}/api/notifications/mark-all-read`, {
+    method: 'PATCH', credentials: 'include'
+  });
+  return handleJson(res, 'Mark all notifications read failed');
+},
+async deleteNotification(id) {
+  const res = await authFetch(`${getApiBase()}/api/notifications/${id}`, {
+    method: 'DELETE', credentials: 'include'
+  });
+  return handleJson(res, 'Delete notification failed');
 },
 
 };

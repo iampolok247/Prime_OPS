@@ -86,13 +86,6 @@ export default function AccountingDashboard() {
           </h1>
           <p className="text-gray-600 mt-1">Financial overview and metrics</p>
         </div>
-        <button
-          onClick={() => setShowHeadsModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-        >
-          <Settings className="w-4 h-4" />
-          Manage Account Heads
-        </button>
       </div>
 
       {err && (
@@ -201,25 +194,21 @@ export default function AccountingDashboard() {
 
       {/* Charts Grid */}
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* Income vs Expense Chart */}
+        {/* Income by Source Chart */}
         <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-bold text-gray-800">Income vs Expense</h3>
-              <p className="text-sm text-gray-500 mt-1">Financial trend over time</p>
+              <h3 className="text-lg font-bold text-gray-800">Income by Source</h3>
+              <p className="text-sm text-gray-500 mt-1">Revenue distribution breakdown</p>
             </div>
-            <div className="flex gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <span className="text-xs text-gray-600 font-medium">Income</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                <span className="text-xs text-gray-600 font-medium">Expense</span>
-              </div>
-            </div>
+            <PieChartIcon className="w-5 h-5 text-gray-400" />
           </div>
-          <LineChartDual data={series} />
+          <PieChart data={[
+            { label: 'Admission Fees', value: data.admissionFeesIncome || 0, color: '#10b981' },
+            { label: 'Recruitment', value: data.recruitmentIncome || 0, color: '#3b82f6' },
+            { label: 'Due Collections', value: data.dueCollectionIncome || 0, color: '#f59e0b' },
+            { label: 'Other', value: data.otherIncome || 0, color: '#8b5cf6' }
+          ].filter(item => item.value > 0)} />
         </div>
 
         {/* Expense by Head Chart */}

@@ -23,6 +23,10 @@ import messagesRoutes from './routes/messages.js';
 import admissionTargetsRoutes from './routes/admissionTargets.js';
 import batchRoutes from './routes/batches.js';
 import targetsRoutes from './routes/targets.js';
+import coordinatorRoutes from './routes/coordinator.js';
+import leaveRoutes from './routes/leave.js';
+import tadaRoutes from './routes/tada.js';
+import notificationRoutes from './routes/notifications.js';
 
 dotenv.config();
 
@@ -73,8 +77,12 @@ app.use('/api/messages', messagesRoutes);
 app.use('/api/admission-targets', admissionTargetsRoutes);
 app.use('/api/batches', batchRoutes);
 app.use('/api/targets', targetsRoutes);
+app.use('/api/coordinator', coordinatorRoutes);
+app.use('/api/leave', leaveRoutes);
+app.use('/api/tada', tadaRoutes);
+app.use('/api/notifications', notificationRoutes);
 
-// 👉 Mount recruitment under /api/recruitment  (matches frontend)
+// --- Recruitment ---
 app.use('/api/recruitment', recruitmentRoutes);
 
 // --- 404 handler (keep after all routes) ---

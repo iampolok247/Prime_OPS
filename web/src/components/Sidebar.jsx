@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { LayoutDashboard, ListChecks, Users, BookOpen, FolderOpen, Wallet, BarChart2, Film, CreditCard, Menu, X, Kanban, DollarSign, Video, Activity, MessageCircle, FileText, Target, Layers } from 'lucide-react';
+import { LayoutDashboard, ListChecks, Users, BookOpen, FolderOpen, Wallet, BarChart2, Film, CreditCard, Menu, X, Kanban, DollarSign, Video, Activity, MessageCircle, FileText, Target, Layers, ClipboardList, CheckSquare } from 'lucide-react';
 
 const Item = ({ to, icon, label, onClick }) => (
   <NavLink
@@ -25,26 +25,26 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     SuperAdmin: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/messages', label: 'Messages', icon: <MessageCircle size={18}/> },
-      { to: '/assign-tasks', label: 'Assign Task', icon: <ListChecks size={18}/> },
       { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
       { to: '/admin-task-report', label: 'Task Report', icon: <FileText size={18}/> },
+      { to: '/admin/approvals', label: 'Application Approvals', icon: <CheckSquare size={18}/> },
       { to: '/employees', label: 'Employee ', icon: <Users size={18}/> },
       { to: '/courses', label: 'Courses ', icon: <BookOpen size={18}/> },
-      { to: '/admission-targets', label: 'Targets', icon: <Target size={18}/> },
       { to: '/batches', label: 'Batches', icon: <Layers size={18}/> },
       { to: '/leads-center-view', label: 'Leads Center ', icon: <FolderOpen size={18}/> },     
       { to: '/admission/dashboard', label: 'Admission Reports', icon: <FolderOpen size={18}/> },
       { to: '/recruitment', label: 'Recruitment Reports', icon: <LayoutDashboard size={18}/> },
-      { to: '/accounting/dashboard', label: 'Accounts Dashboard', icon: <Wallet size={18}/> },
+      { to: '/accounting/dashboard', label: 'Accounts Reports', icon: <Wallet size={18}/> },
       { to: '/dm/dashboard', label: 'Digital Marketing Reports', icon: <BarChart2 size={18}/> },
       { to: '/mg/dashboard', label: 'Motion Graphics Report', icon: <Film size={18}/> },
     ],
     Admin: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/messages', label: 'Messages', icon: <MessageCircle size={18}/> },
-      { to: '/assign-tasks', label: 'Assign Task', icon: <ListChecks size={18}/> },
+      { to: '/my-applications', label: 'My Applications', icon: <ClipboardList size={18}/> },
       { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
       { to: '/admin-task-report', label: 'Task Report', icon: <FileText size={18}/> },
+      { to: '/admin/approvals', label: 'Application Approvals', icon: <CheckSquare size={18}/> },
       { to: '/employees', label: 'Employee', icon: <Users size={18}/> },
       { to: '/leads-center-view', label: 'Leads Center ', icon: <FolderOpen size={18}/> },
       { to: '/courses', label: 'Courses ', icon: <BookOpen size={18}/> },
@@ -59,6 +59,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     DigitalMarketing: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/messages', label: 'Messages', icon: <MessageCircle size={18}/> },
+      { to: '/my-applications', label: 'My Applications', icon: <ClipboardList size={18}/> },
       { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
       { to: '/task-report', label: 'Task Report', icon: <FileText size={18}/> },
       { to: '/courses', label: 'Courses', icon: <BookOpen size={18}/> },
@@ -69,6 +70,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     Admission: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/messages', label: 'Messages', icon: <MessageCircle size={18}/> },
+      { to: '/my-applications', label: 'My Applications', icon: <ClipboardList size={18}/> },
       { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
       { to: '/task-report', label: 'Task Report', icon: <FileText size={18}/> },
       { to: '/courses', label: 'Courses', icon: <BookOpen size={18}/> },
@@ -84,12 +86,14 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     Accountant: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/messages', label: 'Messages', icon: <MessageCircle size={18}/> },
+      { to: '/my-applications', label: 'My Applications', icon: <ClipboardList size={18}/> },
       { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
       { to: '/task-report', label: 'Task Report', icon: <FileText size={18}/> },
-      { to: '/accounting', label: 'Accounting', icon: <DollarSign size={18}/> },
-      { to: '/accounting/fees', label: 'Fees Approval', icon: <FolderOpen size={18}/> },
-      { to: '/accounting/income', label: 'Income', icon: <FolderOpen size={18}/> },
-      { to: '/accounting/expense', label: 'Expense', icon: <FolderOpen size={18}/> }
+      { to: '/accounting/fees', label: 'Admission Fees Approval', icon: <FolderOpen size={18}/> },
+      { to: '/accounting/due-collections', label: 'Due Collection Approval', icon: <FolderOpen size={18}/> },
+      { to: '/recruitment/income', label: 'Recruitment Income Approval', icon: <Wallet size={18}/> },
+      { to: '/accounting/expense', label: 'Expense', icon: <FolderOpen size={18}/> },
+      { to: '/accounting/tada-payments', label: 'TA/DA Payments', icon: <DollarSign size={18}/> }
     ],
     // make employee accounts also easily reachable by accountant
     AccountantExtra: [
@@ -99,6 +103,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     Recruitment: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/messages', label: 'Messages', icon: <MessageCircle size={18}/> },
+      { to: '/my-applications', label: 'My Applications', icon: <ClipboardList size={18}/> },
       { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
       { to: '/task-report', label: 'Task Report', icon: <FileText size={18}/> },
       { to: '/recruitment', label: 'Recruitment', icon: <Users size={18}/> },
@@ -112,10 +117,20 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     MotionGraphics: [
       { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
       { to: '/messages', label: 'Messages', icon: <MessageCircle size={18}/> },
+      { to: '/my-applications', label: 'My Applications', icon: <ClipboardList size={18}/> },
       { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
       { to: '/task-report', label: 'Task Report', icon: <FileText size={18}/> },
-      { to: '/mg', label: 'MG Dashboard', icon: <Video size={18}/> },
       { to: '/mg/production', label: 'MG Production', icon: <Activity size={18}/> }
+    ],
+    Coordinator: [
+      { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={18}/> },
+      { to: '/messages', label: 'Messages', icon: <MessageCircle size={18}/> },
+      { to: '/my-applications', label: 'My Applications', icon: <ClipboardList size={18}/> },
+      { to: '/tasks-board', label: 'Task Board', icon: <Kanban size={18}/> },
+      { to: '/task-report', label: 'Task Report', icon: <FileText size={18}/> },
+      { to: '/admission/fees', label: 'Admission Fees Collection', icon: <Wallet size={18}/> },
+      { to: '/coordinator/due-fees', label: 'Due Fees Collection', icon: <CreditCard size={18}/> },
+      { to: '/coordinator/notifications', label: 'Payment Reminders', icon: <MessageCircle size={18}/> }
     ]
   };
 

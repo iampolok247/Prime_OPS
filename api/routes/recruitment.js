@@ -305,7 +305,7 @@ router.post(
         amount, 
         description,
         status: 'Pending',
-        submittedBy: req.user._id 
+        submittedBy: req.user.id 
       });
       const populated = await RIncome.findById(created._id)
         .populate('submittedBy', 'name email role');
@@ -327,7 +327,7 @@ router.post(
         req.params.id,
         {
           status: 'Approved',
-          approvedBy: req.user._id,
+          approvedBy: req.user.id,
           approvedAt: new Date()
         },
         { new: true }
@@ -353,7 +353,7 @@ router.post(
         req.params.id,
         {
           status: 'Rejected',
-          approvedBy: req.user._id,
+          approvedBy: req.user.id,
           approvedAt: new Date(),
           rejectionReason: reason || ''
         },

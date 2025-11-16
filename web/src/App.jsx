@@ -27,6 +27,7 @@ import AdmissionFees from './pages/AdmissionFees.jsx';
 
 import AccountingDashboard from './pages/AccountingDashboard.jsx';
 import FeesApproval from './pages/FeesApproval.jsx';
+import DueCollectionApproval from './pages/DueCollectionApproval.jsx';
 import IncomePage from './pages/Income.jsx';
 import ExpensePage from './pages/Expense.jsx';
 import AdmissionDashboard from './pages/dash/AdmissionDashboard.jsx';
@@ -44,6 +45,16 @@ import RecruitExpenses from './pages/RecruitExpenses.jsx';
 // === Motion Graphics pages ===
 import MGDashboard from './pages/MGDashboard.jsx';
 import MGProduction from './pages/MGProduction.jsx';
+
+// === Coordinator pages ===
+import CoordinatorDashboard from './pages/CoordinatorDashboard.jsx';
+import DueFeesCollection from './pages/DueFeesCollection.jsx';
+import PaymentNotifications from './pages/PaymentNotifications.jsx';
+
+// === Leave & TA/DA pages ===
+import MyApplications from './pages/MyApplications.jsx';
+import AdminApprovals from './pages/AdminApprovals.jsx';
+import TADAPayments from './pages/TADAPayments.jsx';
 
 import Messages from './pages/Messages.jsx';
 import TaskReport from './pages/TaskReport.jsx';
@@ -81,6 +92,11 @@ export default function App() {
           <Route path="/messages" element={<Messages />} />
           <Route path="/task-report" element={<TaskReport />} />
 
+          {/* My Applications - All employees except SuperAdmin */}
+          <Route element={<RoleRoute roles={['Admin', 'Accountant', 'Admission', 'Recruitment', 'DigitalMarketing', 'MotionGraphics', 'Coordinator']} />}>
+            <Route path="/my-applications" element={<MyApplications />} />
+          </Route>
+
           {/* SA/Admin */}
           <Route element={<RoleRoute roles={['SuperAdmin', 'Admin']} />}>
             <Route path="/assign-tasks" element={<AssignTasks />} />
@@ -90,6 +106,7 @@ export default function App() {
             <Route path="/admin-task-report" element={<AdminTaskReport />} />
             <Route path="/admission-targets" element={<Targets />} />
             <Route path="/batches" element={<Batches />} />
+            <Route path="/admin/approvals" element={<AdminApprovals />} />
           </Route>
 
           {/* Courses - viewable by all except Accountant */}
@@ -122,11 +139,13 @@ export default function App() {
 </Route>
 
           {/* Accountant */}
-          <Route element={<RoleRoute roles={['Accountant']} />}>
+          <Route element={<RoleRoute roles={['Accountant','Admin','SuperAdmin']} />}>
             <Route path="/accounting/dashboard" element={<AccountingDashboard />} />
             <Route path="/accounting/fees" element={<FeesApproval />} />
+            <Route path="/accounting/due-collections" element={<DueCollectionApproval />} />
             <Route path="/accounting/income" element={<IncomePage />} />
             <Route path="/accounting/expense" element={<ExpensePage />} />
+            <Route path="/accounting/tada-payments" element={<TADAPayments />} />
           </Route>
 
           {/* Employee Accounts - visible to SuperAdmin, Admin and Accountant */}
@@ -147,8 +166,18 @@ export default function App() {
             <Route path="/recruitment/candidates" element={<Candidates />} />
             <Route path="/recruitment/jobs" element={<JobPositions />} />
             <Route path="/recruitment/employers" element={<Employers />} />
-            <Route path="/recruitment/income" element={<RecruitIncome />} />
             <Route path="/recruitment/expenses" element={<RecruitExpenses />} />
+          </Route>
+
+          <Route element={<RoleRoute roles={['Recruitment','Accountant']} />}>
+            <Route path="/recruitment/income" element={<RecruitIncome />} />
+          </Route>
+
+          {/* Coordinator */}
+          <Route element={<RoleRoute roles={['Coordinator','Admin','SuperAdmin']} />}>
+            <Route path="/coordinator/dashboard" element={<CoordinatorDashboard />} />
+            <Route path="/coordinator/due-fees" element={<DueFeesCollection />} />
+            <Route path="/coordinator/notifications" element={<PaymentNotifications />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

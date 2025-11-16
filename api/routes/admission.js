@@ -10,10 +10,11 @@ const isAdmission = (u) => u?.role === 'Admission';
 const isAdmin = (u) => u?.role === 'Admin';
 const isSA = (u) => u?.role === 'SuperAdmin';
 const isAccountant = (u) => u?.role === 'Accountant';
+const isCoordinator = (u) => u?.role === 'Coordinator';
 
 // ---------- Leads (Admission pipeline) ----------
 
-// List leads for Admission (own) or Admin/SA (all)
+// List leads for Admission (own) or Admin/SA/Coordinator (all)
 router.get('/leads', requireAuth, async (req, res) => {
   const { status } = req.query;
   const q = {};
@@ -21,7 +22,7 @@ router.get('/leads', requireAuth, async (req, res) => {
 
   if (isAdmission(req.user)) {
     q.assignedTo = req.user.id;
-  } else if (!(isAdmin(req.user) || isSA(req.user))) {
+  } else if (!(isAdmin(req.user) || isSA(req.user) || isCoordinator(req.user))) {
     return res.status(403).json({ code: 'FORBIDDEN', message: 'Not allowed' });
   }
 
@@ -34,7 +35,7 @@ router.get('/leads', requireAuth, async (req, res) => {
 // Counseling -> Admitted | In Follow Up | Not Admitted
 // In Follow Up -> Admitted | Not Admitted
 router.patch('/leads/:id/status', requireAuth, async (req, res) => {
-  const { status, notes, courseId, batchId } = req.body || {};
+  const { status, notes, courseId, batchId, nextFollowUpDate } = req.body || {};
   const allowed = ['Counseling', 'Admitted', 'In Follow Up', 'Not Admitted'];
   if (!allowed.includes(status)) {
     return res.status(400).json({ code: 'INVALID_STATUS', message: 'Invalid target status' });
@@ -115,6 +116,11 @@ router.patch('/leads/:id/status', requireAuth, async (req, res) => {
       lead.followUps = lead.followUps || [];
       lead.followUps.push({ note: String(notes).trim(), at: new Date(), by: req.user.id });
     }
+    
+    // Update nextFollowUpDate if provided
+    if (nextFollowUpDate) {
+      lead.nextFollowUpDate = new Date(nextFollowUpDate);
+    }
   }
 
   if (status === 'Not Admitted') {
@@ -136,11 +142,11 @@ router.patch('/leads/:id/status', requireAuth, async (req, res) => {
 
 // ---------- Fees Collection (Admission submit; Accountant approve in Phase 5) ----------
 
-// List fees: Admission sees own, Admin/SA/Accountant see all
+// List fees: Admission sees own, Admin/SA/Accountant/Coordinator see all
 router.get('/fees', requireAuth, async (req, res) => {
   const q = {};
   if (isAdmission(req.user)) q.submittedBy = req.user.id;
-  else if (!(isAdmin(req.user) || isSA(req.user) || isAccountant(req.user))) {
+  else if (!(isAdmin(req.user) || isSA(req.user) || isAccountant(req.user) || isCoordinator(req.user))) {
     return res.status(403).json({ code: 'FORBIDDEN', message: 'Not allowed' });
   }
   const rows = await AdmissionFee.find(q)
@@ -154,7 +160,7 @@ router.post('/fees', requireAuth, async (req, res) => {
   if (!isAdmission(req.user)) {
     return res.status(403).json({ code: 'FORBIDDEN', message: 'Admission only' });
   }
-  const { leadId, courseName, amount, method, paymentDate, note } = req.body || {};
+  const { leadId, courseName, totalAmount, amount, dueAmount, method, paymentDate, nextPaymentDate, note } = req.body || {};
   if (!leadId || !courseName || amount === undefined || !method || !paymentDate) {
     return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Missing required fields' });
   }
@@ -172,9 +178,12 @@ router.post('/fees', requireAuth, async (req, res) => {
   const row = await AdmissionFee.create({
     lead: lead._id,
     courseName,
+    totalAmount: Number(totalAmount) || 0,
     amount: Number(amount),
+    dueAmount: Number(dueAmount) || 0,
     method,
     paymentDate: new Date(paymentDate),
+    nextPaymentDate: nextPaymentDate ? new Date(nextPaymentDate) : undefined,
     note: note || '',
     status: 'Pending',
     submittedBy: req.user.id
@@ -182,6 +191,57 @@ router.post('/fees', requireAuth, async (req, res) => {
 
   const populated = await AdmissionFee.findById(row._id).populate('lead', 'leadId name phone email status');
   return res.status(201).json({ fee: populated });
+});
+
+// ---------- Follow-up Notifications ----------
+
+// Get leads with upcoming/overdue follow-ups for Admission
+router.get('/follow-up-notifications', requireAuth, async (req, res) => {
+  if (!isAdmission(req.user) && !isAdmin(req.user) && !isSA(req.user)) {
+    return res.status(403).json({ code: 'FORBIDDEN', message: 'Not allowed' });
+  }
+
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const q = {
+      status: { $in: ['Assigned', 'Counseling', 'In Follow Up'] } // Not admitted or rejected
+    };
+
+    // Admission sees upcoming notifications (today + next 3 days)
+    // Admin/SuperAdmin only see OVERDUE notifications (before today)
+    if (isAdmission(req.user)) {
+      const threeDaysFromNow = new Date(today);
+      threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+      q.nextFollowUpDate = { $lte: threeDaysFromNow };
+      q.assignedTo = req.user.id; // Only their own leads
+    } else {
+      // Admin/SuperAdmin: only overdue (< today)
+      q.nextFollowUpDate = { $lt: today };
+    }
+
+    const leads = await Lead.find(q)
+      .sort({ nextFollowUpDate: 1 })
+      .populate('assignedTo', 'name email');
+
+    const notifications = leads.map(lead => {
+      const isOverdue = lead.nextFollowUpDate && new Date(lead.nextFollowUpDate) < today;
+      const daysUntil = lead.nextFollowUpDate 
+        ? Math.ceil((new Date(lead.nextFollowUpDate) - today) / (1000 * 60 * 60 * 24))
+        : null;
+
+      return {
+        ...lead.toObject(),
+        isOverdue,
+        daysUntil
+      };
+    });
+
+    return res.json({ notifications });
+  } catch (e) {
+    return res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+  }
 });
 
 export default router;

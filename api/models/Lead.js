@@ -25,6 +25,7 @@ const LeadSchema = new mongoose.Schema(
     admittedToCourse: { type: mongoose.Schema.Types.ObjectId, ref: 'Course' }, // Course they were admitted to
     admittedToBatch: { type: mongoose.Schema.Types.ObjectId, ref: 'Batch' }, // Batch they were admitted to
     notes: { type: String, default: '' },
+    nextFollowUpDate: { type: Date }, // Next scheduled follow-up date
     // stage timestamps
     assignedAt: { type: Date },
     counselingAt: { type: Date },

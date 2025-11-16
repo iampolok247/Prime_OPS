@@ -15,7 +15,8 @@ const UserSchema = new mongoose.Schema(
         'Admission',
         'Recruitment',
         'DigitalMarketing',
-        'MotionGraphics'
+        'MotionGraphics',
+        'Coordinator'
       ]
     },
     department: { type: String },

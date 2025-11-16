@@ -9,8 +9,12 @@ export default function Topbar({ onMenuClick }) {
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [urgentTasks, setUrgentTasks] = useState([]);
+  const [paymentNotifications, setPaymentNotifications] = useState([]);
+  const [followUpNotifications, setFollowUpNotifications] = useState([]);
   const [readNotifications, setReadNotifications] = useState([]);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  const [systemNotifications, setSystemNotifications] = useState([]);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
   // Load read notifications from localStorage
   useEffect(() => {
@@ -77,6 +81,104 @@ export default function Topbar({ onMenuClick }) {
     }
   }, [user]);
 
+  // Fetch payment notifications for Coordinators
+  useEffect(() => {
+    const loadPaymentNotifications = async () => {
+      try {
+        if (['Coordinator', 'Admin', 'SuperAdmin'].includes(user?.role)) {
+          const data = await api.getPaymentNotifications();
+          const notifications = data.notifications || [];
+          
+          // Filter for today and overdue only
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          const urgent = notifications.filter(n => {
+            if (!n.nextPaymentDate) return false;
+            const paymentDate = new Date(n.nextPaymentDate);
+            paymentDate.setHours(0, 0, 0, 0);
+            
+            // Show if overdue or due today
+            return paymentDate <= today;
+          }).sort((a, b) => new Date(a.nextPaymentDate) - new Date(b.nextPaymentDate));
+          
+          setPaymentNotifications(urgent);
+        }
+      } catch (error) {
+        console.error('Failed to load payment notifications:', error);
+      }
+    };
+
+    if (user) {
+      loadPaymentNotifications();
+      // Refresh every 2 minutes for real-time updates
+      const interval = setInterval(loadPaymentNotifications, 2 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  // Fetch follow-up notifications for Admission
+  useEffect(() => {
+    const loadFollowUpNotifications = async () => {
+      try {
+        if (['Admission', 'Admin', 'SuperAdmin'].includes(user?.role)) {
+          const data = await api.getAdmissionFollowUpNotifications();
+          const notifications = data.notifications || [];
+          
+          // Filter for today and overdue only
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          const urgent = notifications.filter(n => {
+            if (!n.nextFollowUpDate) return false;
+            const followUpDate = new Date(n.nextFollowUpDate);
+            followUpDate.setHours(0, 0, 0, 0);
+            
+            // Show if overdue or due today
+            return followUpDate <= today;
+          }).sort((a, b) => new Date(a.nextFollowUpDate) - new Date(b.nextFollowUpDate));
+          
+          setFollowUpNotifications(urgent);
+        }
+      } catch (error) {
+        console.error('Failed to load follow-up notifications:', error);
+      }
+    };
+
+    if (user) {
+      loadFollowUpNotifications();
+      // Refresh every 2 minutes for real-time updates
+      const interval = setInterval(loadFollowUpNotifications, 2 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  // Fetch system notifications (leave, handover, etc.)
+  useEffect(() => {
+    const loadSystemNotifications = async () => {
+      try {
+        console.log('🔔 [Topbar] Loading system notifications for user:', user?.name, user?.id);
+        const data = await api.getNotifications(false, 20); // Get last 20 unread
+        console.log('🔔 [Topbar] System notifications response:', data);
+        console.log('🔔 [Topbar] Notifications array length:', data.notifications?.length);
+        console.log('🔔 [Topbar] Notifications:', JSON.stringify(data.notifications, null, 2));
+        console.log('🔔 [Topbar] Unread count:', data.unreadCount);
+        setSystemNotifications(data.notifications || []);
+        setUnreadNotifCount(data.unreadCount || 0);
+      } catch (error) {
+        console.error('❌ [Topbar] Failed to load system notifications:', error);
+        console.error('❌ [Topbar] Error details:', error.message);
+      }
+    };
+
+    if (user) {
+      loadSystemNotifications();
+      // Refresh every 30 seconds for real-time updates
+      const interval = setInterval(loadSystemNotifications, 30 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
   // Clean up old read notifications (older than 7 days)
   useEffect(() => {
     const cleanup = () => {
@@ -137,10 +239,57 @@ export default function Topbar({ onMenuClick }) {
     navigate('/tasks-board');
   };
 
+  const handlePaymentClick = (payment) => {
+    // Mark notification as read
+    const newRead = [...readNotifications.filter(n => n.paymentId !== payment._id), {
+      paymentId: payment._id,
+      readAt: Date.now()
+    }];
+    setReadNotifications(newRead);
+    localStorage.setItem('readNotifications', JSON.stringify(newRead));
+    
+    setShowNotifications(false);
+    
+    // Store payment ID in sessionStorage to open details modal
+    sessionStorage.setItem('openPaymentId', payment._id);
+    sessionStorage.setItem('openPaymentData', JSON.stringify(payment));
+    
+    // Navigate to due fees collection
+    navigate('/coordinator/due-fees');
+  };
+
+  const handleFollowUpClick = (lead) => {
+    // Mark notification as read
+    const newRead = [...readNotifications.filter(n => n.leadId !== lead._id), {
+      leadId: lead._id,
+      readAt: Date.now()
+    }];
+    setReadNotifications(newRead);
+    localStorage.setItem('readNotifications', JSON.stringify(newRead));
+    
+    setShowNotifications(false);
+    
+    // Navigate to admission pipeline
+    navigate('/admission/pipeline');
+  };
+
   // Count unread urgent tasks
-  const unreadCount = urgentTasks.filter(task => 
+  const unreadTaskCount = urgentTasks.filter(task => 
     !readNotifications.some(n => n.taskId === task._id)
   ).length;
+
+  // Count unread payment notifications
+  const unreadPaymentCount = paymentNotifications.filter(payment => 
+    !readNotifications.some(n => n.paymentId === payment._id)
+  ).length;
+
+  // Count unread follow-up notifications
+  const unreadFollowUpCount = followUpNotifications.filter(lead => 
+    !readNotifications.some(n => n.leadId === lead._id)
+  ).length;
+
+  // Total unread count
+  const unreadCount = unreadTaskCount + unreadPaymentCount + unreadFollowUpCount + unreadNotifCount;
 
   return (
     <header className="h-16 bg-navy text-white flex items-center justify-between px-4 shadow-soft">
@@ -200,51 +349,245 @@ export default function Topbar({ onMenuClick }) {
                 onClick={() => setShowNotifications(false)}
               />
               
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border z-50 max-h-96 overflow-y-auto">
-                <div className="p-3 border-b bg-gray-50 flex items-center justify-between">
-                  <h3 className="font-semibold text-navy">Urgent Tasks ({urgentTasks.length})</h3>
+              <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border z-50 max-h-[32rem] overflow-y-auto">
+                <div className="p-3 border-b bg-gray-50 flex items-center justify-between sticky top-0">
+                  <h3 className="font-semibold text-navy">Notifications</h3>
                   {unreadCount > 0 && (
                     <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">
                       {unreadCount} new
                     </span>
                   )}
                 </div>
-                {urgentTasks.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500">
-                    No urgent tasks
-                  </div>
-                ) : (
-                  <div className="divide-y">
-                    {urgentTasks.map(task => {
-                      const deadlineColor = getDeadlineColor(task.dueDate, task.status);
-                      const isUnread = !readNotifications.some(n => n.taskId === task._id);
-                      return (
-                        <div 
-                          key={task._id}
-                          onClick={() => handleTaskClick(task)}
-                          className={`p-3 hover:bg-gray-50 cursor-pointer relative ${isUnread ? 'bg-blue-50' : ''}`}
-                        >
-                          {isUnread && (
-                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
-                          )}
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1">
-                              <p className={`text-sm ${isUnread ? 'font-semibold text-navy' : 'font-medium text-gray-700'}`}>
-                                {task.title}
-                              </p>
-                              <div className={`text-xs mt-1 px-2 py-1 rounded inline-flex items-center gap-1 ${deadlineColor?.bg} ${deadlineColor?.text}`}>
-                                <Calendar size={10} />
-                                {new Date(task.dueDate).toLocaleDateString()}
-                                {deadlineColor?.label && ` - ${deadlineColor.label}`}
+
+                {/* Payment Notifications (Coordinators Only) */}
+                {['Coordinator', 'Admin', 'SuperAdmin'].includes(user?.role) && paymentNotifications.length > 0 && (
+                  <div>
+                    <div className="px-3 py-2 bg-orange-50 border-b border-orange-200">
+                      <h4 className="text-xs font-bold text-orange-700 uppercase flex items-center gap-1">
+                        <Bell size={12} />
+                        Payment Due ({paymentNotifications.length})
+                      </h4>
+                    </div>
+                    <div className="divide-y max-h-48 overflow-y-auto">
+                      {paymentNotifications.map(payment => {
+                        const isUnread = !readNotifications.some(n => n.paymentId === payment._id);
+                        const isOverdue = payment.isOverdue;
+                        return (
+                          <div 
+                            key={payment._id}
+                            onClick={() => handlePaymentClick(payment)}
+                            className={`p-3 hover:bg-gray-50 cursor-pointer relative ${isUnread ? 'bg-orange-50' : ''}`}
+                          >
+                            {isUnread && (
+                              <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-500"></div>
+                            )}
+                            <div className="flex items-start gap-2">
+                              <div className="flex-1">
+                                <p className={`text-sm ${isUnread ? 'font-semibold text-navy' : 'font-medium text-gray-700'}`}>
+                                  {payment.lead?.leadId} — {payment.lead?.name}
+                                </p>
+                                <p className="text-xs text-gray-600 mt-0.5">{payment.courseName}</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className={`text-xs px-2 py-1 rounded inline-flex items-center gap-1 ${isOverdue ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
+                                    <Calendar size={10} />
+                                    {new Date(payment.nextPaymentDate).toLocaleDateString('en-GB')}
+                                  </span>
+                                  <span className={`text-xs font-bold ${isOverdue ? 'text-red-600' : 'text-orange-600'}`}>
+                                    {isOverdue ? 'OVERDUE' : 'DUE TODAY'}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-orange-700 font-semibold mt-1">
+                                  Due: ৳ {payment.dueAmount || 0}
+                                </p>
                               </div>
                             </div>
-                            <span className={`text-xs px-2 py-1 rounded ${PRIORITY_COLORS[task.priority]?.bg} ${PRIORITY_COLORS[task.priority]?.text}`}>
-                              {task.priority}
-                            </span>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Follow-up Notifications (Admission/Admin/SuperAdmin) */}
+                {['Admission', 'Admin', 'SuperAdmin'].includes(user?.role) && followUpNotifications.length > 0 && (
+                  <div>
+                    <div className="px-3 py-2 bg-purple-50 border-b border-purple-200">
+                      <h4 className="text-xs font-bold text-purple-700 uppercase flex items-center gap-1">
+                        <Bell size={12} />
+                        Follow-up Due ({followUpNotifications.length})
+                      </h4>
+                    </div>
+                    <div className="divide-y max-h-48 overflow-y-auto">
+                      {followUpNotifications.map(lead => {
+                        const isUnread = !readNotifications.some(n => n.leadId === lead._id);
+                        const isOverdue = lead.isOverdue;
+                        const isAdminOrSA = ['Admin', 'SuperAdmin'].includes(user?.role);
+                        return (
+                          <div 
+                            key={lead._id}
+                            onClick={() => handleFollowUpClick(lead)}
+                            className={`p-3 hover:bg-gray-50 cursor-pointer relative ${isUnread ? 'bg-purple-50' : ''}`}
+                          >
+                            {isUnread && (
+                              <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500"></div>
+                            )}
+                            <div className="flex items-start gap-2">
+                              <div className="flex-1">
+                                <div className="flex items-start justify-between gap-2">
+                                  <p className={`text-sm flex-1 ${isUnread ? 'font-semibold text-navy' : 'font-medium text-gray-700'}`}>
+                                    {lead.leadId} — {lead.name}
+                                  </p>
+                                  {isAdminOrSA && lead.assignedTo && (
+                                    <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full whitespace-nowrap">
+                                      👤 {lead.assignedTo.name}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-gray-600 mt-0.5">{lead.interestedCourse || 'No course'} • {lead.status}</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className={`text-xs px-2 py-1 rounded inline-flex items-center gap-1 ${isOverdue ? 'bg-red-100 text-red-700' : 'bg-purple-100 text-purple-700'}`}>
+                                    <Calendar size={10} />
+                                    {new Date(lead.nextFollowUpDate).toLocaleDateString('en-GB')}
+                                  </span>
+                                  <span className={`text-xs font-bold ${isOverdue ? 'text-red-600' : 'text-purple-600'}`}>
+                                    {isOverdue ? 'OVERDUE' : 'DUE TODAY'}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-gray-600 mt-1">
+                                  {lead.phone} {lead.email && `• ${lead.email}`}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Task Notifications */}
+                {urgentTasks.length > 0 && (
+                  <div>
+                    <div className="px-3 py-2 bg-blue-50 border-b border-blue-200">
+                      <h4 className="text-xs font-bold text-blue-700 uppercase flex items-center gap-1">
+                        <Calendar size={12} />
+                        Urgent Tasks ({urgentTasks.length})
+                      </h4>
+                    </div>
+                    <div className="divide-y max-h-48 overflow-y-auto">
+                      {urgentTasks.map(task => {
+                        const deadlineColor = getDeadlineColor(task.dueDate, task.status);
+                        const isUnread = !readNotifications.some(n => n.taskId === task._id);
+                        return (
+                          <div 
+                            key={task._id}
+                            onClick={() => handleTaskClick(task)}
+                            className={`p-3 hover:bg-gray-50 cursor-pointer relative ${isUnread ? 'bg-blue-50' : ''}`}
+                          >
+                            {isUnread && (
+                              <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+                            )}
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1">
+                                <p className={`text-sm ${isUnread ? 'font-semibold text-navy' : 'font-medium text-gray-700'}`}>
+                                  {task.title}
+                                </p>
+                                <div className={`text-xs mt-1 px-2 py-1 rounded inline-flex items-center gap-1 ${deadlineColor?.bg} ${deadlineColor?.text}`}>
+                                  <Calendar size={10} />
+                                  {new Date(task.dueDate).toLocaleDateString('en-GB')}
+                                  {deadlineColor?.label && ` - ${deadlineColor.label}`}
+                                </div>
+                              </div>
+                              <span className={`text-xs px-2 py-1 rounded ${PRIORITY_COLORS[task.priority]?.bg} ${PRIORITY_COLORS[task.priority]?.text}`}>
+                                {task.priority}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* System Notifications (Leave, Handover, etc.) */}
+                {systemNotifications.length > 0 && (
+                  <div>
+                    <div className="px-3 py-2 bg-indigo-50 border-b border-indigo-200">
+                      <h4 className="text-xs font-bold text-indigo-700 uppercase flex items-center gap-1">
+                        <Bell size={12} />
+                        System Notifications ({systemNotifications.length})
+                      </h4>
+                    </div>
+                    <div className="divide-y max-h-64 overflow-y-auto">
+                      {systemNotifications.map(notif => {
+                        const isHandoverRequest = notif.type === 'LEAVE_HANDOVER_REQUEST';
+                        
+                        return (
+                          <div 
+                            key={notif._id}
+                            onClick={async () => {
+                              try {
+                                // For handover requests, store the notification ID and navigate to My Applications
+                                if (isHandoverRequest) {
+                                  console.log('🔔 Handover notification clicked:', notif);
+                                  // Store the leave application ID from relatedId
+                                  sessionStorage.setItem('openHandoverRequestId', notif.relatedId);
+                                  sessionStorage.setItem('handoverNotificationId', notif._id);
+                                  setShowNotifications(false);
+                                  navigate('/my-applications');
+                                } else {
+                                  // For other notifications, just navigate to the link
+                                  await api.markNotificationRead(notif._id);
+                                  setShowNotifications(false);
+                                  if (notif.link) navigate(notif.link);
+                                }
+                                
+                                // Reload notifications
+                                const data = await api.getNotifications(false, 20);
+                                setSystemNotifications(data.notifications || []);
+                                setUnreadNotifCount(data.unreadCount || 0);
+                              } catch (e) {
+                                console.error('Failed to handle notification click:', e);
+                              }
+                            }}
+                            className={`p-3 hover:bg-gray-50 cursor-pointer relative ${!notif.isRead ? 'bg-indigo-50' : ''}`}
+                          >
+                            {!notif.isRead && (
+                              <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500"></div>
+                            )}
+                            <div className="flex items-start gap-2">
+                              <div className="flex-1">
+                                <p className={`text-sm ${!notif.isRead ? 'font-semibold text-navy' : 'font-medium text-gray-700'}`}>
+                                  {notif.title}
+                                  {isHandoverRequest && (
+                                    <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                                      Action Required
+                                    </span>
+                                  )}
+                                </p>
+                                <p className="text-xs text-gray-600 mt-1">{notif.message}</p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                  {new Date(notif.createdAt).toLocaleString('en-GB', { 
+                                    day: '2-digit', 
+                                    month: 'short', 
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                  })}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Empty State */}
+                {urgentTasks.length === 0 && paymentNotifications.length === 0 && followUpNotifications.length === 0 && systemNotifications.length === 0 && (
+                  <div className="p-6 text-center text-gray-500">
+                    <Bell size={32} className="mx-auto mb-2 text-gray-300" />
+                    <p className="text-sm">No notifications</p>
                   </div>
                 )}
               </div>
