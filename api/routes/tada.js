@@ -198,4 +198,67 @@ router.patch('/:id/pay', requireAuth, authorize(['Accountant']), async (req, res
   }
 });
 
+// Employee: Update own TADA application (only if pending)
+router.put('/:id', requireAuth, async (req, res) => {
+  try {
+    const { applicationType, purpose, travelDate, destination, amount, description } = req.body;
+    
+    const application = await TADAApplication.findOne({
+      _id: req.params.id,
+      employee: req.user.id
+    });
+
+    if (!application) {
+      return res.status(404).json({ code: 'NOT_FOUND', message: 'Application not found' });
+    }
+
+    if (application.adminStatus !== 'Pending') {
+      return res.status(400).json({ code: 'CANNOT_EDIT', message: 'Cannot edit application that has been reviewed' });
+    }
+
+    // Update application
+    application.applicationType = applicationType;
+    application.purpose = purpose;
+    application.travelDate = new Date(travelDate);
+    application.destination = destination;
+    application.amount = parseFloat(amount);
+    application.description = description || '';
+
+    await application.save();
+
+    const populated = await TADAApplication.findById(application._id)
+      .populate('employee', 'name email role')
+      .populate('adminReviewedBy', 'name email role')
+      .populate('paidBy', 'name email role');
+
+    return res.json({ application: populated });
+  } catch (e) {
+    return res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+  }
+});
+
+// Employee: Delete own TADA application (only if pending)
+router.delete('/:id', requireAuth, async (req, res) => {
+  try {
+    const application = await TADAApplication.findOne({
+      _id: req.params.id,
+      employee: req.user.id
+    });
+
+    if (!application) {
+      return res.status(404).json({ code: 'NOT_FOUND', message: 'Application not found' });
+    }
+
+    if (application.adminStatus !== 'Pending') {
+      return res.status(400).json({ code: 'CANNOT_DELETE', message: 'Cannot delete application that has been reviewed' });
+    }
+
+    await TADAApplication.findByIdAndDelete(req.params.id);
+
+    return res.json({ message: 'Application deleted successfully' });
+  } catch (e) {
+    return res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+  }
+});
+
 export default router;

@@ -14,7 +14,9 @@ import {
   Send,
   Users,
   UserCheck,
-  UserX
+  UserX,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 
 export default function MyApplications() {
@@ -32,6 +34,8 @@ export default function MyApplications() {
   const [msg, setMsg] = useState(null);
   const [err, setErr] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [editingLeaveId, setEditingLeaveId] = useState(null);
+  const [editingTADAId, setEditingTADAId] = useState(null);
 
   const [leaveForm, setLeaveForm] = useState({
     leaveType: 'Casual Leave',
@@ -135,8 +139,18 @@ export default function MyApplications() {
     try {
       const payload = { ...leaveForm };
       if (!payload.handoverTo) delete payload.handoverTo;
-      await api.createLeaveApplication(payload);
-      setMsg('Leave application submitted successfully! 🎉');
+      
+      if (editingLeaveId) {
+        // Update existing application
+        await api.updateLeaveApplication(editingLeaveId, payload);
+        setMsg('Leave application updated successfully! 🎉');
+        setEditingLeaveId(null);
+      } else {
+        // Create new application
+        await api.createLeaveApplication(payload);
+        setMsg('Leave application submitted successfully! 🎉');
+      }
+      
       setLeaveForm({ leaveType: 'Casual Leave', startDate: '', endDate: '', reason: '', handoverTo: '' });
       setShowLeaveForm(false);
       loadApplications();
@@ -189,11 +203,89 @@ export default function MyApplications() {
     e.preventDefault();
     setMsg(null); setErr(null); setLoading(true);
     try {
-      await api.createTADAApplication(tadaForm);
-      setMsg('TA/DA application submitted successfully! 🎉');
+      if (editingTADAId) {
+        // Update existing application
+        await api.updateTADAApplication(editingTADAId, tadaForm);
+        setMsg('TA/DA application updated successfully! 🎉');
+        setEditingTADAId(null);
+      } else {
+        // Create new application
+        await api.createTADAApplication(tadaForm);
+        setMsg('TA/DA application submitted successfully! 🎉');
+      }
+      
       setTADAForm({ applicationType: 'TA/DA', purpose: '', travelDate: '', destination: '', amount: '', description: '' });
       setShowTADAForm(false);
       loadApplications();
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditLeave = (leave) => {
+    setEditingLeaveId(leave._id);
+    setLeaveForm({
+      leaveType: leave.leaveType,
+      startDate: leave.startDate.split('T')[0],
+      endDate: leave.endDate.split('T')[0],
+      reason: leave.reason,
+      handoverTo: leave.handoverTo?._id || ''
+    });
+    setShowLeaveForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteLeave = async (leaveId) => {
+    if (!confirm('Are you sure you want to delete this leave application? This action cannot be undone.')) {
+      return;
+    }
+    
+    setLoading(true);
+    setMsg(null);
+    setErr(null);
+    
+    try {
+      await api.deleteLeaveApplication(leaveId);
+      setMsg('Leave application deleted successfully');
+      loadApplications();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditTADA = (tada) => {
+    setEditingTADAId(tada._id);
+    setTADAForm({
+      applicationType: tada.applicationType,
+      purpose: tada.purpose,
+      travelDate: tada.travelDate.split('T')[0],
+      destination: tada.destination || '',
+      amount: tada.amount,
+      description: tada.description || ''
+    });
+    setShowTADAForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteTADA = async (tadaId) => {
+    if (!confirm('Are you sure you want to delete this TA/DA application? This action cannot be undone.')) {
+      return;
+    }
+    
+    setLoading(true);
+    setMsg(null);
+    setErr(null);
+    
+    try {
+      await api.deleteTADAApplication(tadaId);
+      setMsg('TA/DA application deleted successfully');
+      loadApplications();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
       setErr(e.message);
     } finally {
@@ -393,6 +485,24 @@ export default function MyApplications() {
                         )}
                       </div>
                     )}
+                    {app.status === 'Pending' && (
+                      <div className="mt-4 flex gap-2">
+                        <button
+                          onClick={() => handleEditLeave(app)}
+                          className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteLeave(app._id)}
+                          className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))
               )}
@@ -475,6 +585,24 @@ export default function MyApplications() {
                             Paid by {app.paidBy.name} on {new Date(app.paidAt).toLocaleDateString()}
                           </p>
                         )}
+                      </div>
+                    )}
+                    {app.adminStatus === 'Pending' && (
+                      <div className="mt-4 flex gap-2">
+                        <button
+                          onClick={() => handleEditTADA(app)}
+                          className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTADA(app._id)}
+                          className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </button>
                       </div>
                     )}
                   </div>
@@ -702,7 +830,9 @@ export default function MyApplications() {
                 <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg">
                   <Calendar className="w-5 h-5 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-800">Apply for Leave</h3>
+                <h3 className="text-xl font-bold text-gray-800">
+                  {editingLeaveId ? 'Edit Leave Application' : 'Apply for Leave'}
+                </h3>
               </div>
             </div>
 
@@ -780,7 +910,11 @@ export default function MyApplications() {
             <div className="mt-6 flex justify-end gap-3">
               <button
                 type="button"
-                onClick={() => setShowLeaveForm(false)}
+                onClick={() => {
+                  setShowLeaveForm(false);
+                  setEditingLeaveId(null);
+                  setLeaveForm({ leaveType: 'Casual Leave', startDate: '', endDate: '', reason: '', handoverTo: '' });
+                }}
                 className="px-5 py-2.5 rounded-lg border-2 border-gray-300 text-gray-700 font-medium hover:bg-gray-50"
               >
                 Cancel
@@ -816,7 +950,9 @@ export default function MyApplications() {
                 <div className="p-2 bg-gradient-to-r from-orange-500 to-pink-600 rounded-lg">
                   <PlaneTakeoff className="w-5 h-5 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-800">Apply for TA/DA</h3>
+                <h3 className="text-xl font-bold text-gray-800">
+                  {editingTADAId ? 'Edit TA/DA Application' : 'Apply for TA/DA'}
+                </h3>
               </div>
             </div>
 
@@ -900,7 +1036,11 @@ export default function MyApplications() {
             <div className="mt-6 flex justify-end gap-3">
               <button
                 type="button"
-                onClick={() => setShowTADAForm(false)}
+                onClick={() => {
+                  setShowTADAForm(false);
+                  setEditingTADAId(null);
+                  setTADAForm({ applicationType: 'TA/DA', purpose: '', travelDate: '', destination: '', amount: '', description: '' });
+                }}
                 className="px-5 py-2.5 rounded-lg border-2 border-gray-300 text-gray-700 font-medium hover:bg-gray-50"
               >
                 Cancel

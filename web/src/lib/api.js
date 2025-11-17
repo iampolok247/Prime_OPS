@@ -1031,6 +1031,20 @@ async denyHandover(id, handoverNote) {
   });
   return handleJson(res, 'Deny handover failed');
 },
+async updateLeaveApplication(id, payload) {
+  const res = await authFetch(`${getApiBase()}/api/leave/${id}`, {
+    method: 'PUT', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return handleJson(res, 'Update leave application failed');
+},
+async deleteLeaveApplication(id) {
+  const res = await authFetch(`${getApiBase()}/api/leave/${id}`, {
+    method: 'DELETE', credentials: 'include'
+  });
+  return handleJson(res, 'Delete leave application failed');
+},
 
 // ---- TA/DA Applications ----
 async createTADAApplication(payload) {
@@ -1078,6 +1092,20 @@ async payTADAApplication(id, paymentNote) {
     body: JSON.stringify({ paymentNote })
   });
   return handleJson(res, 'Process payment failed');
+},
+async updateTADAApplication(id, payload) {
+  const res = await authFetch(`${getApiBase()}/api/tada/${id}`, {
+    method: 'PUT', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return handleJson(res, 'Update TA/DA application failed');
+},
+async deleteTADAApplication(id) {
+  const res = await authFetch(`${getApiBase()}/api/tada/${id}`, {
+    method: 'DELETE', credentials: 'include'
+  });
+  return handleJson(res, 'Delete TA/DA application failed');
 },
 
 // ---- Notifications ----

@@ -423,4 +423,92 @@ router.patch('/:id/reject', requireAuth, authorize(['Admin']), async (req, res) 
   }
 });
 
+// Employee: Update own leave application (only if pending)
+router.put('/:id', requireAuth, async (req, res) => {
+  try {
+    const { leaveType, startDate, endDate, reason, handoverTo } = req.body;
+    
+    const application = await LeaveApplication.findOne({
+      _id: req.params.id,
+      employee: req.user.id
+    });
+
+    if (!application) {
+      return res.status(404).json({ code: 'NOT_FOUND', message: 'Application not found' });
+    }
+
+    if (application.status !== 'Pending') {
+      return res.status(400).json({ code: 'CANNOT_EDIT', message: 'Cannot edit application that has been reviewed' });
+    }
+
+    // Validate handoverTo if provided
+    if (handoverTo) {
+      const handoverEmployee = await User.findById(handoverTo);
+      if (!handoverEmployee) {
+        return res.status(400).json({ code: 'INVALID_HANDOVER', message: 'Handover employee not found' });
+      }
+      if (handoverEmployee.role === 'SuperAdmin') {
+        return res.status(400).json({ code: 'INVALID_HANDOVER', message: 'Cannot handover to SuperAdmin' });
+      }
+      if (handoverTo === req.user.id) {
+        return res.status(400).json({ code: 'INVALID_HANDOVER', message: 'Cannot handover to yourself' });
+      }
+    }
+
+    // Calculate new total days if dates changed
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end - start);
+    const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+    if (totalDays <= 0) {
+      return res.status(400).json({ code: 'INVALID_DATES', message: 'End date must be after start date' });
+    }
+
+    // Update application
+    application.leaveType = leaveType;
+    application.startDate = start;
+    application.endDate = end;
+    application.totalDays = totalDays;
+    application.reason = reason;
+    application.handoverTo = handoverTo || null;
+    application.handoverStatus = handoverTo ? 'Pending' : null;
+
+    await application.save();
+
+    const populated = await LeaveApplication.findById(application._id)
+      .populate('employee', 'name email role')
+      .populate('handoverTo', 'name email role')
+      .populate('reviewedBy', 'name email role');
+
+    return res.json({ application: populated });
+  } catch (e) {
+    return res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+  }
+});
+
+// Employee: Delete own leave application (only if pending)
+router.delete('/:id', requireAuth, async (req, res) => {
+  try {
+    const application = await LeaveApplication.findOne({
+      _id: req.params.id,
+      employee: req.user.id
+    });
+
+    if (!application) {
+      return res.status(404).json({ code: 'NOT_FOUND', message: 'Application not found' });
+    }
+
+    if (application.status !== 'Pending') {
+      return res.status(400).json({ code: 'CANNOT_DELETE', message: 'Cannot delete application that has been reviewed' });
+    }
+
+    await LeaveApplication.findByIdAndDelete(req.params.id);
+
+    return res.json({ message: 'Application deleted successfully' });
+  } catch (e) {
+    return res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+  }
+});
+
 export default router;
