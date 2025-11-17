@@ -55,6 +55,7 @@ import PaymentNotifications from './pages/PaymentNotifications.jsx';
 import MyApplications from './pages/MyApplications.jsx';
 import AdminApprovals from './pages/AdminApprovals.jsx';
 import TADAPayments from './pages/TADAPayments.jsx';
+import Notifications from './pages/Notifications.jsx';
 
 import Messages from './pages/Messages.jsx';
 import TaskReport from './pages/TaskReport.jsx';
@@ -96,6 +97,9 @@ export default function App() {
           <Route element={<RoleRoute roles={['Admin', 'Accountant', 'Admission', 'Recruitment', 'DigitalMarketing', 'MotionGraphics', 'Coordinator']} />}>
             <Route path="/my-applications" element={<MyApplications />} />
           </Route>
+
+          {/* Notifications - All authenticated users */}
+          <Route path="/notifications" element={<Notifications />} />
 
           {/* SA/Admin */}
           <Route element={<RoleRoute roles={['SuperAdmin', 'Admin']} />}>

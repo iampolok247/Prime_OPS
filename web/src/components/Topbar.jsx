@@ -590,6 +590,22 @@ export default function Topbar({ onMenuClick }) {
                     <p className="text-sm">No notifications</p>
                   </div>
                 )}
+
+                {/* See All Button - Only show if there are notifications */}
+                {(urgentTasks.length > 0 || paymentNotifications.length > 0 || followUpNotifications.length > 0 || systemNotifications.length > 0) && (
+                  <div className="p-3 border-t bg-gray-50 sticky bottom-0">
+                    <button
+                      onClick={() => {
+                        setShowNotifications(false);
+                        navigate('/notifications');
+                      }}
+                      className="w-full py-2.5 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                    >
+                      <Bell size={16} />
+                      See All Notifications
+                    </button>
+                  </div>
+                )}
               </div>
             </>
           )}
