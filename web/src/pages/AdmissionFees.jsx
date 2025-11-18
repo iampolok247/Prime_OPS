@@ -10,7 +10,8 @@ export default function AdmissionFees() {
   }
 
   const [fees, setFees] = useState([]);
-  const [admitted, setAdmitted] = useState([]);
+  const [assignedLeads, setAssignedLeads] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [open, setOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedFee, setSelectedFee] = useState(null);
@@ -27,10 +28,14 @@ export default function AdmissionFees() {
     try {
       const [{ fees }, leadsResp] = await Promise.all([
         api.listAdmissionFees(),
-        api.listAdmissionLeads('Admitted')
+        api.listAdmissionLeads() // Get all assigned leads (will be filtered by backend)
       ]);
       setFees(fees || []);
-      setAdmitted(leadsResp?.leads || []);
+      // Filter out "Admitted" and "Not Admitted" leads - only show leads that can still be processed
+      const eligibleLeads = (leadsResp?.leads || []).filter(
+        lead => lead.status !== 'Admitted' && lead.status !== 'Not Admitted'
+      );
+      setAssignedLeads(eligibleLeads);
     } catch (e) { setErr(e.message); }
   };
 
@@ -52,9 +57,22 @@ export default function AdmissionFees() {
       setMsg('Fee submitted for review');
       setOpen(false);
       setForm({ leadId:'', courseName:'', totalAmount:'', nowPaying:'', method:'Bkash', paymentDate:new Date().toISOString().slice(0,10), nextPaymentDate:'', note:'' });
+      setSearchTerm(''); // Reset search
       load();
     } catch (e) { setErr(e.message); }
   };
+
+  // Filter leads based on search term
+  const filteredLeads = React.useMemo(() => {
+    if (!searchTerm.trim()) return assignedLeads;
+    const search = searchTerm.toLowerCase();
+    return assignedLeads.filter(lead => 
+      lead.leadId?.toLowerCase().includes(search) ||
+      lead.name?.toLowerCase().includes(search) ||
+      lead.phone?.includes(search) ||
+      lead.email?.toLowerCase().includes(search)
+    );
+  }, [assignedLeads, searchTerm]);
 
   return (
     <div>
@@ -145,13 +163,55 @@ export default function AdmissionFees() {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
-                    Select Student (Admitted) *
+                    Select Student (Your Assigned Leads - Not Admitted) *
                   </span>
-                  <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white" required
-                    value={form.leadId} onChange={e=>setForm(f=>({...f,leadId:e.target.value}))}>
+                  
+                  {/* Search Input */}
+                  <div className="relative mb-2">
+                    <input 
+                      type="text"
+                      placeholder="🔍 Search by Lead ID, Name, Phone, or Email..."
+                      className="w-full border border-blue-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-blue-50"
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                    />
+                    {searchTerm && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchTerm('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Dropdown */}
+                  <select 
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white max-h-48" 
+                    required
+                    size="5"
+                    value={form.leadId} 
+                    onChange={e=>setForm(f=>({...f,leadId:e.target.value}))}
+                  >
                     <option value="">Choose student...</option>
-                    {admitted.map(l => <option key={l._id} value={l._id}>{l.leadId} — {l.name}</option>)}
+                    {filteredLeads.length === 0 && searchTerm && (
+                      <option value="" disabled>No leads found matching "{searchTerm}"</option>
+                    )}
+                    {filteredLeads.length === 0 && !searchTerm && (
+                      <option value="" disabled>No eligible leads assigned to you</option>
+                    )}
+                    {filteredLeads.map(l => (
+                      <option key={l._id} value={l._id}>
+                        {l.leadId} — {l.name} ({l.phone}) — Status: {l.status}
+                      </option>
+                    ))}
                   </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    📋 Showing {filteredLeads.length} of {assignedLeads.length} eligible lead(s)
+                  </p>
                 </label>
               </div>
 

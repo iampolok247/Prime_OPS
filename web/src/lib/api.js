@@ -372,6 +372,15 @@ export const api = {
     const res = await authFetch(`${getApiBase()}/api/admission/follow-up-notifications`, { credentials: 'include' });
     return handleJson(res, 'Load follow-up notifications failed');
   },
+  async getAdmissionReports(userId, from, to) {
+    const params = new URLSearchParams();
+    if (userId) params.append('userId', userId);
+    if (from) params.append('from', from);
+    if (to) params.append('to', to);
+    const q = params.toString() ? `?${params.toString()}` : '';
+    const res = await authFetch(`${getApiBase()}/api/admission/reports${q}`, { credentials: 'include' });
+    return handleJson(res, 'Load admission reports failed');
+  },
 
   // ---- Accounting (Accountant/Admin/SA) ----
   async listFeesForApproval(status) {

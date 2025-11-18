@@ -6,6 +6,7 @@ export default function LeadsCenter() {
   const { user } = useAuth();
   const [status, setStatus] = useState('Assigned');
   const [courseFilter, setCourseFilter] = useState('All');
+  const [assignedToFilter, setAssignedToFilter] = useState('All');
   const [sortBy, setSortBy] = useState('date-desc'); // date-desc, date-asc, member-asc, member-desc
   const [courses, setCourses] = useState([]);
   const [leads, setLeads] = useState([]);
@@ -25,8 +26,10 @@ export default function LeadsCenter() {
 
   const load = async () => {
     try {
+      // For "Unassigned", fetch "Assigned" status and filter client-side
+      const statusToFetch = status === 'Unassigned' ? 'Assigned' : status;
       const calls = [
-        status === 'All Leads' ? api.listLeads() : api.listLeads(status),
+        status === 'All Leads' ? api.listLeads() : api.listLeads(statusToFetch),
         api.listCourses()
       ];
       if (canAssign) {
@@ -40,7 +43,14 @@ export default function LeadsCenter() {
       const admissionsResp = canAssign ? results[2] : { users: [] };
       const todayResp = canAssign ? results[3] : null;
 
-      setLeads(leadsResp?.leads || []);
+      let fetchedLeads = leadsResp?.leads || [];
+      
+      // If status is "Unassigned", filter for leads without assignedTo
+      if (status === 'Unassigned') {
+        fetchedLeads = fetchedLeads.filter(lead => !lead.assignedTo);
+      }
+      
+      setLeads(fetchedLeads);
       setCourses(coursesResp?.courses || []);
       setAdmissions(admissionsResp?.users || []);
       setSelectedLeads([]);
@@ -99,7 +109,21 @@ export default function LeadsCenter() {
 
   // Filter and sort leads
   const filteredLeads = useMemo(() => {
-    let filtered = courseFilter === 'All' ? leads : leads.filter(l => l.interestedCourse === courseFilter);
+    let filtered = leads;
+    
+    // Apply course filter
+    if (courseFilter !== 'All') {
+      filtered = filtered.filter(l => l.interestedCourse === courseFilter);
+    }
+    
+    // Apply assigned to filter
+    if (assignedToFilter !== 'All') {
+      if (assignedToFilter === 'Unassigned') {
+        filtered = filtered.filter(l => !l.assignedTo);
+      } else {
+        filtered = filtered.filter(l => l.assignedTo?._id === assignedToFilter);
+      }
+    }
     
     // Sort leads
     const sorted = [...filtered].sort((a, b) => {
@@ -120,7 +144,7 @@ export default function LeadsCenter() {
     });
     
     return sorted;
-  }, [leads, courseFilter, sortBy]);
+  }, [leads, courseFilter, assignedToFilter, sortBy]);
 
   return (
     <div>
@@ -139,13 +163,26 @@ export default function LeadsCenter() {
             <option value="member-desc">👤 Member (Z-A)</option>
           </select>
 
+          {/* Assigned To Filter */}
+          <select 
+            value={assignedToFilter} 
+            onChange={e=>setAssignedToFilter(e.target.value)} 
+            className="border rounded-xl px-3 py-2"
+          >
+            <option value="All">👥 All Members</option>
+            <option value="Unassigned">⚠️ Unassigned</option>
+            {admissions.map(a => (
+              <option key={a._id} value={a._id}>👤 {a.name}</option>
+            ))}
+          </select>
+
           {/* Course Filter */}
           <select 
             value={courseFilter} 
             onChange={e=>setCourseFilter(e.target.value)} 
             className="border rounded-xl px-3 py-2"
           >
-            <option value="All">All Courses</option>
+            <option value="All">📚 All Courses</option>
             {courses.map(c => (
               <option key={c._id} value={c.name}>{c.name}</option>
             ))}
@@ -158,6 +195,7 @@ export default function LeadsCenter() {
             className="border rounded-xl px-3 py-2"
           >
             <option>All Leads</option>
+            <option>Unassigned</option>
             <option>Assigned</option>
             <option>Counseling</option>
             <option>In Follow Up</option>
@@ -271,6 +309,7 @@ export default function LeadsCenter() {
               <th className="text-left p-3">Phone / Email</th>
               <th className="text-left p-3">Interested Course</th>
               <th className="text-left p-3">Source</th>
+              <th className="text-left p-3">Lead Status</th>
               <th className="text-left p-3">Assigned To</th>
               {(user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.role === 'Admission' || user?.role === 'DigitalMarketing') && <th className="text-left p-3">History</th>}
               {canAssign && <th className="text-left p-3">Action</th>}
@@ -312,6 +351,19 @@ export default function LeadsCenter() {
                 </td>
                 <td className="p-3">{l.interestedCourse || '-'}</td>
                 <td className="p-3">{l.source}</td>
+                <td className="p-3">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    l.status === 'Admitted' ? 'bg-green-100 text-green-700' :
+                    l.status === 'Not Admitted' ? 'bg-red-100 text-red-700' :
+                    l.status === 'Counseling' ? 'bg-blue-100 text-blue-700' :
+                    l.status === 'In Follow Up' ? 'bg-yellow-100 text-yellow-700' :
+                    l.status === 'Assigned' && l.assignedTo ? 'bg-purple-100 text-purple-700' :
+                    l.status === 'Assigned' && !l.assignedTo ? 'bg-orange-100 text-orange-700' :
+                    'bg-gray-100 text-gray-700'
+                  }`}>
+                    {l.status === 'Assigned' && !l.assignedTo ? 'Unassigned' : l.status || 'New'}
+                  </span>
+                </td>
                 <td className="p-3">{l.assignedTo ? `${l.assignedTo.name} (${l.assignedTo.role})` : '-'}</td>
                 {(user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.role === 'Admission' || user?.role === 'DigitalMarketing') && (
                   <td className="p-3">
@@ -339,8 +391,8 @@ export default function LeadsCenter() {
               </tr>
             ))}
             {filteredLeads.length === 0 && (
-              <tr><td className="p-4 text-royal/70 text-center" colSpan={canAssign ? 10 : 8}>
-                {leads.length === 0 ? 'No leads' : 'No leads match the selected course filter'}
+              <tr><td className="p-4 text-royal/70 text-center" colSpan={canAssign ? 11 : 9}>
+                {leads.length === 0 ? 'No leads' : 'No leads match the selected filters'}
               </td></tr>
             )}
           </tbody>

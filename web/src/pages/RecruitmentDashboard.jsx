@@ -11,8 +11,12 @@ import {
   BarChart2,
   Target,
   DollarSign,
-  Calendar
+  Calendar,
+  Download
 } from 'lucide-react';
+
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function firstOfMonthISO(){ const d=new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0,10); }
 
 export default function RecruitmentDashboard() {
   const [candidates, setCandidates] = useState([]);
@@ -278,6 +282,9 @@ export default function RecruitmentDashboard() {
         </div>
       </div>
 
+      {/* Download Reports Section */}
+      <RecruitmentReportsDownload />
+
       {/* Team Target Card */}
       {!loadingTargets && (
         <div className="bg-white rounded-2xl p-8 shadow-xl border border-gray-200">
@@ -422,6 +429,330 @@ export default function RecruitmentDashboard() {
         </div>
         <RecruitmentChart data={metrics.series} />
       </div>
+    </div>
+  );
+}
+
+function RecruitmentReportsDownload() {
+  const [reportPeriod, setReportPeriod] = useState('monthly');
+  const [reportFrom, setReportFrom] = useState(firstOfMonthISO());
+  const [reportTo, setReportTo] = useState(todayISO());
+  const [downloading, setDownloading] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [err, setErr] = useState('');
+
+  const downloadRecruitmentReport = async () => {
+    setDownloading(true);
+    setMsg('');
+    setErr('');
+    
+    try {
+      let from, to;
+      
+      if (reportPeriod === 'daily') {
+        from = todayISO();
+        to = todayISO();
+      } else if (reportPeriod === 'monthly') {
+        from = firstOfMonthISO();
+        to = todayISO();
+      } else if (reportPeriod === 'custom') {
+        from = reportFrom;
+        to = reportTo;
+      }
+
+      // Fetch all recruitment data in parallel
+      const [candidatesRes, jobsRes, employersRes, incomeRes, expenseRes] = await Promise.all([
+        api.listCandidates().catch(() => ({ candidates: [] })),
+        api.listJobs().catch(() => ({ jobs: [] })),
+        api.listEmployers().catch(() => ({ employers: [] })),
+        api.listRecIncome().catch(() => ({ items: [] })),
+        api.listRecExpense().catch(() => ({ items: [] }))
+      ]);
+
+      const allCandidates = candidatesRes?.candidates || [];
+      const allJobs = jobsRes?.jobs || [];
+      const allEmployers = employersRes?.employers || [];
+      const allIncome = Array.isArray(incomeRes) ? incomeRes : (incomeRes?.items || incomeRes?.income || []);
+      const allExpense = Array.isArray(expenseRes) ? expenseRes : (expenseRes?.items || expenseRes?.expenses || []);
+
+      // Filter by date range
+      const fromDate = new Date(from);
+      const toDate = new Date(to);
+      toDate.setHours(23, 59, 59, 999);
+
+      const filteredCandidates = allCandidates.filter(c => {
+        const d = new Date(c.createdAt || c.date);
+        return d >= fromDate && d <= toDate;
+      });
+
+      const filteredJobs = allJobs.filter(j => {
+        const d = new Date(j.createdAt || j.date);
+        return d >= fromDate && d <= toDate;
+      });
+
+      const filteredIncome = allIncome.filter(i => {
+        const d = new Date(i.date);
+        return d >= fromDate && d <= toDate;
+      });
+
+      const filteredExpense = allExpense.filter(e => {
+        const d = new Date(e.date);
+        return d >= fromDate && d <= toDate;
+      });
+
+      // Calculate metrics
+      const totalCandidates = filteredCandidates.length;
+      const candidatesByStatus = {};
+      filteredCandidates.forEach(c => {
+        const status = c.status || 'Unknown';
+        candidatesByStatus[status] = (candidatesByStatus[status] || 0) + 1;
+      });
+
+      const totalJobs = filteredJobs.length;
+      const jobsByStatus = {};
+      filteredJobs.forEach(j => {
+        const status = j.status || 'Unknown';
+        jobsByStatus[status] = (jobsByStatus[status] || 0) + 1;
+      });
+
+      const totalIncome = filteredIncome.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+      const incomeBySource = {};
+      filteredIncome.forEach(i => {
+        const source = i.source || 'Others';
+        incomeBySource[source] = (incomeBySource[source] || 0) + (Number(i.amount) || 0);
+      });
+
+      const totalExpense = filteredExpense.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+      const expenseByPurpose = {};
+      filteredExpense.forEach(e => {
+        const purpose = e.purpose || 'Others';
+        expenseByPurpose[purpose] = (expenseByPurpose[purpose] || 0) + (Number(e.amount) || 0);
+      });
+
+      // Generate CSV content
+      let csv = `Recruitment Report\n`;
+      csv += `Period: ${from} to ${to}\n`;
+      csv += `Generated: ${new Date().toLocaleString()}\n\n`;
+
+      // Candidates Section
+      csv += `=== CANDIDATES ===\n`;
+      csv += `Total Candidates,${totalCandidates}\n\n`;
+      csv += `Candidates by Status\n`;
+      csv += `Status,Count\n`;
+      Object.entries(candidatesByStatus).sort((a, b) => b[1] - a[1]).forEach(([status, count]) => {
+        csv += `${status},${count}\n`;
+      });
+      csv += `\n`;
+
+      // Candidate Details
+      if (filteredCandidates.length > 0) {
+        csv += `Candidate Details\n`;
+        csv += `Name,Phone,Email,Status,Job Position,Company,Created Date\n`;
+        filteredCandidates.forEach(c => {
+          const name = (c.name || 'N/A').replace(/,/g, ';');
+          const phone = c.phone || 'N/A';
+          const email = (c.email || 'N/A').replace(/,/g, ';');
+          const status = c.status || 'N/A';
+          const job = (c.jobId?.title || 'N/A').replace(/,/g, ';');
+          const company = (c.employerId?.companyName || 'N/A').replace(/,/g, ';');
+          const date = c.createdAt ? new Date(c.createdAt).toLocaleDateString() : 'N/A';
+          csv += `"${name}",${phone},"${email}",${status},"${job}","${company}",${date}\n`;
+        });
+        csv += `\n`;
+      }
+
+      // Jobs Section
+      csv += `=== JOB POSITIONS ===\n`;
+      csv += `Total Jobs,${totalJobs}\n\n`;
+      csv += `Jobs by Status\n`;
+      csv += `Status,Count\n`;
+      Object.entries(jobsByStatus).sort((a, b) => b[1] - a[1]).forEach(([status, count]) => {
+        csv += `${status},${count}\n`;
+      });
+      csv += `\n`;
+
+      // Job Details
+      if (filteredJobs.length > 0) {
+        csv += `Job Position Details\n`;
+        csv += `Job Title,Company,Location,Status,Salary,Requirements,Created Date\n`;
+        filteredJobs.forEach(j => {
+          const title = (j.title || 'N/A').replace(/,/g, ';');
+          const company = (j.employerId?.companyName || 'N/A').replace(/,/g, ';');
+          const location = (j.location || 'N/A').replace(/,/g, ';');
+          const status = j.status || 'N/A';
+          const salary = (j.salary || 'N/A').replace(/,/g, ';');
+          const requirements = (j.requirements || 'N/A').replace(/,/g, ';').replace(/\n/g, ' ');
+          const date = j.createdAt ? new Date(j.createdAt).toLocaleDateString() : 'N/A';
+          csv += `"${title}","${company}","${location}",${status},"${salary}","${requirements}",${date}\n`;
+        });
+        csv += `\n`;
+      }
+
+      // Employers Section
+      csv += `=== EMPLOYERS ===\n`;
+      csv += `Total Employers,${allEmployers.length}\n\n`;
+      if (allEmployers.length > 0) {
+        csv += `Employer Details\n`;
+        csv += `Company Name,Contact Person,Phone,Email,Address,Industry\n`;
+        allEmployers.forEach(e => {
+          const company = (e.companyName || 'N/A').replace(/,/g, ';');
+          const contact = (e.contactPerson || 'N/A').replace(/,/g, ';');
+          const phone = e.phone || 'N/A';
+          const email = (e.email || 'N/A').replace(/,/g, ';');
+          const address = (e.address || 'N/A').replace(/,/g, ';').replace(/\n/g, ' ');
+          const industry = (e.industry || 'N/A').replace(/,/g, ';');
+          csv += `"${company}","${contact}",${phone},"${email}","${address}","${industry}"\n`;
+        });
+        csv += `\n`;
+      }
+
+      // Income Section
+      csv += `=== RECRUITMENT INCOME ===\n`;
+      csv += `Total Income,${totalIncome} BDT\n\n`;
+      csv += `Income by Source\n`;
+      csv += `Source Name,Amount (BDT)\n`;
+      Object.entries(incomeBySource).sort((a, b) => b[1] - a[1]).forEach(([source, amount]) => {
+        csv += `${source},${amount}\n`;
+      });
+      csv += `\n`;
+
+      // Detailed Income
+      if (filteredIncome.length > 0) {
+        csv += `Detailed Income\n`;
+        csv += `Date,Source Name,Amount (BDT),Status,Notes\n`;
+        filteredIncome.forEach(i => {
+          const date = new Date(i.date).toLocaleDateString();
+          const source = (i.source || 'N/A').replace(/,/g, ';');
+          const status = i.status || 'N/A';
+          const notes = (i.notes || i.description || 'N/A').replace(/,/g, ';').replace(/\n/g, ' ');
+          csv += `${date},"${source}",${i.amount || 0},${status},"${notes}"\n`;
+        });
+        csv += `\n`;
+      }
+
+      // Expense Section
+      csv += `=== RECRUITMENT EXPENSES ===\n`;
+      csv += `Total Expenses,${totalExpense} BDT\n\n`;
+      csv += `Expenses by Purpose Name\n`;
+      csv += `Purpose Name,Amount (BDT)\n`;
+      Object.entries(expenseByPurpose).sort((a, b) => b[1] - a[1]).forEach(([purpose, amount]) => {
+        csv += `${purpose},${amount}\n`;
+      });
+      csv += `\n`;
+
+      // Detailed Expenses
+      if (filteredExpense.length > 0) {
+        csv += `Detailed Expenses\n`;
+        csv += `Date,Purpose Name,Amount (BDT),Notes\n`;
+        filteredExpense.forEach(e => {
+          const date = new Date(e.date).toLocaleDateString();
+          const purpose = (e.purpose || 'N/A').replace(/,/g, ';');
+          const notes = (e.notes || e.description || 'N/A').replace(/,/g, ';').replace(/\n/g, ' ');
+          csv += `${date},"${purpose}",${e.amount || 0},"${notes}"\n`;
+        });
+        csv += `\n`;
+      }
+
+      // Summary
+      csv += `=== FINANCIAL SUMMARY ===\n`;
+      csv += `Total Income,${totalIncome} BDT\n`;
+      csv += `Total Expenses,${totalExpense} BDT\n`;
+      csv += `Net Profit,${totalIncome - totalExpense} BDT\n`;
+
+      // Download CSV
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Recruitment_Report_${from}_to_${to}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      setMsg('✓ Report downloaded successfully!');
+    } catch (e) {
+      setErr('Failed to download report: ' + e.message);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-gray-200 hover:border-blue-300 transition-colors">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-md">
+              <Download className="w-6 h-6 text-white" />
+            </div>
+            <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              Download Comprehensive Reports
+            </h3>
+          </div>
+          <p className="text-gray-600 text-sm">
+            Export detailed reports including candidates, jobs, employers, income, and expenses
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <select
+            value={reportPeriod}
+            onChange={e => setReportPeriod(e.target.value)}
+            className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors"
+          >
+            <option value="daily">Today</option>
+            <option value="monthly">This Month</option>
+            <option value="custom">Custom Range</option>
+          </select>
+
+          {reportPeriod === 'custom' && (
+            <>
+              <input
+                type="date"
+                value={reportFrom}
+                onChange={e => setReportFrom(e.target.value)}
+                className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors"
+              />
+              <span className="text-gray-500 font-medium self-center">to</span>
+              <input
+                type="date"
+                value={reportTo}
+                onChange={e => setReportTo(e.target.value)}
+                className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors"
+              />
+            </>
+          )}
+
+          <button
+            onClick={downloadRecruitmentReport}
+            disabled={downloading}
+            className="px-6 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-bold hover:from-blue-600 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+          >
+            {downloading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                Download Report
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {msg && (
+        <div className="mt-4 p-3 bg-green-50 border-2 border-green-200 rounded-lg">
+          <p className="text-green-700 font-medium text-sm">{msg}</p>
+        </div>
+      )}
+
+      {err && (
+        <div className="mt-4 p-3 bg-red-50 border-2 border-red-200 rounded-lg">
+          <p className="text-red-700 font-medium text-sm">{err}</p>
+        </div>
+      )}
     </div>
   );
 }

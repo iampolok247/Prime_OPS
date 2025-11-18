@@ -48,6 +48,7 @@ export default function AdmissionPipeline() {
 
 function PipelineTable({ status, canAct }) {
   const [rows, setRows] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [msg, setMsg] = useState(null);
   const [err, setErr] = useState(null);
   const [showFollowModal, setShowFollowModal] = useState(false);
@@ -119,6 +120,20 @@ function PipelineTable({ status, canAct }) {
     loadCourses();
   };
 
+  // Filter rows based on search term
+  const filteredRows = useMemo(() => {
+    if (!searchTerm.trim()) return rows;
+    const search = searchTerm.toLowerCase();
+    return rows.filter(row => 
+      row.leadId?.toLowerCase().includes(search) ||
+      row.name?.toLowerCase().includes(search) ||
+      row.phone?.includes(search) ||
+      row.email?.toLowerCase().includes(search) ||
+      row.interestedCourse?.toLowerCase().includes(search) ||
+      row.assignedTo?.name?.toLowerCase().includes(search)
+    );
+  }, [rows, searchTerm]);
+
   const actions = (row) => {
     if (!canAct) return null;
     if (status === 'Assigned') {
@@ -169,6 +184,39 @@ function PipelineTable({ status, canAct }) {
     <div>
       {msg && <div className="mb-2 text-green-700">{msg}</div>}
       {err && <div className="mb-2 text-red-600">{err}</div>}
+      
+      {/* Search Bar */}
+      <div className="mb-4 bg-white rounded-xl shadow-soft p-4">
+        <div className="relative">
+          <input 
+            type="text"
+            placeholder="🔍 Search by Lead ID, Name, Phone, Email, Course, or Assigned Member..."
+            className="w-full border border-blue-300 rounded-lg px-4 py-3 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-blue-50"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
+          <svg className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 bg-white rounded-full p-1"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+        {searchTerm && (
+          <p className="text-xs text-gray-600 mt-2">
+            📋 Showing {filteredRows.length} of {rows.length} lead(s)
+          </p>
+        )}
+      </div>
+
       {showAdmitModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="absolute inset-0 bg-black opacity-30" onClick={()=>setShowAdmitModal(false)} />
@@ -326,7 +374,7 @@ function PipelineTable({ status, canAct }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map(r => (
+            {filteredRows.map(r => (
               <tr key={r._id} className="border-t">
                 <td className="p-3">
                   <div className="flex items-center gap-2">
@@ -364,6 +412,11 @@ function PipelineTable({ status, canAct }) {
             ))}
             {rows.length === 0 && (
               <tr><td className="p-4 text-royal/70" colSpan="7">No leads</td></tr>
+            )}
+            {rows.length > 0 && filteredRows.length === 0 && (
+              <tr><td className="p-4 text-royal/70 text-center" colSpan="7">
+                No leads found matching "{searchTerm}"
+              </td></tr>
             )}
           </tbody>
         </table>

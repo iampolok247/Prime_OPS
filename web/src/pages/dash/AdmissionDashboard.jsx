@@ -1,6 +1,7 @@
 // web/src/pages/dash/AdmissionDashboard.jsx
 import React, { useEffect, useState } from 'react';
 import { api } from '../../lib/api.js';
+import { useAuth } from '../../context/AuthContext.jsx';
 import { 
   Users, 
   UserCheck, 
@@ -9,7 +10,9 @@ import {
   PhoneCall,
   GraduationCap,
   TrendingUp,
-  BarChart2
+  BarChart2,
+  Download,
+  Filter
 } from 'lucide-react';
 
 function fmtDT(d){ if (!d) return '-'; try { return new Date(d).toLocaleString(); } catch { return d; } }
@@ -100,6 +103,7 @@ const STATUSES = [
 ];
 
 export default function AdmissionDashboard() {
+  const { user } = useAuth();
   const [err, setErr] = useState('');
   const [period, setPeriod] = useState('monthly');
   const [from, setFrom] = useState('');
@@ -108,6 +112,14 @@ export default function AdmissionDashboard() {
   const [batches, setBatches] = useState([]);
   const [batchCategoryFilter, setBatchCategoryFilter] = useState('All');
   const [loading, setLoading] = useState(false);
+  
+  // Admin/SuperAdmin specific filters
+  const [admissionUsers, setAdmissionUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState('all');
+  const [reportData, setReportData] = useState(null);
+  const [downloadingReport, setDownloadingReport] = useState(false);
+
+  const isAdminOrSA = user?.role === 'Admin' || user?.role === 'SuperAdmin';
 
   // Load all leads and batches once
   useEffect(()=> {
@@ -118,13 +130,30 @@ export default function AdmissionDashboard() {
     setLoading(true);
     try {
       // Fetch all leads and batches
-      const [leadsResp, batchesResp] = await Promise.all([
+      const promises = [
         api.listAdmissionLeads().catch(()=>({ leads: [] })),
         api.listBatches().catch(()=>({ batches: [] }))
-      ]);
+      ];
+      
+      // If Admin/SuperAdmin, also load admission users and reports
+      if (isAdminOrSA) {
+        promises.push(api.listAdmissionUsers().catch(()=>({ users: [] })));
+      }
+      
+      const results = await Promise.all(promises);
+      const [leadsResp, batchesResp, usersResp] = results;
+      
       const leads = leadsResp?.leads || leadsResp || [];
       setAllLeads(Array.isArray(leads) ? leads : []);
       setBatches(batchesResp?.batches || []);
+      
+      if (isAdminOrSA && usersResp) {
+        const users = usersResp?.users || [];
+        setAdmissionUsers(Array.isArray(users) ? users : []);
+        // Load initial report data
+        loadReports();
+      }
+      
       setErr('');
     } catch(e) { 
       setErr(e.message || 'Failed to load'); 
@@ -132,6 +161,29 @@ export default function AdmissionDashboard() {
       setLoading(false);
     }
   }
+
+  async function loadReports() {
+    if (!isAdminOrSA) return;
+    
+    try {
+      const { from: rangeFrom, to: rangeTo } = parseRange();
+      const fromDate = rangeFrom ? rangeFrom.toISOString().slice(0, 10) : undefined;
+      const toDate = rangeTo ? rangeTo.toISOString().slice(0, 10) : undefined;
+      
+      const userId = selectedUser === 'all' ? undefined : selectedUser;
+      const data = await api.getAdmissionReports(userId, fromDate, toDate);
+      setReportData(data);
+    } catch(e) {
+      console.error('Failed to load reports:', e);
+    }
+  }
+
+  // Reload reports when filters change
+  useEffect(() => {
+    if (isAdminOrSA && admissionUsers.length > 0) {
+      loadReports();
+    }
+  }, [selectedUser, period, from, to]);
 
   const parseRange = () => {
     if (period === 'lifetime') return { from: null, to: null };
@@ -201,7 +253,21 @@ export default function AdmissionDashboard() {
       }
     }
 
-    return { counts, series };
+    // Calculate report metrics from the same leadsInRange data
+    const reportMetrics = {
+      totalLeads: leadsInRange.length,
+      assigned: leadsInRange.filter(l => l.status === 'Assigned').length,
+      counseling: leadsInRange.filter(l => l.status === 'Counseling').length,
+      inFollowUp: leadsInRange.filter(l => l.status === 'In Follow Up').length,
+      admitted: leadsInRange.filter(l => l.status === 'Admitted').length,
+      notAdmitted: leadsInRange.filter(l => l.status === 'Not Admitted').length
+    };
+    
+    const conversionRate = reportMetrics.totalLeads > 0 
+      ? ((reportMetrics.admitted / reportMetrics.totalLeads) * 100).toFixed(2)
+      : '0.00';
+
+    return { counts, series, reportMetrics, conversionRate };
   }, [allLeads, rangeFrom, rangeTo]);
 
   const getStatusIcon = (key) => {
@@ -224,6 +290,111 @@ export default function AdmissionDashboard() {
       'Not Admitted': 'from-red-500 to-pink-600'
     };
     return colors[key] || 'from-gray-500 to-slate-600';
+  };
+
+  // Download report as CSV
+  const downloadReport = () => {
+    if (!reportData) return;
+    
+    setDownloadingReport(true);
+    try {
+      let csvContent = '';
+      
+      if (selectedUser === 'all') {
+        // Download all users report with overall summary at top (using local metrics)
+        csvContent = 'ADMISSION TEAM REPORT\n';
+        csvContent += `Period: ${period === 'custom' && from && to ? `${from} to ${to}` : period}\n`;
+        csvContent += `Generated: ${new Date().toLocaleString()}\n\n`;
+        
+        // Overall Summary First (from local metrics to match displayed data)
+        csvContent += 'OVERALL TEAM SUMMARY\n';
+        csvContent += 'Metric,Value\n';
+        csvContent += `Total Leads,${metrics.reportMetrics?.totalLeads || 0}\n`;
+        csvContent += `Assigned,${metrics.reportMetrics?.assigned || 0}\n`;
+        csvContent += `Counseling,${metrics.reportMetrics?.counseling || 0}\n`;
+        csvContent += `In Follow Up,${metrics.reportMetrics?.inFollowUp || 0}\n`;
+        csvContent += `Admitted,${metrics.reportMetrics?.admitted || 0}\n`;
+        csvContent += `Not Admitted,${metrics.reportMetrics?.notAdmitted || 0}\n`;
+        csvContent += `Conversion Rate,${metrics.conversionRate || '0.00'}%\n\n`;
+        
+        // Individual Reports by Name (Alphabetically sorted)
+        if (reportData && reportData.reports && reportData.reports.length > 0) {
+          csvContent += 'INDIVIDUAL REPORTS BY TEAM MEMBER\n\n';
+          
+          // Sort reports by user name
+          const sortedReports = [...reportData.reports].sort((a, b) => 
+            a.user.name.localeCompare(b.user.name)
+          );
+          
+          sortedReports.forEach((r, index) => {
+            csvContent += `${index + 1}. ${r.user.name.toUpperCase()}\n`;
+            csvContent += `Email: ${r.user.email}\n`;
+            csvContent += `Total Leads,${r.stats.totalLeads}\n`;
+            csvContent += `Assigned,${r.stats.assigned}\n`;
+            csvContent += `Counseling,${r.stats.counseling}\n`;
+            csvContent += `In Follow Up,${r.stats.inFollowUp}\n`;
+            csvContent += `Admitted,${r.stats.admitted}\n`;
+            csvContent += `Not Admitted,${r.stats.notAdmitted}\n`;
+            csvContent += `Conversion Rate,${r.conversionRate}%\n\n`;
+          });
+        }
+      } else {
+        // Download individual user report with lead details
+        csvContent = `Admission Report - ${reportData.user.name}\n`;
+        csvContent += `Email: ${reportData.user.email}\n`;
+        csvContent += `Period: ${period === 'custom' && from && to ? `${from} to ${to}` : period}\n`;
+        csvContent += `Generated: ${new Date().toLocaleString()}\n\n`;
+        
+        csvContent += 'SUMMARY\n';
+        csvContent += `Total Leads,${reportData.stats.totalLeads}\n`;
+        csvContent += `Assigned,${reportData.stats.assigned}\n`;
+        csvContent += `Counseling,${reportData.stats.counseling}\n`;
+        csvContent += `In Follow Up,${reportData.stats.inFollowUp}\n`;
+        csvContent += `Admitted,${reportData.stats.admitted}\n`;
+        csvContent += `Not Admitted,${reportData.stats.notAdmitted}\n`;
+        csvContent += `Conversion Rate,${reportData.conversionRate}%\n\n`;
+        
+        csvContent += 'LEAD DETAILS\n';
+        csvContent += 'Lead ID,Name,Phone,Email,Status,Course,Created At,Admitted At\n';
+        
+        if (reportData.leads && reportData.leads.length > 0) {
+          reportData.leads.forEach(lead => {
+            const row = [
+              lead.leadId || '',
+              lead.name || '',
+              lead.phone || '',
+              lead.email || '',
+              lead.status || '',
+              lead.interestedCourse || '',
+              lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : '',
+              lead.admittedAt ? new Date(lead.admittedAt).toLocaleDateString() : ''
+            ];
+            csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
+          });
+        }
+      }
+      
+      // Create download link
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      
+      const fileName = selectedUser === 'all' 
+        ? `admission-report-all-${new Date().toISOString().slice(0, 10)}.csv`
+        : `admission-report-${reportData.user.name.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.csv`;
+      
+      link.setAttribute('download', fileName);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch(e) {
+      console.error('Download failed:', e);
+      alert('Failed to download report. Please try again.');
+    } finally {
+      setDownloadingReport(false);
+    }
   };
 
   return (
@@ -267,9 +438,7 @@ export default function AdmissionDashboard() {
             </>
           )}
         </div>
-      </div>
-
-      {err && (
+      </div>      {err && (
         <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
           <p className="text-red-700 font-medium">{err}</p>
         </div>
@@ -392,6 +561,160 @@ export default function AdmissionDashboard() {
               <p className="text-sm">
                 {batchCategoryFilter === 'All' ? 'No active batches available' : `No active batches in "${batchCategoryFilter}" category`}
               </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Admin/SuperAdmin Reports Section */}
+      {isAdminOrSA && (
+        <div className="bg-white rounded-xl p-6 shadow-xl border border-gray-100">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Admission Team Reports</h3>
+              <p className="text-sm text-gray-500 mt-1">Overall performance and individual metrics</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3 flex-1">
+              <Filter className="w-5 h-5 text-gray-500" />
+              <select
+                value={selectedUser}
+                onChange={e => setSelectedUser(e.target.value)}
+                className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors"
+              >
+                <option value="all">📊 Overall Team Report</option>
+                {admissionUsers.map(u => (
+                  <option key={u._id} value={u._id}>
+                    👤 {u.name} - Individual Report
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <button
+              onClick={downloadReport}
+              disabled={(selectedUser === 'all' ? !metrics.reportMetrics : !reportData) || downloadingReport}
+              className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            >
+              <Download size={18} />
+              {downloadingReport ? 'Downloading...' : selectedUser === 'all' ? 'Download All Team Reports' : 'Download Individual Report'}
+            </button>
+          </div>
+
+          {/* Overall Team Summary - Show by default */}
+          {selectedUser === 'all' && (
+            <div className="mb-6">
+              <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Users size={18} className="text-purple-600" />
+                Overall Team Performance
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 text-center border border-blue-200">
+                  <div className="text-xs text-blue-600 mb-1 font-medium">Total Leads</div>
+                  <div className="text-2xl font-bold text-blue-700">{metrics.reportMetrics?.totalLeads || 0}</div>
+                </div>
+                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 text-center border border-green-200">
+                  <div className="text-xs text-green-600 mb-1 font-medium">Admitted</div>
+                  <div className="text-2xl font-bold text-green-700">{metrics.reportMetrics?.admitted || 0}</div>
+                </div>
+                <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 text-center border border-orange-200">
+                  <div className="text-xs text-orange-600 mb-1 font-medium">In Progress</div>
+                  <div className="text-2xl font-bold text-orange-700">
+                    {(metrics.reportMetrics?.counseling || 0) + (metrics.reportMetrics?.inFollowUp || 0)}
+                  </div>
+                </div>
+                <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4 text-center border border-red-200">
+                  <div className="text-xs text-red-600 mb-1 font-medium">Not Admitted</div>
+                  <div className="text-2xl font-bold text-red-700">{metrics.reportMetrics?.notAdmitted || 0}</div>
+                </div>
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 text-center border border-purple-200">
+                  <div className="text-xs text-purple-600 mb-1 font-medium">Conversion Rate</div>
+                  <div className="text-2xl font-bold text-purple-700">{metrics.conversionRate || '0.00'}%</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Individual User Report Summary */}
+          {reportData && selectedUser !== 'all' && (
+            <div className="mb-6">
+              <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+                <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <UserCheck size={18} className="text-blue-600" />
+                  Individual Report - {reportData.user?.name}
+                  <span className="text-xs font-normal text-gray-500 ml-2">({reportData.user?.email})</span>
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <div className="bg-white rounded-lg p-3 text-center shadow-sm">
+                    <div className="text-xs text-gray-500 mb-1">Total Leads</div>
+                    <div className="text-xl font-bold text-blue-600">{reportData.stats?.totalLeads || 0}</div>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 text-center shadow-sm">
+                    <div className="text-xs text-gray-500 mb-1">Admitted</div>
+                    <div className="text-xl font-bold text-green-600">{reportData.stats?.admitted || 0}</div>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 text-center shadow-sm">
+                    <div className="text-xs text-gray-500 mb-1">In Progress</div>
+                    <div className="text-xl font-bold text-orange-600">
+                      {(reportData.stats?.counseling || 0) + (reportData.stats?.inFollowUp || 0)}
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 text-center shadow-sm">
+                    <div className="text-xs text-gray-500 mb-1">Not Admitted</div>
+                    <div className="text-xl font-bold text-red-600">{reportData.stats?.notAdmitted || 0}</div>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 text-center shadow-sm">
+                    <div className="text-xs text-gray-500 mb-1">Conversion Rate</div>
+                    <div className="text-xl font-bold text-purple-600">{reportData.conversionRate || 0}%</div>
+                  </div>
+                </div>
+
+                {/* Lead Details for Individual User */}
+                {reportData.leads && reportData.leads.length > 0 && (
+                  <div className="mt-4">
+                    <h5 className="font-semibold text-gray-700 mb-2 text-sm">Lead Details ({reportData.leads.length} total)</h5>
+                    <div className="max-h-64 overflow-y-auto bg-white rounded-lg border border-gray-200">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 sticky top-0">
+                          <tr className="border-b">
+                            <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600">Lead ID</th>
+                            <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600">Name</th>
+                            <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600">Status</th>
+                            <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600">Course</th>
+                            <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600">Created</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {reportData.leads.slice(0, 10).map((lead, idx) => (
+                            <tr key={lead._id || idx} className="border-b hover:bg-gray-50">
+                              <td className="px-3 py-2 text-xs font-mono">{lead.leadId}</td>
+                              <td className="px-3 py-2 text-xs">{lead.name}</td>
+                              <td className="px-3 py-2">
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                  lead.status === 'Admitted' ? 'bg-green-100 text-green-700' :
+                                  lead.status === 'Not Admitted' ? 'bg-red-100 text-red-700' :
+                                  'bg-blue-100 text-blue-700'
+                                }`}>
+                                  {lead.status}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 text-xs">{lead.interestedCourse || '-'}</td>
+                              <td className="px-3 py-2 text-xs">{lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {reportData.leads.length > 10 && (
+                        <div className="text-center py-2 text-xs text-gray-500 bg-gray-50">
+                          Showing 10 of {reportData.leads.length} leads. Download report for complete list.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

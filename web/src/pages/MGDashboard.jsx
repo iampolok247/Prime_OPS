@@ -1,6 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../lib/api.js';
-import { Film, Image, FileImage, Video, TrendingUp, Calendar } from 'lucide-react';
+import { Film, Image, FileImage, Video, TrendingUp, Calendar, Download } from 'lucide-react';
+
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function firstOfMonthISO(){ const d=new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0,10); }
 
 export default function MGDashboard() {
   const [works, setWorks] = useState([]);
@@ -240,6 +243,9 @@ export default function MGDashboard() {
         </div>
       </div>
 
+      {/* Download Reports Section */}
+      <MGReportsDownload />
+
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Pie Chart - Production Type Distribution */}
@@ -377,6 +383,299 @@ export default function MGDashboard() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function MGReportsDownload() {
+  const [reportPeriod, setReportPeriod] = useState('monthly');
+  const [reportFrom, setReportFrom] = useState(firstOfMonthISO());
+  const [reportTo, setReportTo] = useState(todayISO());
+  const [downloading, setDownloading] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [err, setErr] = useState('');
+
+  const downloadMGReport = async () => {
+    setDownloading(true);
+    setMsg('');
+    setErr('');
+    
+    try {
+      let from, to;
+      
+      if (reportPeriod === 'daily') {
+        from = todayISO();
+        to = todayISO();
+      } else if (reportPeriod === 'monthly') {
+        from = firstOfMonthISO();
+        to = todayISO();
+      } else if (reportPeriod === 'custom') {
+        from = reportFrom;
+        to = reportTo;
+      }
+
+      // Fetch all MG works data and tasks in parallel
+      const [worksRes, tasksRes] = await Promise.all([
+        api.listMGWorks().catch(() => ({ works: [] })),
+        api.listAllTasks().catch(() => ({ tasks: [] }))
+      ]);
+
+      const allWorks = worksRes?.works || worksRes || [];
+      const allTasks = tasksRes?.tasks || [];
+
+      // Filter by date range
+      const fromDate = new Date(from);
+      const toDate = new Date(to);
+      toDate.setHours(23, 59, 59, 999);
+
+      const filteredWorks = allWorks.filter(w => {
+        const d = new Date(w.createdAt || w.date);
+        return d >= fromDate && d <= toDate;
+      });
+
+      // Filter tasks assigned to Motion Graphics team
+      const filteredTasks = allTasks.filter(t => {
+        const d = new Date(t.createdAt || t.deadline);
+        const isMGTask = t.assignedTo?.some(u => u.role === 'MotionGraphics');
+        return (d >= fromDate && d <= toDate) && isMGTask;
+      });
+
+      // Calculate metrics
+      const totalProduction = filteredWorks.length;
+
+      // Task Statistics
+      const taskStats = {
+        todo: filteredTasks.filter(t => t.status === 'To-Do').length,
+        inProgress: filteredTasks.filter(t => t.status === 'In Progress').length,
+        completed: filteredTasks.filter(t => t.status === 'Completed').length,
+        total: filteredTasks.length
+      };
+
+      // Production by Type
+      const productionByType = {};
+      filteredWorks.forEach(w => {
+        const type = w.type || 'Unknown';
+        productionByType[type] = (productionByType[type] || 0) + 1;
+      });
+
+      // Production by Status
+      const productionByStatus = {};
+      filteredWorks.forEach(w => {
+        const status = w.status || 'Unknown';
+        productionByStatus[status] = (productionByStatus[status] || 0) + 1;
+      });
+
+      // Production by Priority
+      const productionByPriority = {};
+      filteredWorks.forEach(w => {
+        const priority = w.priority || 'Unknown';
+        productionByPriority[priority] = (productionByPriority[priority] || 0) + 1;
+      });
+
+      // Production by Platform
+      const productionByPlatform = {};
+      filteredWorks.forEach(w => {
+        const platform = w.platform || 'Unknown';
+        productionByPlatform[platform] = (productionByPlatform[platform] || 0) + 1;
+      });
+
+      // Generate CSV content
+      let csv = `Motion Graphics Report\n`;
+      csv += `Period: ${from} to ${to}\n`;
+      csv += `Generated: ${new Date().toLocaleString()}\n\n`;
+
+      // Summary Section
+      csv += `=== PRODUCTION SUMMARY ===\n`;
+      csv += `Total Production,${totalProduction}\n\n`;
+
+      // Tasks Section
+      csv += `=== TASKS ===\n`;
+      csv += `Status,Count\n`;
+      csv += `To-Do,${taskStats.todo}\n`;
+      csv += `In Progress,${taskStats.inProgress}\n`;
+      csv += `Completed,${taskStats.completed}\n`;
+      csv += `Total,${taskStats.total}\n\n`;
+
+      // Detailed Tasks
+      if (filteredTasks.length > 0) {
+        csv += `Task Details\n`;
+        csv += `Task Name,Status,Priority,Deadline,Assigned To\n`;
+        filteredTasks.forEach(t => {
+          const name = (t.title || 'Untitled').replace(/,/g, ';');
+          const status = t.status || 'N/A';
+          const priority = t.priority || 'N/A';
+          const deadline = t.deadline ? new Date(t.deadline).toLocaleDateString() : 'N/A';
+          const assignedTo = t.assignedTo?.map(u => u.name || 'Unknown').join('; ') || 'Unassigned';
+          csv += `"${name}",${status},${priority},${deadline},"${assignedTo}"\n`;
+        });
+        csv += `\n`;
+      }
+
+      // Production by Type
+      csv += `Production by Type\n`;
+      csv += `Type Name,Count\n`;
+      Object.entries(productionByType).sort((a, b) => b[1] - a[1]).forEach(([type, count]) => {
+        csv += `${type},${count}\n`;
+      });
+      csv += `\n`;
+
+      // Production by Status
+      csv += `Production by Status\n`;
+      csv += `Status,Count\n`;
+      Object.entries(productionByStatus).sort((a, b) => b[1] - a[1]).forEach(([status, count]) => {
+        csv += `${status},${count}\n`;
+      });
+      csv += `\n`;
+
+      // Production by Priority
+      csv += `Production by Priority\n`;
+      csv += `Priority,Count\n`;
+      Object.entries(productionByPriority).sort((a, b) => b[1] - a[1]).forEach(([priority, count]) => {
+        csv += `${priority},${count}\n`;
+      });
+      csv += `\n`;
+
+      // Production by Platform
+      csv += `Production by Platform\n`;
+      csv += `Platform,Count\n`;
+      Object.entries(productionByPlatform).sort((a, b) => b[1] - a[1]).forEach(([platform, count]) => {
+        csv += `${platform},${count}\n`;
+      });
+      csv += `\n`;
+
+      // Detailed Production List
+      if (filteredWorks.length > 0) {
+        csv += `=== DETAILED PRODUCTION LIST ===\n`;
+        csv += `Title,Type,Status,Priority,Platform,Assignee,Deadline,Created Date,Notes\n`;
+        filteredWorks.forEach(w => {
+          const title = (w.title || 'Untitled').replace(/,/g, ';');
+          const type = w.type || 'N/A';
+          const status = w.status || 'N/A';
+          const priority = w.priority || 'N/A';
+          const platform = w.platform || 'N/A';
+          const assignee = w.assignedTo?.name || 'Unassigned';
+          const deadline = w.deadline ? new Date(w.deadline).toLocaleDateString() : 'N/A';
+          const createdDate = w.createdAt ? new Date(w.createdAt).toLocaleDateString() : 'N/A';
+          const notes = (w.notes || w.description || 'N/A').replace(/,/g, ';').replace(/\n/g, ' ');
+          csv += `"${title}",${type},${status},${priority},${platform},"${assignee}",${deadline},${createdDate},"${notes}"\n`;
+        });
+        csv += `\n`;
+      }
+
+      // Performance Metrics
+      const completedWorks = filteredWorks.filter(w => w.status === 'Done');
+      const inProgressWorks = filteredWorks.filter(w => w.status === 'InProgress' || w.status === 'Review');
+      const queuedWorks = filteredWorks.filter(w => w.status === 'Queued');
+      const holdWorks = filteredWorks.filter(w => w.status === 'Hold');
+
+      csv += `=== PERFORMANCE METRICS ===\n`;
+      csv += `Metric,Value\n`;
+      csv += `Total Production,${totalProduction}\n`;
+      csv += `Completed Works,${completedWorks.length}\n`;
+      csv += `In Progress Works,${inProgressWorks.length}\n`;
+      csv += `Queued Works,${queuedWorks.length}\n`;
+      csv += `On Hold Works,${holdWorks.length}\n`;
+      csv += `Production Completion Rate,${totalProduction > 0 ? Math.round((completedWorks.length / totalProduction) * 100) : 0}%\n`;
+      csv += `Total Tasks,${taskStats.total}\n`;
+      csv += `Completed Tasks,${taskStats.completed}\n`;
+      csv += `In Progress Tasks,${taskStats.inProgress}\n`;
+      csv += `Pending Tasks,${taskStats.todo}\n`;
+      csv += `Task Completion Rate,${taskStats.total > 0 ? Math.round((taskStats.completed / taskStats.total) * 100) : 0}%\n`;
+
+      // Download CSV
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `MG_Report_${from}_to_${to}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      setMsg('✓ Report downloaded successfully!');
+    } catch (e) {
+      setErr('Failed to download report: ' + e.message);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-gray-200 hover:border-purple-300 transition-colors">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg shadow-md">
+              <Download className="w-6 h-6 text-white" />
+            </div>
+            <h3 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              Download Comprehensive Reports
+            </h3>
+          </div>
+          <p className="text-gray-600 text-sm">
+            Export detailed reports including tasks, production works, status, types, and performance metrics
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <select
+            value={reportPeriod}
+            onChange={e => setReportPeriod(e.target.value)}
+            className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-purple-400 focus:border-purple-500 focus:outline-none transition-colors"
+          >
+            <option value="daily">Today</option>
+            <option value="monthly">This Month</option>
+            <option value="custom">Custom Range</option>
+          </select>
+
+          {reportPeriod === 'custom' && (
+            <>
+              <input
+                type="date"
+                value={reportFrom}
+                onChange={e => setReportFrom(e.target.value)}
+                className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-purple-400 focus:border-purple-500 focus:outline-none transition-colors"
+              />
+              <span className="text-gray-500 font-medium self-center">to</span>
+              <input
+                type="date"
+                value={reportTo}
+                onChange={e => setReportTo(e.target.value)}
+                className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-purple-400 focus:border-purple-500 focus:outline-none transition-colors"
+              />
+            </>
+          )}
+
+          <button
+            onClick={downloadMGReport}
+            disabled={downloading}
+            className="px-6 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl font-bold hover:from-purple-600 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+          >
+            {downloading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                Download Report
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {msg && (
+        <div className="mt-4 p-3 bg-green-50 border-2 border-green-200 rounded-lg">
+          <p className="text-green-700 font-medium text-sm">{msg}</p>
+        </div>
+      )}
+
+      {err && (
+        <div className="mt-4 p-3 bg-red-50 border-2 border-red-200 rounded-lg">
+          <p className="text-red-700 font-medium text-sm">{err}</p>
+        </div>
+      )}
     </div>
   );
 }

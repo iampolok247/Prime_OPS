@@ -244,4 +244,135 @@ router.get('/follow-up-notifications', requireAuth, async (req, res) => {
   }
 });
 
+// ---------- Admission Reports (Admin/SuperAdmin) ----------
+
+// Get admission reports - overall or filtered by user
+router.get('/reports', requireAuth, async (req, res) => {
+  if (!isAdmin(req.user) && !isSA(req.user)) {
+    return res.status(403).json({ code: 'FORBIDDEN', message: 'Admin/SuperAdmin only' });
+  }
+
+  try {
+    const { userId, from, to } = req.query;
+    
+    // Build date filter if provided
+    const dateFilter = {};
+    if (from || to) {
+      dateFilter.createdAt = {};
+      if (from) dateFilter.createdAt.$gte = new Date(from);
+      if (to) {
+        const toDate = new Date(to);
+        toDate.setHours(23, 59, 59, 999);
+        dateFilter.createdAt.$lte = toDate;
+      }
+    }
+
+    // If userId provided, get individual report
+    if (userId) {
+      const User = (await import('../models/User.js')).default;
+      const user = await User.findById(userId).select('name email role');
+      if (!user) {
+        return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
+      }
+
+      // Get all leads assigned to this user
+      const userLeads = await Lead.find({ 
+        assignedTo: userId,
+        ...dateFilter
+      }).populate('assignedTo', 'name email');
+
+      // Calculate statistics
+      const stats = {
+        totalLeads: userLeads.length,
+        assigned: userLeads.filter(l => l.status === 'Assigned').length,
+        counseling: userLeads.filter(l => l.status === 'Counseling').length,
+        inFollowUp: userLeads.filter(l => l.status === 'In Follow Up').length,
+        admitted: userLeads.filter(l => l.status === 'Admitted').length,
+        notAdmitted: userLeads.filter(l => l.status === 'Not Admitted').length
+      };
+
+      // Calculate conversion rates
+      const conversionRate = stats.totalLeads > 0 
+        ? ((stats.admitted / stats.totalLeads) * 100).toFixed(2) 
+        : 0;
+
+      return res.json({
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        },
+        stats,
+        conversionRate,
+        leads: userLeads
+      });
+    }
+
+    // Otherwise, get all admission users with their statistics
+    const User = (await import('../models/User.js')).default;
+    const admissionUsers = await User.find({ 
+      role: 'Admission', 
+      isActive: true 
+    }).select('name email role');
+
+    const reports = await Promise.all(
+      admissionUsers.map(async (user) => {
+        const userLeads = await Lead.find({ 
+          assignedTo: user._id,
+          ...dateFilter
+        });
+
+        const stats = {
+          totalLeads: userLeads.length,
+          assigned: userLeads.filter(l => l.status === 'Assigned').length,
+          counseling: userLeads.filter(l => l.status === 'Counseling').length,
+          inFollowUp: userLeads.filter(l => l.status === 'In Follow Up').length,
+          admitted: userLeads.filter(l => l.status === 'Admitted').length,
+          notAdmitted: userLeads.filter(l => l.status === 'Not Admitted').length
+        };
+
+        const conversionRate = stats.totalLeads > 0 
+          ? ((stats.admitted / stats.totalLeads) * 100).toFixed(2) 
+          : 0;
+
+        return {
+          user: {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role
+          },
+          stats,
+          conversionRate
+        };
+      })
+    );
+
+    // Calculate overall statistics
+    const overallStats = {
+      totalLeads: reports.reduce((sum, r) => sum + r.stats.totalLeads, 0),
+      assigned: reports.reduce((sum, r) => sum + r.stats.assigned, 0),
+      counseling: reports.reduce((sum, r) => sum + r.stats.counseling, 0),
+      inFollowUp: reports.reduce((sum, r) => sum + r.stats.inFollowUp, 0),
+      admitted: reports.reduce((sum, r) => sum + r.stats.admitted, 0),
+      notAdmitted: reports.reduce((sum, r) => sum + r.stats.notAdmitted, 0)
+    };
+
+    const overallConversionRate = overallStats.totalLeads > 0
+      ? ((overallStats.admitted / overallStats.totalLeads) * 100).toFixed(2)
+      : 0;
+
+    return res.json({
+      overall: {
+        stats: overallStats,
+        conversionRate: overallConversionRate
+      },
+      reports
+    });
+  } catch (e) {
+    return res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+  }
+});
+
 export default router;

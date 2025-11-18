@@ -250,7 +250,7 @@ function Social() {
   const [form, setForm] = useState({
     date: new Date().toISOString().slice(0,10),
     facebookFollowers: 0, instagramFollowers: 0, facebookGroupMembers: 0, youtubeSubscribers: 0,
-    linkedinFollowers: 0, xFollowers: 0, pinterestViews: 0, bloggerImpressions: 0, totalPeopleReach: 0
+    linkedInFollowers: 0, xFollowers: 0, pinterestView: 0, bloggerImpression: 0, totalReach: 0
   });
   const [msg, setMsg] = useState(null); const [err, setErr] = useState(null);
 
@@ -265,12 +265,11 @@ function Social() {
           instagramFollowers: m.instagramFollowers || 0,
           facebookGroupMembers: m.facebookGroupMembers || 0,
           youtubeSubscribers: m.youtubeSubscribers || 0,
-          // server may use 'linkedInFollowers' (capital I) or 'linkedinFollowers'
-          linkedinFollowers: m.linkedinFollowers || m.linkedInFollowers || 0,
+          linkedInFollowers: m.linkedInFollowers || 0,
           xFollowers: m.xFollowers || 0,
-          pinterestViews: m.pinterestViews || m.pinterestView || 0,
-          bloggerImpressions: m.bloggerImpressions || m.bloggerImpression || 0,
-          totalPeopleReach: m.totalPeopleReach || m.totalReach || 0
+          pinterestView: m.pinterestView || 0,
+          bloggerImpression: m.bloggerImpression || 0,
+          totalReach: m.totalReach || 0
         };
         setForm(f => ({ ...f, ...mapped }));
         setList([{ _id: resp?.updatedAt || 'latest', date: resp?.updatedAt || form.date, ...mapped }]);
@@ -295,16 +294,16 @@ function Social() {
     { key: 'instagramFollowers', label: 'Instagram', icon: Instagram, color: 'from-pink-500 to-purple-600' },
     { key: 'facebookGroupMembers', label: 'FB Group', icon: Users, color: 'from-blue-400 to-blue-500' },
     { key: 'youtubeSubscribers', label: 'YouTube', icon: Youtube, color: 'from-red-500 to-red-600' },
-    { key: 'linkedinFollowers', label: 'LinkedIn', icon: Linkedin, color: 'from-cyan-500 to-cyan-600' },
+    { key: 'linkedInFollowers', label: 'LinkedIn', icon: Linkedin, color: 'from-cyan-500 to-cyan-600' },
     { key: 'xFollowers', label: 'X (Twitter)', icon: Twitter, color: 'from-gray-700 to-gray-800' },
-    { key: 'pinterestViews', label: 'Pinterest', icon: Eye, color: 'from-red-600 to-red-700' },
-    { key: 'bloggerImpressions', label: 'Blogger', icon: FileText, color: 'from-orange-500 to-orange-600' },
-    { key: 'totalPeopleReach', label: 'Total Reach', icon: Target, color: 'from-green-500 to-green-600' }
+    { key: 'pinterestView', label: 'Pinterest', icon: Eye, color: 'from-red-600 to-red-700' },
+    { key: 'bloggerImpression', label: 'Blogger', icon: FileText, color: 'from-orange-500 to-orange-600' },
+    { key: 'totalReach', label: 'Total Reach', icon: Target, color: 'from-green-500 to-green-600' }
   ];
 
   const totalFollowers = useMemo(() => {
     return form.facebookFollowers + form.instagramFollowers + form.facebookGroupMembers + 
-           form.youtubeSubscribers + form.linkedinFollowers + form.xFollowers;
+           form.youtubeSubscribers + form.linkedInFollowers + form.xFollowers;
   }, [form]);
 
   return (

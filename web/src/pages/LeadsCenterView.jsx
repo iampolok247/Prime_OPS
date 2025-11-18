@@ -7,7 +7,9 @@ function fmtDT(d){ if (!d) return '-'; try { return new Date(d).toLocaleString()
 export default function LeadsCenterView() {
   const { user } = useAuth();
   const [status, setStatus] = useState('All Leads');
+  const [assignedToFilter, setAssignedToFilter] = useState('All');
   const [leads, setLeads] = useState([]);
+  const [admissions, setAdmissions] = useState([]);
   const [err, setErr] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
   const [histLead, setHistLead] = useState(null);
@@ -15,27 +17,68 @@ export default function LeadsCenterView() {
 
   const load = async () => {
     try {
-      const q = (status === 'All Leads') ? undefined : status;
-      const res = await api.listLeads(q);
-      setLeads(res?.leads || []);
+      // For "Unassigned", fetch "Assigned" status and filter client-side
+      let q = (status === 'All Leads') ? undefined : status;
+      if (status === 'Unassigned') {
+        q = 'Assigned';
+      }
+      
+      const [leadsRes, admissionsRes] = await Promise.all([
+        api.listLeads(q),
+        api.listAdmissionUsers().catch(() => ({ users: [] }))
+      ]);
+      
+      let fetchedLeads = leadsRes?.leads || [];
+      
+      // If status is "Unassigned", filter for leads without assignedTo
+      if (status === 'Unassigned') {
+        fetchedLeads = fetchedLeads.filter(lead => !lead.assignedTo);
+      }
+      
+      setLeads(fetchedLeads);
+      setAdmissions(admissionsRes?.users || []);
       setErr(null);
     } catch (e) { setErr(e.message); }
   };
 
   useEffect(()=>{ load(); }, [status]);
 
+  // Filter leads by assigned to
+  const filteredLeads = React.useMemo(() => {
+    if (assignedToFilter === 'All') return leads;
+    if (assignedToFilter === 'Unassigned') return leads.filter(l => !l.assignedTo);
+    return leads.filter(l => l.assignedTo?._id === assignedToFilter);
+  }, [leads, assignedToFilter]);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
         <h1 className="text-2xl font-bold text-navy">Leads Center (View-only)</h1>
-        <select value={status} onChange={e=>setStatus(e.target.value)} className="border rounded-xl px-3 py-2">
-          <option>All Leads</option>
-          <option>Assigned</option>
-          <option>Counseling</option>
-          <option>In Follow Up</option>
-          <option>Admitted</option>
-          <option>Not Admitted</option>
-        </select>
+        <div className="flex items-center gap-3">
+          {/* Assigned To Filter */}
+          <select 
+            value={assignedToFilter} 
+            onChange={e=>setAssignedToFilter(e.target.value)} 
+            className="border rounded-xl px-3 py-2"
+          >
+            <option value="All">👥 All Members</option>
+            <option value="Unassigned">⚠️ Unassigned</option>
+            {admissions.map(a => (
+              <option key={a._id} value={a._id}>👤 {a.name}</option>
+            ))}
+          </select>
+
+          {/* Status Filter */}
+          <select value={status} onChange={e=>setStatus(e.target.value)} className="border rounded-xl px-3 py-2">
+            <option>All Leads</option>
+            <option>Unassigned</option>
+            <option>Assigned</option>
+            <option>Counseling</option>
+            <option>In Follow Up</option>
+            <option>Admitted</option>
+            <option>Not Admitted</option>
+          </select>
+        </div>
       </div>
 
       {err && <div className="mb-2 text-red-600">{err}</div>}
@@ -49,12 +92,13 @@ export default function LeadsCenterView() {
               <th className="text-left p-3">Phone / Email</th>
               <th className="text-left p-3">Interested Course</th>
               <th className="text-left p-3">Source</th>
+              <th className="text-left p-3">Lead Status</th>
               <th className="text-left p-3">Assigned To</th>
               {(user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.role === 'Admission') && <th className="text-left p-3">History</th>}
             </tr>
           </thead>
           <tbody>
-            {leads.map(l => (
+            {filteredLeads.map(l => (
               <tr key={l._id} className="border-t">
                 <td className="p-3">{l.leadId}</td>
                 <td className="p-3">{l.name}</td>
@@ -64,6 +108,19 @@ export default function LeadsCenterView() {
                 </td>
                 <td className="p-3">{l.interestedCourse || '-'}</td>
                 <td className="p-3">{l.source}</td>
+                <td className="p-3">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    l.status === 'Admitted' ? 'bg-green-100 text-green-700' :
+                    l.status === 'Not Admitted' ? 'bg-red-100 text-red-700' :
+                    l.status === 'Counseling' ? 'bg-blue-100 text-blue-700' :
+                    l.status === 'In Follow Up' ? 'bg-yellow-100 text-yellow-700' :
+                    l.status === 'Assigned' && l.assignedTo ? 'bg-purple-100 text-purple-700' :
+                    l.status === 'Assigned' && !l.assignedTo ? 'bg-orange-100 text-orange-700' :
+                    'bg-gray-100 text-gray-700'
+                  }`}>
+                    {l.status === 'Assigned' && !l.assignedTo ? 'Unassigned' : l.status || 'New'}
+                  </span>
+                </td>
                 <td className="p-3">{l.assignedTo ? `${l.assignedTo.name} (${l.assignedTo.role})` : '-'}</td>
                 {(user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.role === 'Admission') && (
                   <td className="p-3">
@@ -86,8 +143,8 @@ export default function LeadsCenterView() {
                 )}
               </tr>
             ))}
-            {leads.length === 0 && (
-              <tr><td className="p-4 text-royal/70" colSpan={6}>No leads</td></tr>
+            {filteredLeads.length === 0 && (
+              <tr><td className="p-4 text-royal/70" colSpan={7}>No leads for selected filters</td></tr>
             )}
           </tbody>
         </table>

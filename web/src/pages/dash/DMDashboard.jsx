@@ -9,8 +9,12 @@ import {
   Facebook,
   Linkedin,
   FileText,
-  Target
+  Target,
+  Download
 } from 'lucide-react';
+
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function firstOfMonthISO(){ const d=new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0,10); }
 
 export default function DMDashboard() {
   const [err, setErr] = useState('');
@@ -232,6 +236,9 @@ export default function DMDashboard() {
         </div>
       </div>
 
+      {/* Download Reports Section */}
+      <DMReportsDownload />
+
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Line Chart */}
@@ -268,6 +275,296 @@ export default function DMDashboard() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function DMReportsDownload() {
+  const [reportPeriod, setReportPeriod] = useState('monthly');
+  const [reportFrom, setReportFrom] = useState(firstOfMonthISO());
+  const [reportTo, setReportTo] = useState(todayISO());
+  const [downloading, setDownloading] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [err, setErr] = useState('');
+
+  const downloadDMReport = async () => {
+    setDownloading(true);
+    setMsg('');
+    setErr('');
+    
+    try {
+      let from, to;
+      
+      if (reportPeriod === 'daily') {
+        from = todayISO();
+        to = todayISO();
+      } else if (reportPeriod === 'monthly') {
+        from = firstOfMonthISO();
+        to = todayISO();
+      } else if (reportPeriod === 'custom') {
+        from = reportFrom;
+        to = reportTo;
+      }
+
+      // Fetch all DM data in parallel
+      const [leadsRes, tasksRes, costsRes, socialRes, seoRes] = await Promise.all([
+        api.listLeads().catch(() => ({ leads: [] })),
+        api.listAllTasks().catch(() => ({ tasks: [] })),
+        api.listDMCosts().catch(() => ({ items: [] })),
+        api.listSocial().catch(() => ({ metrics: {} })),
+        api.listSEO().catch(() => ({ items: [] }))
+      ]);
+
+      const allLeads = leadsRes?.leads || [];
+      const allTasks = tasksRes?.tasks || [];
+      const allCosts = Array.isArray(costsRes) ? costsRes : (costsRes?.items || costsRes?.costs || []);
+      const socialMetrics = socialRes?.metrics || {};
+      const allSEO = Array.isArray(seoRes) ? seoRes : (seoRes?.items || seoRes?.seo || []);
+
+      // Filter by date range
+      const fromDate = new Date(from);
+      const toDate = new Date(to);
+      toDate.setHours(23, 59, 59, 999);
+
+      const filteredLeads = allLeads.filter(l => {
+        const d = new Date(l.createdAt || l.date);
+        return d >= fromDate && d <= toDate;
+      });
+
+      const filteredTasks = allTasks.filter(t => {
+        const d = new Date(t.createdAt || t.deadline);
+        return d >= fromDate && d <= toDate && t.assignedTo?.some(u => u.role === 'DigitalMarketing');
+      });
+
+      const filteredCosts = allCosts.filter(c => {
+        const d = new Date(c.date);
+        return d >= fromDate && d <= toDate;
+      });
+
+      const filteredSEO = allSEO.filter(s => {
+        const d = new Date(s.date);
+        return d >= fromDate && d <= toDate;
+      });
+
+      // Calculate metrics
+      const totalLeads = filteredLeads.length;
+      const leadsBySource = {};
+      filteredLeads.forEach(l => {
+        const source = l.source || 'Unknown';
+        leadsBySource[source] = (leadsBySource[source] || 0) + 1;
+      });
+
+      const taskStats = {
+        todo: filteredTasks.filter(t => t.status === 'To-Do').length,
+        inProgress: filteredTasks.filter(t => t.status === 'In Progress').length,
+        completed: filteredTasks.filter(t => t.status === 'Completed').length,
+        total: filteredTasks.length
+      };
+
+      const totalCost = filteredCosts.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+      const costByPurpose = {};
+      filteredCosts.forEach(c => {
+        const purpose = c.purpose || 'Others';
+        costByPurpose[purpose] = (costByPurpose[purpose] || 0) + (Number(c.amount) || 0);
+      });
+
+      const seoByType = {};
+      filteredSEO.forEach(s => {
+        const type = s.typeOfWork || 'Others';
+        seoByType[type] = (seoByType[type] || 0) + 1;
+      });
+
+      // Generate CSV content
+      let csv = `Digital Marketing Report\n`;
+      csv += `Period: ${from} to ${to}\n`;
+      csv += `Generated: ${new Date().toLocaleString()}\n\n`;
+
+      // Leads Section
+      csv += `=== LEADS ===\n`;
+      csv += `Total Leads,${totalLeads}\n\n`;
+      csv += `Leads by Source\n`;
+      csv += `Source Name,Number of Leads\n`;
+      Object.entries(leadsBySource).sort((a, b) => b[1] - a[1]).forEach(([source, count]) => {
+        csv += `${source},${count}\n`;
+      });
+      csv += `\n`;
+
+      // Tasks Section
+      csv += `=== TASKS ===\n`;
+      csv += `Status,Count\n`;
+      csv += `To-Do,${taskStats.todo}\n`;
+      csv += `In Progress,${taskStats.inProgress}\n`;
+      csv += `Completed,${taskStats.completed}\n`;
+      csv += `Total,${taskStats.total}\n\n`;
+
+      // Detailed Tasks
+      if (filteredTasks.length > 0) {
+        csv += `Task Details\n`;
+        csv += `Task Name,Status,Priority,Deadline,Assigned To\n`;
+        filteredTasks.forEach(t => {
+          const name = (t.title || 'Untitled').replace(/,/g, ';');
+          const status = t.status || 'N/A';
+          const priority = t.priority || 'N/A';
+          const deadline = t.deadline ? new Date(t.deadline).toLocaleDateString() : 'N/A';
+          const assignedTo = t.assignedTo?.map(u => u.name || 'Unknown').join('; ') || 'Unassigned';
+          csv += `"${name}",${status},${priority},${deadline},"${assignedTo}"\n`;
+        });
+        csv += `\n`;
+      }
+
+      // Costs Section
+      csv += `=== MARKETING EXPENSES ===\n`;
+      csv += `Total Cost,${totalCost} BDT\n\n`;
+      csv += `Cost by Purpose Name\n`;
+      csv += `Purpose Name,Amount (BDT)\n`;
+      Object.entries(costByPurpose).sort((a, b) => b[1] - a[1]).forEach(([purpose, amount]) => {
+        csv += `${purpose},${amount}\n`;
+      });
+      csv += `\n`;
+
+      // Social Media Metrics
+      csv += `=== SOCIAL MEDIA METRICS ===\n`;
+      csv += `Platform,Value\n`;
+      csv += `Facebook Followers,${socialMetrics.facebookFollowers || 0}\n`;
+      csv += `Instagram Followers,${socialMetrics.instagramFollowers || 0}\n`;
+      csv += `Facebook Group Members,${socialMetrics.facebookGroupMembers || 0}\n`;
+      csv += `YouTube Subscribers,${socialMetrics.youtubeSubscribers || 0}\n`;
+      csv += `LinkedIn Followers,${socialMetrics.linkedInFollowers || 0}\n`;
+      csv += `X (Twitter) Followers,${socialMetrics.xFollowers || 0}\n`;
+      csv += `Pinterest Views,${socialMetrics.pinterestView || 0}\n`;
+      csv += `Blogger Impressions,${socialMetrics.bloggerImpression || 0}\n`;
+      csv += `Total Reach,${socialMetrics.totalReach || 0}\n\n`;
+
+      // SEO Activities
+      csv += `=== SEO ACTIVITIES ===\n`;
+      csv += `Total Activities,${filteredSEO.length}\n\n`;
+      csv += `Activities by Type\n`;
+      csv += `Type,Count\n`;
+      Object.entries(seoByType).forEach(([type, count]) => {
+        csv += `${type},${count}\n`;
+      });
+      csv += `\n`;
+
+      // SEO Details
+      if (filteredSEO.length > 0) {
+        csv += `SEO Activity Details\n`;
+        csv += `Date,Type,Challenge,Details\n`;
+        filteredSEO.forEach(s => {
+          const date = new Date(s.date).toLocaleDateString();
+          const type = (s.typeOfWork || '').replace(/,/g, ';');
+          const challenge = (s.challenge || '').replace(/,/g, ';').replace(/\n/g, ' ');
+          const details = (s.details || '').replace(/,/g, ';').replace(/\n/g, ' ');
+          csv += `${date},"${type}","${challenge}","${details}"\n`;
+        });
+        csv += `\n`;
+      }
+
+      // Detailed Costs
+      if (filteredCosts.length > 0) {
+        csv += `=== DETAILED EXPENSES ===\n`;
+        csv += `Date,Purpose Name,Amount (BDT),Notes\n`;
+        filteredCosts.forEach(c => {
+          const date = new Date(c.date).toLocaleDateString();
+          const purpose = (c.purpose || 'N/A').replace(/,/g, ';');
+          const notes = (c.notes || c.description || 'N/A').replace(/,/g, ';').replace(/\n/g, ' ');
+          csv += `${date},"${purpose}",${c.amount || 0},"${notes}"\n`;
+        });
+      }
+
+      // Download CSV
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `DM_Report_${from}_to_${to}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      setMsg('✓ Report downloaded successfully!');
+    } catch (e) {
+      setErr('Failed to download report: ' + e.message);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-gray-200 hover:border-blue-300 transition-colors">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-md">
+              <Download className="w-6 h-6 text-white" />
+            </div>
+            <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              Download Comprehensive Reports
+            </h3>
+          </div>
+          <p className="text-gray-600 text-sm">
+            Export detailed reports including leads, tasks, costs, social metrics, and SEO activities
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <select
+            value={reportPeriod}
+            onChange={e => setReportPeriod(e.target.value)}
+            className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors"
+          >
+            <option value="daily">Today</option>
+            <option value="monthly">This Month</option>
+            <option value="custom">Custom Range</option>
+          </select>
+
+          {reportPeriod === 'custom' && (
+            <>
+              <input
+                type="date"
+                value={reportFrom}
+                onChange={e => setReportFrom(e.target.value)}
+                className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors"
+              />
+              <span className="text-gray-500 font-medium self-center">to</span>
+              <input
+                type="date"
+                value={reportTo}
+                onChange={e => setReportTo(e.target.value)}
+                className="px-4 py-2 border-2 border-gray-200 rounded-xl bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors"
+              />
+            </>
+          )}
+
+          <button
+            onClick={downloadDMReport}
+            disabled={downloading}
+            className="px-6 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-bold hover:from-blue-600 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+          >
+            {downloading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                Download Report
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {msg && (
+        <div className="mt-4 p-3 bg-green-50 border-2 border-green-200 rounded-lg">
+          <p className="text-green-700 font-medium text-sm">{msg}</p>
+        </div>
+      )}
+
+      {err && (
+        <div className="mt-4 p-3 bg-red-50 border-2 border-red-200 rounded-lg">
+          <p className="text-red-700 font-medium text-sm">{err}</p>
+        </div>
+      )}
     </div>
   );
 }
