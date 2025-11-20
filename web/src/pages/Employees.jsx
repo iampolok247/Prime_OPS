@@ -21,12 +21,42 @@ export default function Employees() {
   };
   useEffect(() => { load(); }, []);
 
-  // Sort users by designation
+  // Sort users by seniority hierarchy
   const sortedList = useMemo(() => {
+    const seniorityOrder = {
+      // Top Level (Highest Seniority)
+      'CEO': 1,
+      'Chief Operating Officer': 2,
+      'Director Of Operations': 3,
+      'Director Of Partnerships': 4,
+      'Director (Academic Strategy and Growth)': 5,
+      'Head of Marketing': 6,
+      // Upper-Mid Level
+      'Operations Manager': 7,
+      'Public Relations Manager': 8,
+      'Business Development Manager': 9,
+      'Academic Co-Ordinator': 10,
+      'Assistant Manager': 11,
+      // Mid Level
+      'Business Development Executive': 12,
+      'Business Development Assistant': 13,
+      'Sr.Admissions Executive': 14,
+      // Entry Level (Lowest Seniority)
+      'Admissions Executive': 15,
+      'Digital Marketing Executive': 16,
+      'Motion Graphics Designer': 17
+    };
+
     return [...list].sort((a, b) => {
-      const desigA = (a.designation || '').toLowerCase();
-      const desigB = (b.designation || '').toLowerCase();
-      return desigA.localeCompare(desigB);
+      const rankA = seniorityOrder[a.designation] || 999;
+      const rankB = seniorityOrder[b.designation] || 999;
+      
+      // If same rank, sort by name
+      if (rankA === rankB) {
+        return (a.name || '').localeCompare(b.name || '');
+      }
+      
+      return rankA - rankB;
     });
   }, [list]);
 

@@ -7,8 +7,8 @@ dotenv.config();
 
 const users = [
   // Super Admin
-  { name: 'Kazi Sazzad', email: 'kazi@theprimecollege.org.uk', role: 'SuperAdmin', department: 'Marketing', designation: 'Head of Marketing', phone: '447809443656' },
   { name: 'Ikhtiar Rahman', email: 'ikhtiar@theprimecollege.org.uk', role: 'SuperAdmin', department: 'Management', designation: 'CEO', phone: '447500880645' },
+  { name: 'Kazi Sazzad', email: 'kazi@theprimecollege.org.uk', role: 'SuperAdmin', department: 'Marketing', designation: 'Head of Marketing', phone: '447809443656' },
   { name: 'Shahriar Arafat', email: 'shahriar@theprimecollege.org.uk', role: 'SuperAdmin', department: 'Operations', designation: 'Director Of Operations', phone: '447780114420' },
   { name: 'Raj Pahal', email: 'raj@theprimecollege.org.uk', role: 'SuperAdmin', department: 'Partnership', designation: 'Director Of Partnerships', phone: '447747417531' },
   { name: 'Pauline Price', email: 'pauline@theprimecollege.org.uk', role: 'SuperAdmin', department: 'Operations', designation: 'Chief Operating Officer', phone: '447387839331' },
@@ -26,7 +26,7 @@ const users = [
   { name: 'Farhan Sadik', email: 'farhan@primeacademy.org', role: 'Recruitment', department: 'Recruitment', designation: 'Business Development Executive', phone: '01322924125' },
 
   // Admission
-  { name: 'Sajrin Bashar', email: 'sajrin@primeacademy.org', role: 'Admission', department: 'Admission', designation: 'Business Development Assistant', phone: '01322924124' },
+  { name: 'Sajrin Bashar', email: 'sajrin@primeacademy.org', role: 'Admission', department: 'Admission', designation: 'Business Support Officer', phone: '01322924124' },
   { name: 'Rukaya Ruksad', email: 'ruksad@primeacademy.org', role: 'Admission', department: 'Admission', designation: 'Business Development Executive', phone: '01322924127' },
   { name: 'Rifat Parvin', email: 'rifat@primeacademy.org', role: 'Admission', department: 'Admission', designation: 'Sr.Admissions Executive', phone: '01684239454' },
   { name: 'Hayat Mahmud', email: 'hayat@primeacademy.org', role: 'Admission', department: 'Admission', designation: 'Admissions Executive', phone: '01322924126' },
