@@ -21,6 +21,15 @@ export default function Employees() {
   };
   useEffect(() => { load(); }, []);
 
+  // Sort users by designation
+  const sortedList = useMemo(() => {
+    return [...list].sort((a, b) => {
+      const desigA = (a.designation || '').toLowerCase();
+      const desigB = (b.designation || '').toLowerCase();
+      return desigA.localeCompare(desigB);
+    });
+  }, [list]);
+
   const startAdd = () => {
     setEditId(null);
     setForm({ name:'', email:'', role:'Admission', department:'', designation:'', phone:'', avatar:'' });
@@ -90,7 +99,7 @@ export default function Employees() {
             </tr>
           </thead>
           <tbody>
-            {list.map(u => (
+            {sortedList.map(u => (
               <tr key={u._id} className="border-t">
                 <td className="p-3 flex items-center gap-2">
                   <img src={u.avatar} className="w-8 h-8 rounded-full border" />
@@ -111,7 +120,7 @@ export default function Employees() {
                 )}
               </tr>
             ))}
-            {list.length === 0 && (
+            {sortedList.length === 0 && (
               <tr><td className="p-4 text-royal/70" colSpan={canEdit ? 7 : 6}>No employees</td></tr>
             )}
           </tbody>
