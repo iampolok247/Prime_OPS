@@ -38,7 +38,7 @@ export default function Employees() {
       'Academic Co-Ordinator': 10,
       'Assistant Manager': 11,
       // Mid Level
-      'Business Development Assistant': 12,
+      'Business Development Officer': 12,
       'Business Development Executive': 13,
       'Sr.Admissions Executive': 14,
       // Entry Level (Lowest Seniority)
