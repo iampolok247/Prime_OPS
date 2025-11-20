@@ -12,8 +12,10 @@ const users = [
   { name: 'Shahriar Arafat', email: 'shahriar@theprimecollege.org.uk', role: 'SuperAdmin', department: 'Operations', designation: 'Director Of Operations', phone: '447780114420' },
   { name: 'Raj Pahal', email: 'raj@theprimecollege.org.uk', role: 'SuperAdmin', department: 'Partnership', designation: 'Director Of Partnerships', phone: '447747417531' },
   { name: 'Pauline Price', email: 'pauline@theprimecollege.org.uk', role: 'SuperAdmin', department: 'Operations', designation: 'Chief Operating Officer', phone: '447387839331' },
-  { name: 'Rafsaniat Binte Mustafiz', email: 'rafsaniat@primeacademy.org', role: 'SuperAdmin', department: 'Operations', designation: 'Operations Manager', phone: '01322924121' },
-  { name: 'Md.Shahidul Islam', email: 'shahidul@primeacademy.org', role: 'SuperAdmin', department: 'Academic', designation: 'Director (Academic Strategy and Growth)', phone: '01719000994' },
+
+  // Admin
+  { name: 'Rafsaniat Binte Mustafiz', email: 'rafsaniat@primeacademy.org', role: 'Admin', department: 'Operations', designation: 'Operations Manager', phone: '01322924121' },
+  { name: 'Md.Shahidul Islam', email: 'shahidul@primeacademy.org', role: 'Admin', department: 'Academic', designation: 'Director (Academic Strategy and Growth)', phone: '01719000994' },
 
   // Accountant
   { name: 'Sheikh Mahbubul Islam', email: 'mahbub@primeacademy.org', role: 'Accountant', department: 'Finance', designation: 'Assistant Manager', phone: '01322924120' },
