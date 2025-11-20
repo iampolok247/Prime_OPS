@@ -23,10 +23,10 @@ const users = [
   // Recruitment
   { name: 'Syed Tanvir Hossain Alin', email: 'tanvir@primeacademy.org', role: 'Recruitment', department: 'Recruitment', designation: 'Business Development Manager', phone: '01322924128' },
   { name: 'Farzana Yasmin Tumpa', email: 'farzana@primeacademy.org', role: 'Recruitment', department: 'Recruitment', designation: 'Public Relations Manager', phone: '01322924122' },
-  { name: 'Sajrin Bashar', email: 'sajrin@primeacademy.org', role: 'Recruitment', department: 'Recruitment', designation: 'Business Development Officer', phone: '01322924124' },
   { name: 'Farhan Sadik', email: 'farhan@primeacademy.org', role: 'Recruitment', department: 'Recruitment', designation: 'Business Development Executive', phone: '01322924125' },
 
   // Admission
+  { name: 'Sajrin Bashar', email: 'sajrin@primeacademy.org', role: 'Admission', department: 'Admission', designation: 'Business Development Assistant', phone: '01322924124' },
   { name: 'Rukaya Ruksad', email: 'ruksad@primeacademy.org', role: 'Admission', department: 'Admission', designation: 'Business Development Executive', phone: '01322924127' },
   { name: 'Rifat Parvin', email: 'rifat@primeacademy.org', role: 'Admission', department: 'Admission', designation: 'Sr.Admissions Executive', phone: '01684239454' },
   { name: 'Hayat Mahmud', email: 'hayat@primeacademy.org', role: 'Admission', department: 'Admission', designation: 'Admissions Executive', phone: '01322924126' },
