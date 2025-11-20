@@ -119,6 +119,7 @@ export default function Employees() {
         <table className="min-w-full text-sm">
           <thead className="bg-[#f3f6ff] text-royal">
             <tr>
+              <th className="text-left p-3">#</th>
               <th className="text-left p-3">Name</th>
               <th className="text-left p-3">Role</th>
               <th className="text-left p-3">Department</th>
@@ -129,8 +130,9 @@ export default function Employees() {
             </tr>
           </thead>
           <tbody>
-            {sortedList.map(u => (
+            {sortedList.map((u, index) => (
               <tr key={u._id} className="border-t">
+                <td className="p-3 text-royal font-semibold">{index + 1}</td>
                 <td className="p-3 flex items-center gap-2">
                   <img src={u.avatar} className="w-8 h-8 rounded-full border" />
                   <div>
@@ -151,7 +153,7 @@ export default function Employees() {
               </tr>
             ))}
             {sortedList.length === 0 && (
-              <tr><td className="p-4 text-royal/70" colSpan={canEdit ? 7 : 6}>No employees</td></tr>
+              <tr><td className="p-4 text-royal/70" colSpan={canEdit ? 8 : 7}>No employees</td></tr>
             )}
           </tbody>
         </table>
